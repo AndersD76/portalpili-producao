@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     const etapas = etapasResult.rows;
     const dataInicio = new Date(data_inicio);
-    const atividadesCriadas = [];
+    const atividadesCriadas: Array<any & { dias_acumulados: number }> = [];
 
     // Buscar próximo ID disponível
     let nextIdResult = await client.query(
