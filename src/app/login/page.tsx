@@ -24,8 +24,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Formatar ID: adicionar USR e preencher com zeros à esquerda
-      const idNumero = idFuncionario.trim();
+      // Formatar ID: remover tudo que não for número e formatar com USR
+      const idNumero = idFuncionario.trim().replace(/\D/g, ''); // Remove não-dígitos
       const idFormatado = `USR${idNumero.padStart(3, '0')}`;
 
       const response = await fetch('/api/auth/login', {
@@ -80,14 +80,14 @@ export default function LoginPage() {
             {/* ID */}
             <div>
               <label htmlFor="idFuncionario" className="block text-sm font-semibold text-gray-700 mb-2">
-                ID
+                ID do Funcionário
               </label>
               <input
                 type="text"
                 id="idFuncionario"
                 value={idFuncionario}
                 onChange={(e) => setIdFuncionario(e.target.value)}
-                placeholder="1"
+                placeholder="Digite apenas o número (ex: 2)"
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                 disabled={loading}
@@ -104,7 +104,7 @@ export default function LoginPage() {
                 id="senha"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                placeholder="Digite seu ID"
+                placeholder="Digite sua senha"
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
                 disabled={loading}
