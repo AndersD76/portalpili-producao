@@ -15,87 +15,33 @@
 5. Escolha o repositório: `AndersD76/portalpili-producao`
 6. Railway detectará Next.js automaticamente
 
-### 2. Adicionar PostgreSQL
+### 2. Configurar Variáveis de Ambiente
 
-1. No projeto criado, clique em **"+ New"**
-2. Selecione **"Database"** → **"Add PostgreSQL"**
-3. O Railway criará o banco automaticamente
-4. Anote as credenciais que aparecem
+⚠️ **IMPORTANTE**: Este projeto usa o **Neon DB** existente que já contém todos os dados (usuários, OPDs, atividades, etc.). **NÃO crie um novo PostgreSQL no Railway!**
 
-### 3. Configurar Variáveis de Ambiente
-
-No painel do Railway, vá em **Variables** e adicione:
+No painel do Railway, clique no serviço **Next.js** e vá em **Variables**. Adicione:
 
 ```env
-# Database (Railway fornece automaticamente DATABASE_URL)
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-
-# Ou configure manualmente:
-DB_HOST=${{Postgres.PGHOST}}
-DB_PORT=${{Postgres.PGPORT}}
-DB_NAME=${{Postgres.PGDATABASE}}
-DB_USER=${{Postgres.PGUSER}}
-DB_PASSWORD=${{Postgres.PGPASSWORD}}
+# Database - Usar o Neon DB existente
+DATABASE_URL=postgresql://neondb_owner:npg_pCqSLW9j2hKQ@ep-crimson-heart-ahcg1r28-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
 
 # Next.js
 NODE_ENV=production
 NEXT_PUBLIC_API_URL=https://seu-app.railway.app
 ```
 
-### 4. Executar Migrations do Banco
+**Salve as variáveis** e o Railway fará redeploy automaticamente.
 
-Após o deploy, você precisa criar as tabelas no banco PostgreSQL do Railway.
+### 3. Deploy Completo!
 
-**Opção 1: Via Railway CLI**
-```bash
-# Instalar Railway CLI
-npm install -g @railway/cli
+✅ Como você está usando o **Neon DB existente**, não precisa:
+- Executar migrations (tabelas já existem)
+- Criar usuários (já estão cadastrados)
+- Importar dados (já estão no banco)
 
-# Fazer login
-railway login
+A aplicação já está **100% funcional** após o deploy!
 
-# Conectar ao projeto
-railway link
-
-# Executar scripts
-railway run node scripts/create-table.js
-railway run node scripts/create-atividades-table.js
-railway run node scripts/run-migrations.js
-```
-
-**Opção 2: Conectar direto ao banco**
-1. No Railway, clique no PostgreSQL
-2. Vá em **"Connect"**
-3. Copie a **Connection URL**
-4. Use um cliente SQL (DBeaver, pgAdmin, etc.)
-5. Execute os scripts SQL manualmente:
-   - `scripts/update-schema.sql`
-   - `scripts/add-authentication-audit.sql`
-   - `scripts/add-chat-opd.sql`
-   - `scripts/add-data-entrega.sql`
-
-### 5. Criar Usuário Inicial
-
-Execute o script para criar o primeiro usuário:
-
-```bash
-railway run node scripts/insert-usuarios.js
-```
-
-Ou insira direto no banco:
-```sql
-INSERT INTO usuarios (nome, email, senha_hash, nivel_acesso, created, updated)
-VALUES (
-  'Admin',
-  'admin@portalpili.com',
-  'senha123', -- Mude isso em produção!
-  'admin',
-  NOW(),
-  NOW()
-);
-```
-
-### 6. Publicar a Aplicação
+### 4. Acessar a Aplicação
 
 1. Cada push no GitHub fará deploy automático
 2. Railway fornecerá uma URL pública (ex: `portalpili-producao.railway.app`)
@@ -105,13 +51,12 @@ VALUES (
 
 ```
 Railway Project
-├── Web Service (Next.js)
-│   ├── Auto-detected
-│   ├── Build: npm run build
-│   └── Start: npm start
-└── PostgreSQL Database
-    ├── Auto-provisioned
-    └── Auto-connected
+└── Web Service (Next.js)
+    ├── Auto-detected
+    ├── Build: npm run build
+    ├── Start: npm start
+    └── Database: Neon DB (externo)
+        └── Connection via DATABASE_URL
 ```
 
 ## ⚙️ Comandos Úteis Railway CLI
@@ -162,8 +107,9 @@ Railway fornece automaticamente:
 - Confirme que `package.json` tem todos os scripts
 
 ### Banco não conecta
-- Verifique se `DATABASE_URL` está configurada
-- Teste conexão com: `railway connect postgres`
+- Verifique se `DATABASE_URL` do Neon está correta nas variáveis do Railway
+- Teste a conexão localmente primeiro com: `psql "postgresql://neondb_owner:..."`
+- Confirme que o Neon DB está ativo (não foi pausado por inatividade)
 
 ### Upload de arquivos não funciona
 - Railway tem sistema de arquivos efêmero
@@ -175,15 +121,19 @@ Railway fornece automaticamente:
 - A pasta `/public/uploads` é efêmera
 - Solução: integrar com serviço de storage (S3, Cloudinary, etc.)
 
-⚠️ **Banco de dados é persistente**
-- Dados no PostgreSQL são salvos permanentemente
-- Faça backups regulares
+⚠️ **Banco de dados Neon DB**
+- Dados no Neon DB são persistentes
+- Neon tem **plano gratuito limitado**: 0.5 GB storage, 3 GB transferência/mês
+- Neon pausa bancos inativos por 7 dias (reativam automaticamente na primeira conexão)
+- Faça backups regulares do banco de produção
 
 ## 🔗 Links Úteis
 
 - Railway Dashboard: https://railway.app/dashboard
-- Documentação: https://docs.railway.app
+- Railway Docs: https://docs.railway.app
 - Next.js no Railway: https://docs.railway.app/guides/nextjs
+- Neon DB Console: https://console.neon.tech
+- Neon DB Docs: https://neon.tech/docs
 
 ---
 
