@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: 'Portal de acompanhamento de OPDs em tempo real',
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {
