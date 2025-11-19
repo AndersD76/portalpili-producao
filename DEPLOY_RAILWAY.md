@@ -25,6 +25,9 @@ No painel do Railway, clique no serviço **Next.js** e vá em **Variables**. Adi
 # Database - Usar o Neon DB existente
 DATABASE_URL=postgresql://neondb_owner:npg_pCqSLW9j2hKQ@ep-crimson-heart-ahcg1r28-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
 
+# JWT Secret (necessário para autenticação)
+JWT_SECRET=pili-production-secret-key-2025-change-in-production
+
 # Next.js
 NODE_ENV=production
 NEXT_PUBLIC_API_URL=https://seu-app.railway.app

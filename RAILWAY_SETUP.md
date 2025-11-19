@@ -30,7 +30,19 @@ DATABASE_URL
 postgresql://neondb_owner:npg_pCqSLW9j2hKQ@ep-crimson-heart-ahcg1r28-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
 ```
 
-5. Clique em **"Add"** ou **"Save"**
+5. Adicione também o **JWT_SECRET**:
+
+**Nome:**
+```
+JWT_SECRET
+```
+
+**Valor:**
+```
+pili-production-secret-key-2025-change-in-production
+```
+
+6. Clique em **"Add"** ou **"Save"** em cada variável
 
 ### 3️⃣ Redeploy Automático
 
