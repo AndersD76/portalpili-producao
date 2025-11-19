@@ -1,5 +1,15 @@
 import { Pool } from 'pg';
 
+// Log para debug
+console.log('[DB] DATABASE_URL presente:', !!process.env.DATABASE_URL);
+console.log('[DB] DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
+console.log('[DB] NODE_ENV:', process.env.NODE_ENV);
+
+if (!process.env.DATABASE_URL) {
+  console.error('[DB] ERRO: DATABASE_URL não configurada!');
+  console.error('[DB] Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('DATA')));
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
