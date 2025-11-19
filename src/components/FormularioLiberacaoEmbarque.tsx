@@ -94,7 +94,7 @@ export default function FormularioLiberacaoEmbarque({
     setError(null);
 
     try {
-      const uploadedFiles = [];
+      const uploadedFiles: Array<{ filename: string; url: string; size: number }> = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];

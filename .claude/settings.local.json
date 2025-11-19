@@ -40,7 +40,13 @@
       "Bash(node scripts/check-triggers.js:*)",
       "Bash(node:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit - Portal Pili Production\n\nSistema completo de gestão de OPDs (Ordens de Produção) com:\n\n- Gestão de OPDs com dashboard e calendário\n- Sistema de atividades com tracking de tempo real\n- Três formulários de registro: Reunião de Start, Preparação e Liberação e Embarque\n- Sistema de comentários por OPD\n- Autenticação de usuários\n- Upload de arquivos e imagens\n- Visualização de formulários preenchidos\n- Auditoria de ações\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

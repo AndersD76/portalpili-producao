@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Modal from './Modal';
-import { FormularioPreenchido } from '@/types/atividade';
+import { FormularioPreenchido, TipoFormulario } from '@/types/atividade';
 
 interface ModalVisualizarFormularioProps {
   isOpen: boolean;
   onClose: () => void;
   atividadeId: number;
   numeroOpd: string;
-  tipoFormulario: 'REUNIAO_START' | 'PREPARACAO' | 'LIBERACAO_EMBARQUE';
+  tipoFormulario: TipoFormulario;
 }
 
 export default function ModalVisualizarFormulario({

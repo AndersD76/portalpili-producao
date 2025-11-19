@@ -56,7 +56,9 @@ export interface UpdateAtividadeRequest {
 export type TipoFormulario =
   | 'REUNIAO_START'
   | 'PREPARACAO'
-  | 'LIBERACAO_EMBARQUE';
+  | 'DESEMBARQUE_PRE_INSTALACAO'
+  | 'LIBERACAO_EMBARQUE'
+  | 'ENTREGA';
 
 // Todas as etapas do sistema (ordem de execução)
 export type EstagioOPD =
@@ -225,8 +227,6 @@ export interface DadosLiberacaoEmbarque {
   data_liberacao: string;
 }
 
-/*
-
 export interface DadosDesembarquePreInstalacao {
   nota_fiscal_conferida: boolean | null;
   serie_confere: boolean | null;
@@ -248,30 +248,6 @@ export interface DadosDesembarquePreInstalacao {
   imagem_aterramento: string | null;
   responsavel_verificacao: string;
   data_verificacao: string;
-}
-
-export interface DadosLiberacaoEmbarque {
-  nota_fiscal_presente: boolean | null;
-  checklist_completo: boolean | null;
-  manual_certificado: boolean | null;
-  fixacao_partes_moveis: boolean | null;
-  aperto_parafusos: boolean | null;
-  pecas_soltas: boolean | null;
-  superficies_protegidas: boolean | null;
-  nivel_oleo_verificado: boolean | null;
-  imagem_nivel_oleo: string | null;
-  conectores_protegidos: boolean | null;
-  mangueiras_fixadas: boolean | null;
-  imagem_superficies: string | null;
-  painel_fechado: boolean | null;
-  imagem_painel: string | null;
-  cabos_protegidos: boolean | null;
-  sensores_etiquetados: boolean | null;
-  equipamento_fixado: boolean | null;
-  equipamento_protegido: boolean | null;
-  imagem_carga: string | null;
-  responsavel_liberacao: string;
-  data_liberacao: string;
 }
 
 export interface DadosEntrega {
@@ -311,7 +287,6 @@ export interface DadosEntrega {
   data_aceite_final: string;
   responsavel_aceite_final: string;
 }
-*/
 
 // Notificações
 export interface Notificacao {
