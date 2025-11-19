@@ -7,6 +7,10 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  // Desabilitar geração estática para evitar erros de prerendering
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
 }
 
 module.exports = nextConfig
