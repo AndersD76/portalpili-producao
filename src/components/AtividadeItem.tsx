@@ -8,6 +8,7 @@ import FormularioReuniao from './FormularioReuniao';
 import FormularioPreparacao from './FormularioPreparacao';
 import FormularioLiberacaoEmbarque from './FormularioLiberacaoEmbarque';
 import ModalVisualizarFormulario from './ModalVisualizarFormulario';
+import ModalVisualizarArquivo from './ModalVisualizarArquivo';
 
 interface AtividadeItemProps {
   atividade: Atividade;
@@ -26,12 +27,16 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
   const [showVisualizarModal, setShowVisualizarModal] = useState(false);
   const [showJustificativaModal, setShowJustificativaModal] = useState(false);
   const [showDataHoraModal, setShowDataHoraModal] = useState(false);
+  const [showArquivoModal, setShowArquivoModal] = useState(false);
   const [justificativa, setJustificativa] = useState('');
   const [dataHora, setDataHora] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [acaoPendente, setAcaoPendente] = useState<'iniciar' | 'finalizar' | 'desmarcar' | null>(null);
   const [user, setUser] = useState<any>(null);
   const [temFormulario, setTemFormulario] = useState(false);
   const checkboxRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     // Carregar dados do usuário do localStorage
@@ -209,11 +214,52 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
            atividadeLower.includes('liberacao e embarque');
   };
 
+  const isDefinicaoObraCivil = () => {
+    const atividadeLower = atividade.atividade?.toLowerCase() || '';
+    return atividadeLower.includes('definição da obra civil') ||
+           atividadeLower.includes('definicao da obra civil');
+  };
+
   const getTipoFormulario = (): 'REUNIAO_START' | 'PREPARACAO' | 'LIBERACAO_EMBARQUE' | null => {
     if (isReuniaoStart()) return 'REUNIAO_START';
     if (isPreparacao()) return 'PREPARACAO';
     if (isLiberacaoEmbarque()) return 'LIBERACAO_EMBARQUE';
     return null;
+  };
+
+  const handleArquivoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setArquivo(e.target.files[0]);
+    }
+  };
+
+  const uploadArquivo = async (file: File): Promise<{ filename: string; url: string; size: number } | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('tipo', 'obra_civil');
+      formData.append('numero_opd', atividade.numero_opd);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        return {
+          filename: result.filename,
+          url: result.url,
+          size: file.size
+        };
+      }
+
+      throw new Error(result.error || 'Erro ao fazer upload');
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      throw error;
+    }
   };
 
   // Verificar se há formulário preenchido
@@ -345,15 +391,72 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
       return;
     }
 
+    // Se é definição da obra civil e está iniciando, o arquivo é obrigatório
+    if (isDefinicaoObraCivil() && acaoPendente === 'iniciar' && !arquivo) {
+      alert('Por favor, anexe o arquivo da obra civil');
+      return;
+    }
+
+    setLoading(true);
     try {
+      let formularioAnexo = null;
+
+      // Se tem arquivo, fazer upload primeiro
+      if (arquivo) {
+        setUploadingFile(true);
+        try {
+          formularioAnexo = await uploadArquivo(arquivo);
+        } catch (error) {
+          alert('Erro ao fazer upload do arquivo');
+          setUploadingFile(false);
+          setLoading(false);
+          return;
+        }
+        setUploadingFile(false);
+      }
+
+      // Preparar dados de atualização
+      const updateData: any = {};
+
       if (acaoPendente === 'iniciar') {
-        await handleStatusChange('EM ANDAMENTO', undefined, dataHora);
+        updateData.status = 'EM ANDAMENTO';
+        updateData.data_inicio = dataHora ? new Date(dataHora).toISOString() : new Date().toISOString();
+        updateData.iniciado_por_id = user?.id;
+        updateData.iniciado_por_nome = user?.nome;
+        updateData.iniciado_por_id_funcionario = user?.id_funcionario;
+
+        if (formularioAnexo) {
+          updateData.formulario_anexo = formularioAnexo;
+        }
       } else if (acaoPendente === 'finalizar') {
-        await handleStatusChange('CONCLUÍDA', undefined, dataHora);
+        updateData.status = 'CONCLUÍDA';
+        updateData.data_termino = dataHora ? new Date(dataHora).toISOString() : new Date().toISOString();
+        updateData.finalizado_por_id = user?.id;
+        updateData.finalizado_por_nome = user?.nome;
+        updateData.finalizado_por_id_funcionario = user?.id_funcionario;
+      }
+
+      await onUpdate(atividade.id, updateData);
+
+      // Criar registro de auditoria
+      let acao: any = 'EDITADA';
+      if (acaoPendente === 'iniciar') acao = 'INICIADA';
+      if (acaoPendente === 'finalizar') acao = 'CONCLUIDA';
+
+      if (user) {
+        await createAuditRecord(
+          user.id,
+          user.nome,
+          user.id_funcionario,
+          acao,
+          atividade.status,
+          updateData.status
+        );
       }
 
       setShowDataHoraModal(false);
       setDataHora('');
+      setArquivo(null);
       setAcaoPendente(null);
       setTimeout(() => {
         onRefresh();
@@ -361,6 +464,8 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
     } catch (error) {
       console.error('Erro ao alterar status:', error);
       alert('Erro ao alterar o status da atividade');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -615,7 +720,9 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
 
             {atividade.formulario_anexo && (
               <div className="mt-3 bg-blue-50 p-3 rounded border border-blue-200">
-                <span className="font-semibold text-gray-700 text-sm">Formulário Anexado:</span>
+                <span className="font-semibold text-gray-700 text-sm">
+                  {isDefinicaoObraCivil() ? 'Arquivo da Obra Civil:' : 'Formulário Anexado:'}
+                </span>
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center space-x-2">
                     <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -624,10 +731,10 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
                     <span className="text-sm text-gray-700">{atividade.formulario_anexo.filename}</span>
                   </div>
                   <button
-                    onClick={() => window.open(atividade.formulario_anexo?.url, '_blank')}
+                    onClick={() => setShowArquivoModal(true)}
                     className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition"
                   >
-                    Ver
+                    Visualizar
                   </button>
                 </div>
               </div>
@@ -735,6 +842,7 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
         onClose={() => {
           setShowDataHoraModal(false);
           setDataHora('');
+          setArquivo(null);
           setAcaoPendente(null);
         }}
         title={acaoPendente === 'iniciar' ? 'Informar Data/Hora de Início' : 'Informar Data/Hora de Término'}
@@ -772,11 +880,63 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
             />
           </div>
 
+          {/* Campo de upload para Definição da Obra Civil */}
+          {isDefinicaoObraCivil() && acaoPendente === 'iniciar' && (
+            <div>
+              <label htmlFor="arquivoObraCivil" className="block text-sm font-semibold text-gray-700 mb-2">
+                Arquivo da Obra Civil *
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-red-500 transition">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="arquivoObraCivil"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={handleArquivoChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center py-3"
+                >
+                  <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span className="text-sm text-gray-600">
+                    {arquivo ? arquivo.name : 'Clique para selecionar um arquivo'}
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">PDF, JPG, PNG, DOC (máx. 10MB)</span>
+                </button>
+              </div>
+              {arquivo && (
+                <div className="mt-2 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-sm text-green-800">{arquivo.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setArquivo(null)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <button
               onClick={() => {
                 setShowDataHoraModal(false);
                 setDataHora('');
+                setArquivo(null);
                 setAcaoPendente(null);
               }}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
@@ -785,10 +945,10 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
             </button>
             <button
               onClick={handleConfirmarDataHora}
-              disabled={!dataHora.trim() || loading}
+              disabled={!dataHora.trim() || loading || uploadingFile}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Salvando...' : 'Confirmar'}
+              {uploadingFile ? 'Enviando arquivo...' : loading ? 'Salvando...' : 'Confirmar'}
             </button>
           </div>
         </div>
@@ -855,6 +1015,14 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
           tipoFormulario={getTipoFormulario()!}
         />
       )}
+
+      {/* Modal de Visualização de Arquivo */}
+      <ModalVisualizarArquivo
+        isOpen={showArquivoModal}
+        onClose={() => setShowArquivoModal(false)}
+        arquivo={atividade.formulario_anexo}
+        titulo={isDefinicaoObraCivil() ? 'Arquivo da Obra Civil' : 'Formulário Anexado'}
+      />
 
     </div>
   );
