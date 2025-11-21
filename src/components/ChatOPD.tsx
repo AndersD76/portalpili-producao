@@ -25,8 +25,6 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
   const [novaMensagem, setNovaMensagem] = useState('');
   const [enviando, setEnviando] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
 
   // Carregar comentários iniciais
   useEffect(() => {
@@ -42,32 +40,6 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
 
     return () => clearInterval(interval);
   }, [numeroOPD]);
-
-  // Auto scroll apenas se estiver no final
-  useEffect(() => {
-    if (autoScroll) {
-      scrollToBottom();
-    }
-  }, [comentarios, autoScroll]);
-
-  // Detectar se usuário está no final do chat
-  useEffect(() => {
-    const container = chatContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setAutoScroll(isAtBottom);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const fetchComentarios = async (silent = false) => {
     if (!silent) {
@@ -127,7 +99,6 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
 
       if (result.success) {
         setNovaMensagem('');
-        setAutoScroll(true); // Forçar scroll ao final após enviar
         fetchComentarios(); // Recarregar comentários
       } else {
         alert('Erro ao enviar mensagem');
@@ -212,7 +183,7 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
       </div>
 
       {/* Área de Mensagens */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {comentarios.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
