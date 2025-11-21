@@ -68,7 +68,7 @@ export default function ModalVisualizarFormulario({
 
     return (
       <div className="space-y-6">
-        {/* Informações Estruturais */}
+        {/* INFORMAÇÕES ESTRUTURAIS */}
         <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
           <h4 className="font-bold text-lg mb-4 text-blue-900">INFORMAÇÕES ESTRUTURAIS</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -77,61 +77,294 @@ export default function ModalVisualizarFormulario({
               <p>{dados.equipamento || 'N/A'}</p>
             </div>
             <div>
-              <span className="font-semibold">Modelo:</span>
-              <p>{dados.modelo || 'N/A'}</p>
+              <span className="font-semibold">Data de Entrega:</span>
+              <p>{dados.data_entrega ? new Date(dados.data_entrega).toLocaleDateString('pt-BR') : 'N/A'}</p>
             </div>
             <div>
-              <span className="font-semibold">Nº de Série:</span>
-              <p>{dados.numero_serie || 'N/A'}</p>
+              <span className="font-semibold">Vigas:</span>
+              <p>{dados.vigas || 'N/A'}</p>
             </div>
             <div>
-              <span className="font-semibold">Tipo de Equipamento:</span>
-              <p>{dados.tipo_equipamento || 'N/A'}</p>
+              <span className="font-semibold">Cilindros (Tipo):</span>
+              <p>{dados.cilindros_tipo || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Cilindros (Estágios):</span>
+              <p>{dados.cilindros_estagios || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Moldura:</span>
+              <p>{dados.moldura || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calhas Laterais:</span>
+              <p>{dados.calhas_laterais || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calhas Inferiores:</span>
+              <p>{dados.calhas_inferiores || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Trava Rodas:</span>
+              <p>{dados.qtd_trava_rodas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Trava Chassi:</span>
+              <p>{dados.qtd_trava_chassis || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Modelo de Trava Chassi:</span>
+              <p>{dados.modelo_trava_chassis || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Pino:</span>
+              <p>{dados.trava_pino || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Rodas de Deslocamento:</span>
+              <p>{dados.rodas_deslocamento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Braços:</span>
+              <p>{dados.bracos || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Dentes da Cinta:</span>
+              <p>{dados.qtd_dentes_cinta || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calhas Montadas para Transporte:</span>
+              <p>{dados.calhas_montadas_transporte || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data de Entrega de Chumbadores:</span>
+              <p>{dados.data_entrega_chumbadores ? new Date(dados.data_entrega_chumbadores).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* INFORMAÇÕES DA CENTRAL E PAINEL */}
+        <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
+          <h4 className="font-bold text-lg mb-4 text-green-900">INFORMAÇÕES DA CENTRAL E PAINEL</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Voltagem do Cliente:</span>
+              <p>{dados.voltagem_cliente || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Tipo de Acionamento:</span>
+              <p>{dados.tipo_acionamento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Sensor Moega Cheia:</span>
+              <p>{dados.sensor_moega_cheia || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Sensor 40°:</span>
+              <p>{dados.sensor_40 || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Sensor Trava Roda Aberto:</span>
+              <p>{dados.sensor_trava_roda_aberto || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Relé de Segurança:</span>
+              <p>{dados.rele_seguranca || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Pedestal do Motorista:</span>
+              <p>{dados.pedestal_motorista || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Óleo Especial:</span>
+              <p>{dados.oleo_especial || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Central Auxiliar:</span>
+              <p>{dados.central_auxiliar || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calço de Segurança:</span>
+              <p>{dados.calco_seguranca || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Espera Sensor Portão:</span>
+              <p>{dados.espera_sensor_portao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Kit Descida Rápida:</span>
+              <p>{dados.kit_descida_rapida || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Corte Central:</span>
+              <p>{dados.prazo_corte_central ? new Date(dados.prazo_corte_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Dobra Central:</span>
+              <p>{dados.prazo_dobra_central ? new Date(dados.prazo_dobra_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Solda Central:</span>
+              <p>{dados.prazo_solda_central ? new Date(dados.prazo_solda_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Eng Planos Central:</span>
+              <p>{dados.prazo_eng_planos_central ? new Date(dados.prazo_eng_planos_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
             </div>
             <div className="col-span-2">
-              <span className="font-semibold">Local de Instalação:</span>
-              <p>{dados.local_instalacao || 'N/A'}</p>
+              <span className="font-semibold">Outras Informações:</span>
+              <p className="whitespace-pre-wrap">{dados.outras_informacoes || 'N/A'}</p>
             </div>
           </div>
         </div>
 
-        {/* Equipe */}
-        <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
-          <h4 className="font-bold text-lg mb-4 text-green-900">EQUIPE</h4>
+        {/* INFORMAÇÕES DE CILINDROS */}
+        <div className="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
+          <h4 className="font-bold text-lg mb-4 text-purple-900">INFORMAÇÕES DE CILINDROS</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="font-semibold">Técnico Responsável:</span>
-              <p>{dados.tecnico_responsavel || 'N/A'}</p>
+              <span className="font-semibold">Trava Roda:</span>
+              <p>{dados.cilindros_trava_roda || 'N/A'}</p>
             </div>
             <div>
-              <span className="font-semibold">Equipe de Apoio:</span>
-              <p>{dados.equipe_apoio || 'N/A'}</p>
+              <span className="font-semibold">Trava Chassi (Gaveta):</span>
+              <p>{dados.cilindros_trava_chassis_gaveta || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Chassi (Telesc Articulação):</span>
+              <p>{dados.cilindros_trava_chassis_telesc_articulacao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Chassi (Telesc Elevação):</span>
+              <p>{dados.cilindros_trava_chassis_telesc_elevacao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Rodas:</span>
+              <p>{dados.cilindros_rodas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Rampas:</span>
+              <p>{dados.cilindros_rampas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Freio:</span>
+              <p>{dados.cilindros_freio || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Abertura Trava Pino:</span>
+              <p>{dados.cilindros_abertura_trava_pino || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Cabeçote Trava Pino:</span>
+              <p>{dados.cilindros_cabecote_trava_pino || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data Máxima de Entrega:</span>
+              <p>{dados.data_max_entrega_cilindros ? new Date(dados.data_max_entrega_cilindros).toLocaleDateString('pt-BR') : 'N/A'}</p>
             </div>
           </div>
         </div>
 
-        {/* Cronograma */}
+        {/* INFORMAÇÕES IN LOCO */}
         <div className="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
-          <h4 className="font-bold text-lg mb-4 text-yellow-900">CRONOGRAMA</h4>
+          <h4 className="font-bold text-lg mb-4 text-yellow-900">INFORMAÇÕES IN LOCO</h4>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="font-semibold">Prazo de Entrega:</span>
-              <p>{dados.prazo_entrega ? new Date(dados.prazo_entrega).toLocaleDateString('pt-BR') : 'N/A'}</p>
+              <span className="font-semibold">Obra Civil Definida:</span>
+              <p>{dados.obra_civil_definida || 'N/A'}</p>
             </div>
             <div>
-              <span className="font-semibold">Duração Estimada (dias):</span>
-              <p>{dados.duracao_estimada || 'N/A'}</p>
+              <span className="font-semibold">Prazo para Definição:</span>
+              <p>{dados.prazo_definicao_obra ? new Date(dados.prazo_definicao_obra).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Fixação de Pedestais:</span>
+              <p>{dados.fixacao_pedestais || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Localização da Central:</span>
+              <p>{dados.localizacao_central === 'OUTRA' && dados.localizacao_central_outra ? dados.localizacao_central_outra : dados.localizacao_central || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Suporte Ripas Laterais:</span>
+              <p>{dados.suporte_ripas_laterais || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Suporte Tubulação da Moega:</span>
+              <p>{dados.suporte_tubulacao_moega || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Conj. de Munhões:</span>
+              <p>{dados.conj_munhoes || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Munhões:</span>
+              <p>{dados.qtd_munhoes || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Enclausuramento:</span>
+              <p>{dados.enclausuramento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Fabricar Portões:</span>
+              <p>{dados.fabricar_portoes || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data Máxima Montagem In Loco:</span>
+              <p>{dados.data_max_montagem_loco ? new Date(dados.data_max_montagem_loco).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Informações Adicionais:</span>
+              <p className="whitespace-pre-wrap">{dados.info_adicional_loco || 'N/A'}</p>
             </div>
           </div>
         </div>
 
-        {/* Observações */}
-        {dados.observacoes && (
-          <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
-            <h4 className="font-bold text-lg mb-2">OBSERVAÇÕES</h4>
-            <p className="text-sm whitespace-pre-wrap">{dados.observacoes}</p>
+        {/* INFORMAÇÕES SOB PLATAFORMA */}
+        <div className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
+          <h4 className="font-bold text-lg mb-4 text-orange-900">INFORMAÇÕES SOB PLATAFORMA</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Hidráulica:</span>
+              <p>{dados.hidraulica || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Passagem:</span>
+              <p>{dados.passagem || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data de Início de Montagem:</span>
+              <p>{dados.data_inicio_montagem ? new Date(dados.data_inicio_montagem).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* PRAZO PARA LIBERAÇÕES */}
+        <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
+          <h4 className="font-bold text-lg mb-4 text-red-900">PRAZO PARA LIBERAÇÕES</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Prazo Estrutura:</span>
+              <p>{dados.prazo_estrutura ? new Date(dados.prazo_estrutura).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Central:</span>
+              <p>{dados.prazo_central ? new Date(dados.prazo_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Painel:</span>
+              <p>{dados.prazo_painel ? new Date(dados.prazo_painel).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo In Loco:</span>
+              <p>{dados.prazo_in_loco ? new Date(dados.prazo_in_loco).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Sob Plataforma:</span>
+              <p>{dados.prazo_sob_plataforma ? new Date(dados.prazo_sob_plataforma).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
