@@ -5,8 +5,12 @@ import { useState, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import AtividadeForm from './AtividadeForm';
 import FormularioReuniao from './FormularioReuniao';
+import FormularioReuniaoStart2 from './FormularioReuniaoStart2';
 import FormularioPreparacao from './FormularioPreparacao';
 import FormularioLiberacaoEmbarque from './FormularioLiberacaoEmbarque';
+import FormularioControleQualidade from './FormularioControleQualidade';
+import FormularioControleQualidadeCentral from './FormularioControleQualidadeCentral';
+import FormularioControleQualidadeSolda from './FormularioControleQualidadeSolda';
 import ModalVisualizarFormulario from './ModalVisualizarFormulario';
 import ModalVisualizarArquivo from './ModalVisualizarArquivo';
 
@@ -22,8 +26,12 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
   const [expanded, setExpanded] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showReuniaoModal, setShowReuniaoModal] = useState(false);
+  const [showReuniaoStart2Modal, setShowReuniaoStart2Modal] = useState(false);
   const [showPreparacaoModal, setShowPreparacaoModal] = useState(false);
   const [showLiberacaoModal, setShowLiberacaoModal] = useState(false);
+  const [showControleQualidadeModal, setShowControleQualidadeModal] = useState(false);
+  const [showControleQualidadeCentralModal, setShowControleQualidadeCentralModal] = useState(false);
+  const [showControleQualidadeSoldaModal, setShowControleQualidadeSoldaModal] = useState(false);
   const [showVisualizarModal, setShowVisualizarModal] = useState(false);
   const [showJustificativaModal, setShowJustificativaModal] = useState(false);
   const [showDataHoraModal, setShowDataHoraModal] = useState(false);
@@ -197,8 +205,15 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
 
   const isReuniaoStart = () => {
     const atividadeLower = atividade.atividade?.toLowerCase() || '';
-    return atividadeLower.includes('reunião de start') ||
-           atividadeLower.includes('reuniao de start');
+    return (atividadeLower.includes('reunião de start') ||
+           atividadeLower.includes('reuniao de start')) &&
+           !atividadeLower.includes('start 2');
+  };
+
+  const isReuniaoStart2 = () => {
+    const atividadeLower = atividade.atividade?.toLowerCase() || '';
+    return (atividadeLower.includes('reunião de start 2') ||
+           atividadeLower.includes('reuniao de start 2'));
   };
 
   const isPreparacao = () => {
@@ -214,16 +229,38 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
            atividadeLower.includes('liberacao e embarque');
   };
 
+  const isCorte = () => {
+    const atividadeLower = atividade.atividade?.toLowerCase() || '';
+    return atividadeLower.includes('corte') ||
+           atividadeLower.includes('programação de corte');
+  };
+
+  const isCentralHidraulica = () => {
+    const atividadeLower = atividade.atividade?.toLowerCase() || '';
+    return atividadeLower.includes('central') && atividadeLower.includes('hidráulica') ||
+           atividadeLower.includes('central') && atividadeLower.includes('hidraulica');
+  };
+
+  const isSolda = () => {
+    const atividadeLower = atividade.atividade?.toLowerCase() || '';
+    return atividadeLower.includes('solda') && atividadeLower.includes('lado 1') ||
+           atividadeLower.includes('solda lado 1');
+  };
+
   const isDefinicaoObraCivil = () => {
     const atividadeLower = atividade.atividade?.toLowerCase() || '';
     return atividadeLower.includes('definição da obra civil') ||
            atividadeLower.includes('definicao da obra civil');
   };
 
-  const getTipoFormulario = (): 'REUNIAO_START' | 'PREPARACAO' | 'LIBERACAO_EMBARQUE' | null => {
+  const getTipoFormulario = (): 'REUNIAO_START' | 'REUNIAO_START_2' | 'PREPARACAO' | 'LIBERACAO_EMBARQUE' | 'CONTROLE_QUALIDADE' | 'CONTROLE_QUALIDADE_CENTRAL' | 'CONTROLE_QUALIDADE_SOLDA' | null => {
     if (isReuniaoStart()) return 'REUNIAO_START';
+    if (isReuniaoStart2()) return 'REUNIAO_START_2';
     if (isPreparacao()) return 'PREPARACAO';
     if (isLiberacaoEmbarque()) return 'LIBERACAO_EMBARQUE';
+    if (isCorte()) return 'CONTROLE_QUALIDADE';
+    if (isCentralHidraulica()) return 'CONTROLE_QUALIDADE_CENTRAL';
+    if (isSolda()) return 'CONTROLE_QUALIDADE_SOLDA';
     return null;
   };
 
@@ -276,6 +313,12 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
           endpoint = `/api/formularios-preparacao/${atividade.numero_opd}?atividade_id=${atividade.id}`;
         } else if (tipo === 'LIBERACAO_EMBARQUE') {
           endpoint = `/api/formularios-liberacao-embarque/${atividade.numero_opd}?atividade_id=${atividade.id}`;
+        } else if (tipo === 'CONTROLE_QUALIDADE') {
+          endpoint = `/api/formularios-controle-qualidade/${atividade.numero_opd}?atividade_id=${atividade.id}`;
+        } else if (tipo === 'CONTROLE_QUALIDADE_CENTRAL') {
+          endpoint = `/api/formularios-controle-qualidade-central/${atividade.numero_opd}?atividade_id=${atividade.id}`;
+        } else if (tipo === 'CONTROLE_QUALIDADE_SOLDA') {
+          endpoint = `/api/formularios-controle-qualidade-solda/${atividade.numero_opd}?atividade_id=${atividade.id}`;
         }
 
         const response = await fetch(endpoint);
@@ -311,6 +354,17 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
           return;
         }
 
+        // Verificar se é Reunião de Start 2 - abre formulário com dados do Start 1
+        if (isReuniaoStart2()) {
+          setAcaoPendente('iniciar');
+          setShowReuniaoStart2Modal(true);
+          // Desmarcar temporariamente até preencher formulário
+          if (checkboxRef.current) {
+            checkboxRef.current.checked = false;
+          }
+          return;
+        }
+
         // Verificar se é tarefa de preparação - abre formulário específico primeiro
         if (isPreparacao()) {
           setAcaoPendente('iniciar');
@@ -326,6 +380,39 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
         if (isLiberacaoEmbarque()) {
           setAcaoPendente('iniciar');
           setShowLiberacaoModal(true);
+          // Desmarcar temporariamente até preencher formulário
+          if (checkboxRef.current) {
+            checkboxRef.current.checked = false;
+          }
+          return;
+        }
+
+        // Verificar se é tarefa de Corte - abre formulário de controle de qualidade primeiro
+        if (isCorte()) {
+          setAcaoPendente('iniciar');
+          setShowControleQualidadeModal(true);
+          // Desmarcar temporariamente até preencher formulário
+          if (checkboxRef.current) {
+            checkboxRef.current.checked = false;
+          }
+          return;
+        }
+
+        // Verificar se é tarefa de Central Hidráulica - abre formulário de controle de qualidade central primeiro
+        if (isCentralHidraulica()) {
+          setAcaoPendente('iniciar');
+          setShowControleQualidadeCentralModal(true);
+          // Desmarcar temporariamente até preencher formulário
+          if (checkboxRef.current) {
+            checkboxRef.current.checked = false;
+          }
+          return;
+        }
+
+        // Verificar se é tarefa de Solda Lado 1 - abre formulário de controle de qualidade solda primeiro
+        if (isSolda()) {
+          setAcaoPendente('iniciar');
+          setShowControleQualidadeSoldaModal(true);
           // Desmarcar temporariamente até preencher formulário
           if (checkboxRef.current) {
             checkboxRef.current.checked = false;
@@ -478,6 +565,15 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
     setShowDataHoraModal(true);
   };
 
+  const handleReuniaoStart2FormSuccess = () => {
+    setShowReuniaoStart2Modal(false);
+    setTemFormulario(true);
+    // Após preencher o formulário de Reunião Start 2, abrir modal para informar data/hora de início
+    setAcaoPendente('iniciar');
+    setDataHora(new Date().toISOString().slice(0, 16));
+    setShowDataHoraModal(true);
+  };
+
   const handlePreparacaoFormSuccess = () => {
     setShowPreparacaoModal(false);
     setTemFormulario(true);
@@ -491,6 +587,33 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
     setShowLiberacaoModal(false);
     setTemFormulario(true);
     // Após preencher o formulário de liberação e embarque, abrir modal para informar data/hora de início
+    setAcaoPendente('iniciar');
+    setDataHora(new Date().toISOString().slice(0, 16));
+    setShowDataHoraModal(true);
+  };
+
+  const handleControleQualidadeFormSuccess = () => {
+    setShowControleQualidadeModal(false);
+    setTemFormulario(true);
+    // Após preencher o formulário de controle de qualidade, abrir modal para informar data/hora de início
+    setAcaoPendente('iniciar');
+    setDataHora(new Date().toISOString().slice(0, 16));
+    setShowDataHoraModal(true);
+  };
+
+  const handleControleQualidadeCentralFormSuccess = () => {
+    setShowControleQualidadeCentralModal(false);
+    setTemFormulario(true);
+    // Após preencher o formulário de controle de qualidade central, abrir modal para informar data/hora de início
+    setAcaoPendente('iniciar');
+    setDataHora(new Date().toISOString().slice(0, 16));
+    setShowDataHoraModal(true);
+  };
+
+  const handleControleQualidadeSoldaFormSuccess = () => {
+    setShowControleQualidadeSoldaModal(false);
+    setTemFormulario(true);
+    // Após preencher o formulário de controle de qualidade solda, abrir modal para informar data/hora de início
     setAcaoPendente('iniciar');
     setDataHora(new Date().toISOString().slice(0, 16));
     setShowDataHoraModal(true);
@@ -971,6 +1094,23 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
         </Modal>
       )}
 
+      {/* Modal de Formulário Reunião de Start 2 */}
+      {isReuniaoStart2() && (
+        <Modal
+          isOpen={showReuniaoStart2Modal}
+          onClose={() => setShowReuniaoStart2Modal(false)}
+          title={`Formulário - ${atividade.atividade}`}
+        >
+          <FormularioReuniaoStart2
+            opd={atividade.numero_opd}
+            cliente={opdCliente || 'N/A'}
+            atividadeId={atividade.id}
+            onSubmit={handleReuniaoStart2FormSuccess}
+            onCancel={() => setShowReuniaoStart2Modal(false)}
+          />
+        </Modal>
+      )}
+
       {/* Modal de Formulário Preparação */}
       {isPreparacao() && (
         <Modal
@@ -1001,6 +1141,57 @@ export default function AtividadeItem({ atividade, opdCliente, onUpdate, onRefre
             atividadeId={atividade.id}
             onSubmit={handleLiberacaoFormSuccess}
             onCancel={() => setShowLiberacaoModal(false)}
+          />
+        </Modal>
+      )}
+
+      {/* Modal de Formulário Controle de Qualidade */}
+      {isCorte() && (
+        <Modal
+          isOpen={showControleQualidadeModal}
+          onClose={() => setShowControleQualidadeModal(false)}
+          title={`Controle de Qualidade - ${atividade.atividade}`}
+        >
+          <FormularioControleQualidade
+            opd={atividade.numero_opd}
+            cliente={opdCliente || 'N/A'}
+            atividadeId={atividade.id}
+            onSubmit={handleControleQualidadeFormSuccess}
+            onCancel={() => setShowControleQualidadeModal(false)}
+          />
+        </Modal>
+      )}
+
+      {/* Modal de Formulário Controle de Qualidade Central */}
+      {isCentralHidraulica() && (
+        <Modal
+          isOpen={showControleQualidadeCentralModal}
+          onClose={() => setShowControleQualidadeCentralModal(false)}
+          title={`Controle de Qualidade - ${atividade.atividade}`}
+        >
+          <FormularioControleQualidadeCentral
+            opd={atividade.numero_opd}
+            cliente={opdCliente || 'N/A'}
+            atividadeId={atividade.id}
+            onSubmit={handleControleQualidadeCentralFormSuccess}
+            onCancel={() => setShowControleQualidadeCentralModal(false)}
+          />
+        </Modal>
+      )}
+
+      {/* Modal de Formulário Controle de Qualidade Solda */}
+      {isSolda() && (
+        <Modal
+          isOpen={showControleQualidadeSoldaModal}
+          onClose={() => setShowControleQualidadeSoldaModal(false)}
+          title={`Controle de Qualidade - ${atividade.atividade}`}
+        >
+          <FormularioControleQualidadeSolda
+            opd={atividade.numero_opd}
+            cliente={opdCliente || 'N/A'}
+            atividadeId={atividade.id}
+            onSubmit={handleControleQualidadeSoldaFormSuccess}
+            onCancel={() => setShowControleQualidadeSoldaModal(false)}
           />
         </Modal>
       )}

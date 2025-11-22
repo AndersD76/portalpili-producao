@@ -37,10 +37,18 @@ export default function ModalVisualizarFormulario({
       let endpoint = '';
       if (tipoFormulario === 'REUNIAO_START') {
         endpoint = `/api/formularios-reuniao/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'REUNIAO_START_2') {
+        endpoint = `/api/formularios-start2/${numeroOpd}?atividade_id=${atividadeId}`;
       } else if (tipoFormulario === 'PREPARACAO') {
         endpoint = `/api/formularios-preparacao/${numeroOpd}?atividade_id=${atividadeId}`;
       } else if (tipoFormulario === 'LIBERACAO_EMBARQUE') {
         endpoint = `/api/formularios-liberacao-embarque/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE') {
+        endpoint = `/api/formularios-controle-qualidade/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL') {
+        endpoint = `/api/formularios-controle-qualidade-central/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA') {
+        endpoint = `/api/formularios-controle-qualidade-solda/${numeroOpd}?atividade_id=${atividadeId}`;
       }
 
       const response = await fetch(endpoint);
@@ -613,6 +621,9 @@ export default function ModalVisualizarFormulario({
     if (tipoFormulario === 'REUNIAO_START') return 'Formulário - Reunião de Start';
     if (tipoFormulario === 'PREPARACAO') return 'Formulário - Preparação';
     if (tipoFormulario === 'LIBERACAO_EMBARQUE') return 'Formulário - Liberação e Embarque';
+    if (tipoFormulario === 'CONTROLE_QUALIDADE') return 'Controle de Qualidade';
+    if (tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL') return 'Controle de Qualidade - Central Hidráulica';
+    if (tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA') return 'Controle de Qualidade - Solda Lado 1';
     return 'Formulário';
   };
 
@@ -652,8 +663,45 @@ export default function ModalVisualizarFormulario({
 
             {/* Renderizar conteúdo específico */}
             {tipoFormulario === 'REUNIAO_START' && renderReuniaoStart()}
+            {tipoFormulario === 'REUNIAO_START_2' && renderReuniaoStart()}
             {tipoFormulario === 'PREPARACAO' && renderPreparacao()}
             {tipoFormulario === 'LIBERACAO_EMBARQUE' && renderLiberacaoEmbarque()}
+            {tipoFormulario === 'CONTROLE_QUALIDADE' && (
+              <div className="space-y-6">
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade Completo</p>
+                  <p className="text-sm">Este formulário contém todos os checkpoints de qualidade para esta etapa do processo.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
+            {tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL' && (
+              <div className="space-y-6">
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade - Central Hidráulica</p>
+                  <p className="text-sm">Este formulário contém 15 checkpoints específicos de qualidade (CQ1-C a CQ15-C) para Central Hidráulica.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 15 checkpoints, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade central hidráulica preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
+            {tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA' && (
+              <div className="space-y-6">
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade - Solda Lado 1</p>
+                  <p className="text-sm">Este formulário contém 17 checkpoints específicos de qualidade (CQ1-D a CQ17-D) para Solda Lado 1.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 17 checkpoints, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade solda lado 1 preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

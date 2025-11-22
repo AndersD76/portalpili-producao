@@ -55,10 +55,14 @@ export interface UpdateAtividadeRequest {
 // Tipos de formulários disponíveis
 export type TipoFormulario =
   | 'REUNIAO_START'
+  | 'REUNIAO_START_2'
   | 'PREPARACAO'
   | 'DESEMBARQUE_PRE_INSTALACAO'
   | 'LIBERACAO_EMBARQUE'
-  | 'ENTREGA';
+  | 'ENTREGA'
+  | 'CONTROLE_QUALIDADE'
+  | 'CONTROLE_QUALIDADE_CENTRAL'
+  | 'CONTROLE_QUALIDADE_SOLDA';
 
 // Todas as etapas do sistema (ordem de execução)
 export type EstagioOPD =

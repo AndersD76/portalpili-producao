@@ -92,6 +92,93 @@ export default function CalendarioPage() {
           </div>
         </div>
 
+        {/* Resumo de Entregas do Mês */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <svg className="w-6 h-6 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            Resumo de Entregas - {monthNames[month]} {year}
+          </h3>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">OPD</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Cliente</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Data de Entrega</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Produto</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700">Conclusão</th>
+                </tr>
+              </thead>
+              <tbody>
+                {opds
+                  .filter(opd => {
+                    if (!opd.data_entrega) return false;
+                    const opdDate = new Date(opd.data_entrega);
+                    return opdDate.getMonth() === month && opdDate.getFullYear() === year;
+                  })
+                  .sort((a, b) => {
+                    const dateA = new Date(a.data_entrega!).getTime();
+                    const dateB = new Date(b.data_entrega!).getTime();
+                    return dateA - dateB;
+                  })
+                  .map(opd => (
+                    <tr key={opd.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                      <td className="py-3 px-4">
+                        <Link
+                          href={`/opd/${opd.numero}`}
+                          className="font-semibold text-red-600 hover:text-red-700 hover:underline"
+                        >
+                          {opd.numero}
+                        </Link>
+                      </td>
+                      <td className="py-3 px-4 text-gray-900">
+                        {opd.cliente || '-'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {new Date(opd.data_entrega!).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </td>
+                      <td className="py-3 px-4 text-gray-900">
+                        {opd.tipo_opd}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          (opd.percentual_conclusao || 0) === 100
+                            ? 'bg-green-100 text-green-800'
+                            : (opd.percentual_conclusao || 0) >= 50
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {opd.percentual_conclusao || 0}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                {opds.filter(opd => {
+                  if (!opd.data_entrega) return false;
+                  const opdDate = new Date(opd.data_entrega);
+                  return opdDate.getMonth() === month && opdDate.getFullYear() === year;
+                }).length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      Nenhuma entrega programada para este mês
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Controles do Calendário */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">

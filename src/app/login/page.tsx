@@ -2,18 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ModalPoliticaQualidade from '@/components/ModalPoliticaQualidade';
 
 export default function LoginPage() {
   const [idFuncionario, setIdFuncionario] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPoliticaModal, setShowPoliticaModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // Redirecionar se já estiver autenticado
+    // Redirecionar se já estiver autenticado e já viu a política nesta sessão
     const authenticated = localStorage.getItem('authenticated');
-    if (authenticated === 'true') {
+    const politicaVista = sessionStorage.getItem('politica_vista');
+
+    if (authenticated === 'true' && politicaVista === 'true') {
       router.push('/dashboard');
     }
   }, []);
@@ -46,8 +50,8 @@ export default function LoginPage() {
         localStorage.setItem('user_data', JSON.stringify(data.user));
         localStorage.setItem('authenticated', 'true');
 
-        // Redirecionar para dashboard
-        router.push('/dashboard');
+        // Mostrar modal de política da qualidade
+        setShowPoliticaModal(true);
       } else {
         setError(data.error || 'Erro ao fazer login');
       }
@@ -57,6 +61,14 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClosePolitica = () => {
+    setShowPoliticaModal(false);
+    // Marcar que a política foi vista nesta sessão
+    sessionStorage.setItem('politica_vista', 'true');
+    // Redirecionar para dashboard após fechar o modal
+    router.push('/dashboard');
   };
 
   return (
@@ -151,6 +163,12 @@ export default function LoginPage() {
           <p>Sistema de Controle de Produção v1.0</p>
         </div>
       </div>
+
+      {/* Modal de Política da Qualidade */}
+      <ModalPoliticaQualidade
+        isOpen={showPoliticaModal}
+        onClose={handleClosePolitica}
+      />
     </div>
   );
 }
