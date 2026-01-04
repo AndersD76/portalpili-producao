@@ -1,0 +1,166 @@
+import { NextResponse } from 'next/server';
+import pool from '@/lib/db';
+import { ATIVIDADES_PADRAO, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
+
+export async function GET() {
+  try {
+    const result = await pool.query(`
+      SELECT
+        o.id,
+        o.opd,
+        o.numero,
+        o.data_pedido,
+        o.previsao_inicio,
+        o.previsao_termino,
+        o.data_prevista_entrega,
+        o.inicio_producao,
+        o.tipo_opd,
+        o.responsavel_opd,
+        o.atividades_opd,
+        o.anexo_pedido,
+        o.registros_atividade,
+        o.mensagens,
+        o.created,
+        o.updated,
+        COUNT(ra.id) as total_atividades,
+        SUM(CASE WHEN ra.status = 'CONCLUÍDA' THEN 1 ELSE 0 END) as atividades_concluidas,
+        CASE
+          WHEN COUNT(ra.id) > 0
+          THEN ROUND((SUM(CASE WHEN ra.status = 'CONCLUÍDA' THEN 1 ELSE 0 END)::numeric / COUNT(ra.id)::numeric * 100)::numeric, 1)
+          ELSE 0
+        END as percentual_conclusao
+      FROM opds o
+      LEFT JOIN registros_atividades ra ON o.numero = ra.numero_opd
+      GROUP BY o.id, o.opd, o.numero, o.data_pedido, o.previsao_inicio, o.previsao_termino,
+               o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.responsavel_opd, o.atividades_opd,
+               o.anexo_pedido, o.registros_atividade, o.mensagens, o.created, o.updated
+      ORDER BY o.numero DESC
+    `);
+
+    return NextResponse.json({
+      success: true,
+      data: result.rows,
+      total: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao buscar OPDs:', error);
+    return NextResponse.json(
+      { success: false, error: 'Erro ao buscar OPDs' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      numero,
+      data_pedido,
+      previsao_inicio,
+      previsao_termino,
+      data_prevista_entrega,
+      inicio_producao,
+      tipo_opd,
+      responsavel_opd,
+      atividades_opd,
+      anexo_pedido
+    } = body;
+
+    // Validação básica
+    if (!numero) {
+      return NextResponse.json(
+        { success: false, error: 'Número da OPD é obrigatório' },
+        { status: 400 }
+      );
+    }
+
+    // Verificar se já existe uma OPD com este número
+    const existingOpd = await pool.query(
+      'SELECT id FROM opds WHERE numero = $1',
+      [numero]
+    );
+
+    if (existingOpd.rowCount && existingOpd.rowCount > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Já existe uma OPD com este número' },
+        { status: 409 }
+      );
+    }
+
+    const result = await pool.query(`
+      INSERT INTO opds (
+        numero,
+        data_pedido,
+        previsao_inicio,
+        previsao_termino,
+        data_prevista_entrega,
+        inicio_producao,
+        tipo_opd,
+        responsavel_opd,
+        atividades_opd,
+        anexo_pedido
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `, [
+      numero,
+      data_pedido || null,
+      previsao_inicio || null,
+      previsao_termino || null,
+      data_prevista_entrega || null,
+      inicio_producao || null,
+      tipo_opd || null,
+      responsavel_opd || null,
+      atividades_opd || null,
+      anexo_pedido || null
+    ]);
+
+    const opdCriada = result.rows[0];
+
+    // Criar atividades padrão automaticamente
+    try {
+      const dataPedidoDate = data_pedido ? new Date(data_pedido) : new Date();
+
+      for (const atividadePadrao of ATIVIDADES_PADRAO) {
+        const previsaoInicio = calcularPrevisaoInicio(dataPedidoDate, atividadePadrao.ordem);
+
+        await pool.query(`
+          INSERT INTO registros_atividades (
+            numero_opd,
+            atividade,
+            responsavel,
+            previsao_inicio,
+            data_pedido,
+            status
+          ) VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
+          numero,
+          atividadePadrao.atividade,
+          atividadePadrao.responsavel,
+          previsaoInicio.toISOString(),
+          data_pedido || null,
+          'A REALIZAR'
+        ]);
+      }
+
+      console.log(`✅ ${ATIVIDADES_PADRAO.length} atividades padrão criadas para OPD ${numero}`);
+    } catch (atividadeError) {
+      console.error('Erro ao criar atividades padrão:', atividadeError);
+      // Não falha a criação da OPD se falhar as atividades
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: opdCriada,
+      message: 'OPD criada com sucesso'
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Erro ao criar OPD:', error);
+    return NextResponse.json(
+      { success: false, error: 'Erro ao criar OPD' },
+      { status: 500 }
+    );
+  }
+}
+
+export const dynamic = 'force-dynamic';
