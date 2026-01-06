@@ -1,0 +1,848 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Modal from './Modal';
+import { FormularioPreenchido, TipoFormulario } from '@/types/atividade';
+
+interface ModalVisualizarFormularioProps {
+  isOpen: boolean;
+  onClose: () => void;
+  atividadeId: number;
+  numeroOpd: string;
+  tipoFormulario: string;
+}
+
+export default function ModalVisualizarFormulario({
+  isOpen,
+  onClose,
+  atividadeId,
+  numeroOpd,
+  tipoFormulario
+}: ModalVisualizarFormularioProps) {
+  const [formulario, setFormulario] = useState<FormularioPreenchido | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      carregarFormulario();
+    }
+  }, [isOpen, atividadeId]);
+
+  const carregarFormulario = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let endpoint = '';
+      if (tipoFormulario === 'REUNIAO_START') {
+        endpoint = `/api/formularios-reuniao/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'REUNIAO_START_2') {
+        endpoint = `/api/formularios-start2/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'PREPARACAO') {
+        endpoint = `/api/formularios-preparacao/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'LIBERACAO_EMBARQUE') {
+        endpoint = `/api/formularios-liberacao-embarque/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CORTE') {
+        endpoint = `/api/formularios-corte/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM') {
+        endpoint = `/api/formularios-montagem/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL') {
+        endpoint = `/api/formularios-controle-qualidade-central/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA') {
+        endpoint = `/api/formularios-controle-qualidade-solda/${numeroOpd}?atividade_id=${atividadeId}`;
+      // Tombadores (I-V)
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_TRAVADOR_RODAS') {
+        endpoint = `/api/formularios-travador-rodas/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CAIXA_TRAVA_CHASSI') {
+        endpoint = `/api/formularios-caixa-trava-chassi/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_TRAVA_CHASSI') {
+        endpoint = `/api/formularios-trava-chassi/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CAVALETE_TRAVA_CHASSI') {
+        endpoint = `/api/formularios-cavalete-trava-chassi/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL_SUBCONJUNTOS') {
+        endpoint = `/api/formularios-central-subconjuntos/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_PAINEL_ELETRICO') {
+        endpoint = `/api/formularios-painel-eletrico/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_PEDESTAIS') {
+        endpoint = `/api/formularios-pedestais/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOB_PLATAFORMA') {
+        endpoint = `/api/formularios-sob-plataforma/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA_INFERIOR') {
+        endpoint = `/api/formularios-solda-inferior/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_BRACOS') {
+        endpoint = `/api/formularios-bracos/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_RAMPAS') {
+        endpoint = `/api/formularios-rampas/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_PINTURA') {
+        endpoint = `/api/formularios-pintura/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM_HIDRAULICA_SOB_PLATAFORMA') {
+        endpoint = `/api/formularios-montagem-hidraulica-sob-plataforma/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_EXPEDICAO') {
+        endpoint = `/api/formularios-expedicao/${numeroOpd}?atividade_id=${atividadeId}`;
+      // Coletores (Ac-Hc)
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_MONTAGEM_INICIAL') {
+        endpoint = `/api/formularios-coletor-montagem-inicial/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_CENTRAL_HIDRAULICA') {
+        endpoint = `/api/formularios-coletor-central-hidraulica/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_CICLONE') {
+        endpoint = `/api/formularios-coletor-ciclone/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_TUBO_COLETA') {
+        endpoint = `/api/formularios-coletor-tubo-coleta/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_COLUNA_INFERIOR') {
+        endpoint = `/api/formularios-coletor-coluna-inferior/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_COLUNA_SUPERIOR') {
+        endpoint = `/api/formularios-coletor-coluna-superior/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_ESCADA_PLATIBANDA') {
+        endpoint = `/api/formularios-coletor-escada-platibanda/${numeroOpd}?atividade_id=${atividadeId}`;
+      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_PINTURA') {
+        endpoint = `/api/formularios-coletor-pintura/${numeroOpd}?atividade_id=${atividadeId}`;
+      }
+
+      if (!endpoint) return;
+
+      const response = await fetch(endpoint);
+      const result = await response.json();
+
+      if (result.success) {
+        setFormulario(result.data);
+      } else {
+        setError(result.error || 'Formulário não encontrado');
+      }
+    } catch (err) {
+      setError('Erro ao carregar formulário');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderReuniaoStart = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    return (
+      <div className="space-y-6">
+        {/* INFORMAÇÕES ESTRUTURAIS */}
+        <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+          <h4 className="font-bold text-lg mb-4 text-blue-900">INFORMAÇÕES ESTRUTURAIS</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Equipamento:</span>
+              <p>{dados.equipamento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data de Entrega:</span>
+              <p>{dados.data_entrega ? new Date(dados.data_entrega).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Vigas:</span>
+              <p>{dados.vigas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Cilindros (Tipo):</span>
+              <p>{dados.cilindros_tipo || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Cilindros (Estágios):</span>
+              <p>{dados.cilindros_estagios || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Moldura:</span>
+              <p>{dados.moldura || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calhas Laterais:</span>
+              <p>{dados.calhas_laterais || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calhas Inferiores:</span>
+              <p>{dados.calhas_inferiores || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Trava Rodas:</span>
+              <p>{dados.qtd_trava_rodas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Trava Chassi:</span>
+              <p>{dados.qtd_trava_chassis || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Modelo de Trava Chassi:</span>
+              <p>{dados.modelo_trava_chassis || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Pino:</span>
+              <p>{dados.trava_pino || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Rodas de Deslocamento:</span>
+              <p>{dados.rodas_deslocamento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Braços:</span>
+              <p>{dados.bracos || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Dentes da Cinta:</span>
+              <p>{dados.qtd_dentes_cinta || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calhas Montadas para Transporte:</span>
+              <p>{dados.calhas_montadas_transporte || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data de Entrega de Chumbadores:</span>
+              <p>{dados.data_entrega_chumbadores ? new Date(dados.data_entrega_chumbadores).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* INFORMAÇÕES DA CENTRAL E PAINEL */}
+        <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
+          <h4 className="font-bold text-lg mb-4 text-green-900">INFORMAÇÕES DA CENTRAL E PAINEL</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Voltagem do Cliente:</span>
+              <p>{dados.voltagem_cliente || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Tipo de Acionamento:</span>
+              <p>{dados.tipo_acionamento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Sensor Moega Cheia:</span>
+              <p>{dados.sensor_moega_cheia || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Sensor 40°:</span>
+              <p>{dados.sensor_40 || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Sensor Trava Roda Aberto:</span>
+              <p>{dados.sensor_trava_roda_aberto || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Relé de Segurança:</span>
+              <p>{dados.rele_seguranca || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Pedestal do Motorista:</span>
+              <p>{dados.pedestal_motorista || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Óleo Especial:</span>
+              <p>{dados.oleo_especial || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Central Auxiliar:</span>
+              <p>{dados.central_auxiliar || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Calço de Segurança:</span>
+              <p>{dados.calco_seguranca || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Espera Sensor Portão:</span>
+              <p>{dados.espera_sensor_portao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Kit Descida Rápida:</span>
+              <p>{dados.kit_descida_rapida || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Corte Central:</span>
+              <p>{dados.prazo_corte_central ? new Date(dados.prazo_corte_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Dobra Central:</span>
+              <p>{dados.prazo_dobra_central ? new Date(dados.prazo_dobra_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Solda Central:</span>
+              <p>{dados.prazo_solda_central ? new Date(dados.prazo_solda_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Eng Planos Central:</span>
+              <p>{dados.prazo_eng_planos_central ? new Date(dados.prazo_eng_planos_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div className="col-span-2">
+              <span className="font-semibold">Outras Informações:</span>
+              <p className="whitespace-pre-wrap">{dados.outras_informacoes || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* INFORMAÇÕES DE CILINDROS */}
+        <div className="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
+          <h4 className="font-bold text-lg mb-4 text-purple-900">INFORMAÇÕES DE CILINDROS</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Trava Roda:</span>
+              <p>{dados.cilindros_trava_roda || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Chassi (Gaveta):</span>
+              <p>{dados.cilindros_trava_chassis_gaveta || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Chassi (Telesc Articulação):</span>
+              <p>{dados.cilindros_trava_chassis_telesc_articulacao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Trava Chassi (Telesc Elevação):</span>
+              <p>{dados.cilindros_trava_chassis_telesc_elevacao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Rodas:</span>
+              <p>{dados.cilindros_rodas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Rampas:</span>
+              <p>{dados.cilindros_rampas || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Freio:</span>
+              <p>{dados.cilindros_freio || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Abertura Trava Pino:</span>
+              <p>{dados.cilindros_abertura_trava_pino || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Cabeçote Trava Pino:</span>
+              <p>{dados.cilindros_cabecote_trava_pino || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data Máxima de Entrega:</span>
+              <p>{dados.data_max_entrega_cilindros ? new Date(dados.data_max_entrega_cilindros).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* INFORMAÇÕES IN LOCO */}
+        <div className="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
+          <h4 className="font-bold text-lg mb-4 text-yellow-900">INFORMAÇÕES IN LOCO</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Obra Civil Definida:</span>
+              <p>{dados.obra_civil_definida || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo para Definição:</span>
+              <p>{dados.prazo_definicao_obra ? new Date(dados.prazo_definicao_obra).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Fixação de Pedestais:</span>
+              <p>{dados.fixacao_pedestais || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Localização da Central:</span>
+              <p>{dados.localizacao_central === 'OUTRA' && dados.localizacao_central_outra ? dados.localizacao_central_outra : dados.localizacao_central || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Suporte Ripas Laterais:</span>
+              <p>{dados.suporte_ripas_laterais || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Suporte Tubulação da Moega:</span>
+              <p>{dados.suporte_tubulacao_moega || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Conj. de Munhões:</span>
+              <p>{dados.conj_munhoes || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Qtd de Munhões:</span>
+              <p>{dados.qtd_munhoes || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Enclausuramento:</span>
+              <p>{dados.enclausuramento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Fabricar Portões:</span>
+              <p>{dados.fabricar_portoes || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data Máxima Montagem In Loco:</span>
+              <p>{dados.data_max_montagem_loco ? new Date(dados.data_max_montagem_loco).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Informações Adicionais:</span>
+              <p className="whitespace-pre-wrap">{dados.info_adicional_loco || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* INFORMAÇÕES SOB PLATAFORMA */}
+        <div className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
+          <h4 className="font-bold text-lg mb-4 text-orange-900">INFORMAÇÕES SOB PLATAFORMA</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Hidráulica:</span>
+              <p>{dados.hidraulica || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Passagem:</span>
+              <p>{dados.passagem || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data de Início de Montagem:</span>
+              <p>{dados.data_inicio_montagem ? new Date(dados.data_inicio_montagem).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* PRAZO PARA LIBERAÇÕES */}
+        <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
+          <h4 className="font-bold text-lg mb-4 text-red-900">PRAZO PARA LIBERAÇÕES</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold">Prazo Estrutura:</span>
+              <p>{dados.prazo_estrutura ? new Date(dados.prazo_estrutura).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Central:</span>
+              <p>{dados.prazo_central ? new Date(dados.prazo_central).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Painel:</span>
+              <p>{dados.prazo_painel ? new Date(dados.prazo_painel).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo In Loco:</span>
+              <p>{dados.prazo_in_loco ? new Date(dados.prazo_in_loco).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Prazo Sob Plataforma:</span>
+              <p>{dados.prazo_sob_plataforma ? new Date(dados.prazo_sob_plataforma).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPreparacao = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    const renderAnexos = (anexos: any[], titulo: string) => {
+      if (!anexos || anexos.length === 0) return null;
+
+      return (
+        <div className="mt-2">
+          <p className="text-xs font-semibold text-gray-600 mb-1">{titulo}:</p>
+          <div className="space-y-1">
+            {anexos.map((arquivo, index) => (
+              <a
+                key={index}
+                href={arquivo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>{arquivo.filename}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Dados Iniciais */}
+        <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+          <h4 className="font-bold text-lg mb-4 text-blue-900">DADOS INICIAIS</h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div>
+              <span className="font-semibold">Número da OPD:</span>
+              <p>{dados.numero_opd || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Nome do cliente:</span>
+              <p>{dados.nome_cliente || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Modelo do equipamento:</span>
+              <p>{dados.modelo_equipamento || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Local de instalação (Cidade - UF):</span>
+              <p>{dados.cidade_uf || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Data prevista para início da instalação:</span>
+              <p>{dados.data_prevista_inicio ? new Date(dados.data_prevista_inicio).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">Técnicos designados:</span>
+              <p className="whitespace-pre-wrap">{dados.tecnicos_designados || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Documentos Obrigatórios */}
+        <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
+          <h4 className="font-bold text-lg mb-4 text-red-900">DOCUMENTOS OBRIGATÓRIOS</h4>
+          <div className="space-y-3">
+            {renderAnexos(dados.doc_liberacao_montagem, 'Documentos de Liberação de Montagem')}
+            {renderAnexos(dados.esquema_eletrico, 'Esquema Elétrico')}
+            {renderAnexos(dados.esquema_hidraulico, 'Esquema Hidráulico')}
+            {renderAnexos(dados.projeto_executivo, 'Projeto Executivo')}
+            {renderAnexos(dados.projeto_civil, 'Projeto Civil')}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLiberacaoEmbarque = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    const renderResposta = (valor: string, outroValor?: string) => {
+      if (valor === 'Outro' && outroValor) {
+        return <span className="text-gray-900">Outro: {outroValor}</span>;
+      }
+      return <span className={valor === 'Sim' ? 'text-green-700 font-semibold' : valor === 'Não' ? 'text-red-700 font-semibold' : 'text-gray-900'}>{valor || 'N/A'}</span>;
+    };
+
+    const renderImagens = (imagens: any[], titulo: string) => {
+      if (!imagens || imagens.length === 0) return null;
+
+      return (
+        <div className="mt-3">
+          <p className="text-xs font-semibold text-gray-600 mb-2">{titulo}:</p>
+          <div className="space-y-2">
+            {imagens.map((imagem, index) => (
+              <a
+                key={index}
+                href={imagem.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>{imagem.filename}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* DOCUMENTAÇÃO */}
+        <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+          <h4 className="font-bold text-lg mb-4 text-blue-900">DOCUMENTAÇÃO</h4>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="font-semibold">1. A nota fiscal e o romaneio estão presentes, foram conferidos e estão corretos?</span>
+              <p className="mt-1">{renderResposta(dados.nota_fiscal_romaneio, dados.nota_fiscal_romaneio_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">2. O check-list final está completamente preenchido e está assinado?</span>
+              <p className="mt-1">{renderResposta(dados.checklist_completo, dados.checklist_completo_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">3. O manual técnico e o certificado de garantia foram anexados?</span>
+              <p className="mt-1">{renderResposta(dados.manual_certificado, dados.manual_certificado_outro)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ESTRUTURA MECÂNICA */}
+        <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50">
+          <h4 className="font-bold text-lg mb-4 text-green-900">ESTRUTURA MECÂNICA</h4>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="font-semibold">4. Foi conferido a fixação de partes móveis (trava de segurança, cilindros recolhidos, plataforma travada)?</span>
+              <p className="mt-1">{renderResposta(dados.fixacao_partes_moveis, dados.fixacao_partes_moveis_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">5. Foi conferido o aperto dos parafusos estruturais principais?</span>
+              <p className="mt-1">{renderResposta(dados.aperto_parafusos, dados.aperto_parafusos_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">6. Foi verificado se não há peças soltas, batentes, dobradiças ou pinos desalinhados?</span>
+              <p className="mt-1">{renderResposta(dados.pecas_soltas, dados.pecas_soltas_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">7. Todas as superfícies pintadas foram protegidas com lonas ou espuma?</span>
+              <p className="mt-1">{renderResposta(dados.superficies_protegidas, dados.superficies_protegidas_outro)}</p>
+            </div>
+            {renderImagens(dados.imagem_superficies, '8. Imagem das superfícies protegidas')}
+          </div>
+        </div>
+
+        {/* SISTEMA HIDRÁULICO */}
+        <div className="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
+          <h4 className="font-bold text-lg mb-4 text-purple-900">SISTEMA HIDRÁULICO</h4>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="font-semibold">9. O nível do óleo foi verificado?</span>
+              <p className="mt-1">{renderResposta(dados.nivel_oleo, dados.nivel_oleo_outro)}</p>
+            </div>
+            {renderImagens(dados.imagem_nivel_oleo, '10. Imagem do nível do óleo')}
+            <div>
+              <span className="font-semibold">11. Os conectores hidráulicos estão com tampas de proteção?</span>
+              <p className="mt-1">{renderResposta(dados.conectores_protegidos, dados.conectores_protegidos_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">12. As mangueiras e válvulas foram fixadas e estão protegidas contra vibração?</span>
+              <p className="mt-1">{renderResposta(dados.mangueiras_fixadas, dados.mangueiras_fixadas_outro)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* SISTEMA ELÉTRICO E DE CONTROLE */}
+        <div className="border-2 border-yellow-300 rounded-lg p-4 bg-yellow-50">
+          <h4 className="font-bold text-lg mb-4 text-yellow-900">SISTEMA ELÉTRICO E DE CONTROLE</h4>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="font-semibold">13. O painel elétrico está devidamente fechado e está identificados?</span>
+              <p className="mt-1">{renderResposta(dados.painel_fechado, dados.painel_fechado_outro)}</p>
+            </div>
+            {renderImagens(dados.imagem_painel, '14. Imagem do painel elétrico')}
+            <div>
+              <span className="font-semibold">15. Os cabos e chicotes estão protegidos (sem dobras bruscas)?</span>
+              <p className="mt-1">{renderResposta(dados.cabos_protegidos, dados.cabos_protegidos_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">16. Os sensores, botões e chicotes estão etiquetados?</span>
+              <p className="mt-1">{renderResposta(dados.sensores_etiquetados, dados.sensores_etiquetados_outro)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* EMBALAGEM E TRANSPORTE */}
+        <div className="border-2 border-orange-300 rounded-lg p-4 bg-orange-50">
+          <h4 className="font-bold text-lg mb-4 text-orange-900">EMBALAGEM E TRANSPORTE</h4>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="font-semibold">17. O equipamento, seus componentes e conjuntos estão fixados com cintas e calços de segurança?</span>
+              <p className="mt-1">{renderResposta(dados.equipamento_fixado, dados.equipamento_fixado_outro)}</p>
+            </div>
+            <div>
+              <span className="font-semibold">18. O equipamento, seus componentes e conjuntos estão protegidos contra intempéries (lonas, plástico, etc.)?</span>
+              <p className="mt-1">{renderResposta(dados.equipamento_protegido, dados.equipamento_protegido_outro)}</p>
+            </div>
+            {renderImagens(dados.imagem_carga, '19. Imagem da carga em cima do caminhão')}
+          </div>
+        </div>
+
+        {/* LIBERAÇÃO */}
+        <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
+          <h4 className="font-bold text-lg mb-4 text-red-900">LIBERAÇÃO</h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div>
+              <span className="font-semibold">20. Nome do responsável pela liberação:</span>
+              <p>{dados.responsavel_liberacao || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="font-semibold">21. Data da liberação:</span>
+              <p>{dados.data_liberacao ? new Date(dados.data_liberacao).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const getTitulo = () => {
+    const titulos: Record<string, string> = {
+      'REUNIAO_START': 'Formulário - Reunião de Start',
+      'PREPARACAO': 'Formulário - Preparação',
+      'LIBERACAO_EMBARQUE': 'Formulário - Liberação e Embarque',
+      'CONTROLE_QUALIDADE_CORTE': 'Controle de Qualidade - Corte',
+      'CONTROLE_QUALIDADE_MONTAGEM': 'Controle de Qualidade - Montagem Superior e Esquadro',
+      'CONTROLE_QUALIDADE_CENTRAL': 'Controle de Qualidade - Central Hidráulica',
+      'CONTROLE_QUALIDADE_SOLDA': 'Controle de Qualidade - Solda Lado 1',
+      // Tombadores (I-V)
+      'CONTROLE_QUALIDADE_TRAVADOR_RODAS': 'CQ - Travador de Rodas',
+      'CONTROLE_QUALIDADE_CAIXA_TRAVA_CHASSI': 'CQ - Caixa Trava Chassi',
+      'CONTROLE_QUALIDADE_TRAVA_CHASSI': 'CQ - Trava Chassi',
+      'CONTROLE_QUALIDADE_CAVALETE_TRAVA_CHASSI': 'CQ - Cavalete Trava Chassi',
+      'CONTROLE_QUALIDADE_CENTRAL_SUBCONJUNTOS': 'CQ - Central e Subconjuntos',
+      'CONTROLE_QUALIDADE_PAINEL_ELETRICO': 'CQ - Painel Elétrico',
+      'CONTROLE_QUALIDADE_PEDESTAIS': 'CQ - Pedestais',
+      'CONTROLE_QUALIDADE_SOB_PLATAFORMA': 'CQ - Sob Plataforma',
+      'CONTROLE_QUALIDADE_SOLDA_INFERIOR': 'CQ - Solda Inferior',
+      'CONTROLE_QUALIDADE_BRACOS': 'CQ - Braços',
+      'CONTROLE_QUALIDADE_RAMPAS': 'CQ - Rampas',
+      'CONTROLE_QUALIDADE_PINTURA': 'CQ - Pintura',
+      'CONTROLE_QUALIDADE_MONTAGEM_HIDRAULICA_SOB_PLATAFORMA': 'CQ - Montagem Hidráulica Sob Plataforma',
+      'CONTROLE_QUALIDADE_EXPEDICAO': 'CQ - Expedição',
+      // Coletores (Ac-Hc)
+      'CONTROLE_QUALIDADE_COLETOR_MONTAGEM_INICIAL': 'CQ Coletor - Montagem Inicial',
+      'CONTROLE_QUALIDADE_COLETOR_CENTRAL_HIDRAULICA': 'CQ Coletor - Central Hidráulica',
+      'CONTROLE_QUALIDADE_COLETOR_CICLONE': 'CQ Coletor - Ciclone',
+      'CONTROLE_QUALIDADE_COLETOR_TUBO_COLETA': 'CQ Coletor - Tubo de Coleta',
+      'CONTROLE_QUALIDADE_COLETOR_COLUNA_INFERIOR': 'CQ Coletor - Coluna Inferior',
+      'CONTROLE_QUALIDADE_COLETOR_COLUNA_SUPERIOR': 'CQ Coletor - Coluna Superior',
+      'CONTROLE_QUALIDADE_COLETOR_ESCADA_PLATIBANDA': 'CQ Coletor - Escada e Platibanda',
+      'CONTROLE_QUALIDADE_COLETOR_PINTURA': 'CQ Coletor - Pintura',
+    };
+    return titulos[tipoFormulario] || 'Formulário';
+  };
+
+  const renderGenericCQ = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+          <p className="font-semibold">{getTitulo()}</p>
+          <p className="text-sm">Formulário de controle de qualidade preenchido.</p>
+        </div>
+        {dados.itens && dados.itens.length > 0 && (
+          <div className="space-y-2">
+            {dados.itens.map((item: any, idx: number) => (
+              <div key={idx} className={`p-3 rounded border ${item.conforme ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <p className="text-sm font-semibold">{item.codigo} - {item.descricao}</p>
+                <p className="text-sm mt-1">
+                  Status: <span className={item.conforme ? 'text-green-700' : 'text-red-700'}>{item.conforme ? 'Conforme' : 'Não Conforme'}</span>
+                </p>
+                {item.observacao && <p className="text-sm text-gray-600 mt-1">Obs: {item.observacao}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        {(!dados.itens || dados.itens.length === 0) && (
+          <div className="bg-white p-4 rounded border border-gray-200">
+            <p className="text-sm text-gray-600">Formulário preenchido com sucesso.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const isNovoCQ = () => {
+    return tipoFormulario.startsWith('CONTROLE_QUALIDADE_') &&
+           !['CONTROLE_QUALIDADE_CORTE', 'CONTROLE_QUALIDADE_MONTAGEM', 'CONTROLE_QUALIDADE_CENTRAL', 'CONTROLE_QUALIDADE_SOLDA'].includes(tipoFormulario);
+  };
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={getTitulo()}
+    >
+      <div className="max-h-[70vh] overflow-y-auto px-1">
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <svg className="animate-spin h-8 w-8 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        {formulario && !loading && !error && (
+          <>
+            {/* Informações de preenchimento */}
+            <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Preenchido por:</span> {formulario.preenchido_por}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">Data:</span> {new Date(formulario.data_preenchimento).toLocaleString('pt-BR')}
+              </p>
+            </div>
+
+            {/* Renderizar conteúdo específico */}
+            {tipoFormulario === 'REUNIAO_START' && renderReuniaoStart()}
+            {tipoFormulario === 'REUNIAO_START_2' && renderReuniaoStart()}
+            {tipoFormulario === 'PREPARACAO' && renderPreparacao()}
+            {tipoFormulario === 'LIBERACAO_EMBARQUE' && renderLiberacaoEmbarque()}
+            {tipoFormulario === 'CONTROLE_QUALIDADE_CORTE' && (
+              <div className="space-y-6">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade - Corte</p>
+                  <p className="text-sm">Este formulário contém 3 checkpoints específicos de qualidade (CQ1-A a CQ3-A) para a etapa de Corte.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 3 checkpoints de corte, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade corte preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
+            {tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM' && (
+              <div className="space-y-6">
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade - Montagem Superior e Esquadro</p>
+                  <p className="text-sm">Este formulário contém 43 checkpoints específicos de qualidade (CQ1-B a CQ43-B) para a etapa de Montagem Superior e Esquadro.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 43 checkpoints de montagem, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade montagem preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
+            {tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL' && (
+              <div className="space-y-6">
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade - Central Hidráulica</p>
+                  <p className="text-sm">Este formulário contém 15 checkpoints específicos de qualidade (CQ1-C a CQ15-C) para Central Hidráulica.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 15 checkpoints, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade central hidráulica preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
+            {tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA' && (
+              <div className="space-y-6">
+                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
+                  <p className="font-semibold">Controle de Qualidade - Solda Lado 1</p>
+                  <p className="text-sm">Este formulário contém 17 checkpoints específicos de qualidade (CQ1-D a CQ17-D) para Solda Lado 1.</p>
+                </div>
+                <div className="bg-white p-4 rounded border border-gray-200">
+                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 17 checkpoints, consulte o formulário original ou os anexos associados.</p>
+                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade solda lado 1 preenchido com sucesso.</p>
+                </div>
+              </div>
+            )}
+            {isNovoCQ() && renderGenericCQ()}
+          </>
+        )}
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={onClose}
+          className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+        >
+          Fechar
+        </button>
+      </div>
+    </Modal>
+  );
+}

@@ -9,6 +9,7 @@ import FormLiberacaoEmbarque from './FormLiberacaoEmbarque';
 import FormDesembarque from './FormDesembarque';
 import FormEntrega from './FormEntrega';
 import FormReuniaoStart from './FormReuniaoStart';
+import FormularioLiberacaoComercial from './FormularioLiberacaoComercial';
 import ConfirmacaoAtividade from './ConfirmacaoAtividade';
 
 interface AtividadeItemProps {
@@ -26,6 +27,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
   const [showFormDesembarque, setShowFormDesembarque] = useState(false);
   const [showFormEntrega, setShowFormEntrega] = useState(false);
   const [showFormReuniaoStart, setShowFormReuniaoStart] = useState(false);
+  const [showFormLiberacaoComercial, setShowFormLiberacaoComercial] = useState(false);
   const [showConfirmacao, setShowConfirmacao] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
@@ -122,7 +124,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
     if (loading) return;
 
     // Verificar se é uma atividade especial que requer formulário
-    const atividadesComFormulario = ['PREPARAÇÃO', 'LIBERAÇÃO E EMBARQUE', 'DESEMBARQUE E PRÉ-INSTALAÇÃO', 'ENTREGA', 'REUNIÃO DE START 1', 'REUNIÃO DE START 2'];
+    const atividadesComFormulario = ['PREPARAÇÃO', 'LIBERAÇÃO E EMBARQUE', 'DESEMBARQUE E PRÉ-INSTALAÇÃO', 'ENTREGA', 'REUNIÃO DE START 1', 'REUNIÃO DE START 2', 'LIBERAÇÃO COMERCIAL'];
     const requerFormulario = atividadesComFormulario.includes(atividade.atividade);
 
     // Lógica de progressão com suporte a desmarcar (ciclo reverso)
@@ -148,6 +150,8 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
           setShowFormEntrega(true);
         } else if (atividade.atividade === 'REUNIÃO DE START 1' || atividade.atividade === 'REUNIÃO DE START 2') {
           setShowFormReuniaoStart(true);
+        } else if (atividade.atividade === 'LIBERAÇÃO COMERCIAL') {
+          setShowFormLiberacaoComercial(true);
         }
       } else {
         // Atividade normal: A REALIZAR → EM ANDAMENTO
@@ -426,6 +430,25 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
             alert('Formulário de Reunião de Start enviado com sucesso!');
           }}
           onCancel={() => setShowFormReuniaoStart(false)}
+        />
+      </Modal>
+
+      {/* Modal de Formulário de Liberação Comercial */}
+      <Modal
+        isOpen={showFormLiberacaoComercial}
+        onClose={() => setShowFormLiberacaoComercial(false)}
+        title="Liberação Comercial"
+      >
+        <FormularioLiberacaoComercial
+          opd={atividade.numero_opd}
+          cliente={atividade.responsavel || ''}
+          atividadeId={atividade.id}
+          onSubmit={async (data) => {
+            // Salvar o formulário e mudar status para CONCLUÍDA
+            await handleStatusChange('CONCLUÍDA');
+            setShowFormLiberacaoComercial(false);
+          }}
+          onCancel={() => setShowFormLiberacaoComercial(false)}
         />
       </Modal>
 
