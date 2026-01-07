@@ -139,14 +139,22 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const opdId = parseInt(id);
+
+    if (isNaN(opdId)) {
+      return NextResponse.json(
+        { success: false, error: 'ID inválido' },
+        { status: 400 }
+      );
+    }
 
     // Verificar se a OPD existe e pegar o número
     const checkResult = await pool.query(
       'SELECT id, numero FROM opds WHERE id = $1',
-      [parseInt(id)]
+      [opdId]
     );
 
-    if (checkResult.rowCount === 0) {
+    if (!checkResult.rows || checkResult.rows.length === 0) {
       return NextResponse.json(
         { success: false, error: 'OPD não encontrada' },
         { status: 404 }
@@ -155,20 +163,24 @@ export async function DELETE(
 
     const numeroOpd = checkResult.rows[0].numero;
 
-    // Deletar atividades relacionadas primeiro
-    await pool.query('DELETE FROM registros_atividades WHERE numero_opd = $1', [numeroOpd]);
+    // Deletar atividades relacionadas primeiro (ignorar erros se não existirem)
+    try {
+      await pool.query('DELETE FROM registros_atividades WHERE numero_opd = $1', [numeroOpd]);
+    } catch (atividadesError) {
+      console.log('Aviso ao deletar atividades:', atividadesError);
+    }
 
     // Deletar a OPD
-    await pool.query('DELETE FROM opds WHERE id = $1', [parseInt(id)]);
+    await pool.query('DELETE FROM opds WHERE id = $1', [opdId]);
 
     return NextResponse.json({
       success: true,
-      message: 'OPD e atividades deletadas com sucesso'
+      message: 'OPD deletada com sucesso'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao deletar OPD:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao deletar OPD' },
+      { success: false, error: `Erro ao deletar OPD: ${error?.message || 'Erro desconhecido'}` },
       { status: 500 }
     );
   }

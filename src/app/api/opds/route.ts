@@ -4,6 +4,7 @@ import { ATIVIDADES_PADRAO, calcularPrevisaoInicio } from '@/lib/atividadesPadra
 
 export async function GET() {
   try {
+    // Usar data_prevista_entrega como data_entrega para compatibilidade
     const result = await pool.query(`
       SELECT
         o.id,
@@ -14,7 +15,7 @@ export async function GET() {
         o.previsao_inicio,
         o.previsao_termino,
         o.data_prevista_entrega,
-        o.data_entrega,
+        o.data_prevista_entrega as data_entrega,
         o.inicio_producao,
         o.tipo_opd,
         o.responsavel_opd,
@@ -36,7 +37,7 @@ export async function GET() {
       FROM opds o
       LEFT JOIN registros_atividades ra ON o.numero = ra.numero_opd
       GROUP BY o.id, o.opd, o.numero, o.cliente, o.data_pedido, o.previsao_inicio, o.previsao_termino,
-               o.data_prevista_entrega, o.data_entrega, o.inicio_producao, o.tipo_opd, o.responsavel_opd, o.atividades_opd,
+               o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.responsavel_opd, o.atividades_opd,
                o.anexo_pedido, o.registros_atividade, o.mensagens, o.created, o.updated
       ORDER BY o.numero DESC
     `);
@@ -46,7 +47,7 @@ export async function GET() {
       data: result.rows,
       total: result.rowCount
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar OPDs:', error);
     return NextResponse.json(
       { success: false, error: 'Erro ao buscar OPDs' },
