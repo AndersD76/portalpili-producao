@@ -31,6 +31,8 @@ export interface OPD {
   updated: string;
   total_atividades?: number;
   atividades_concluidas?: number;
+  atividades_em_andamento?: number;
+  atividades_a_realizar?: number;
   percentual_conclusao?: number;
 }
 
