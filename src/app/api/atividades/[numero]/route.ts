@@ -29,6 +29,10 @@ export async function GET(
         data_execucao,
         hora_execucao,
         foto_comprovacao,
+        parent_id,
+        tempo_acumulado_segundos,
+        ultimo_inicio,
+        logs,
         created,
         updated
       FROM registros_atividades

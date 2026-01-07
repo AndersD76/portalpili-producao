@@ -18,7 +18,7 @@ export default function AtividadeForm({ atividade, numeroOpd, onSuccess, onCance
     data_pedido: '',
     data_inicio: '',
     data_termino: '',
-    status: 'A REALIZAR' as 'A REALIZAR' | 'EM ANDAMENTO' | 'CONCLUÍDA',
+    status: 'A REALIZAR' as 'A REALIZAR' | 'EM ANDAMENTO' | 'PAUSADA' | 'CONCLUÍDA',
     observacoes: '',
     dias: '',
     formulario_tipo: ''

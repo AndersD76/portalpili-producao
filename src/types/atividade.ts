@@ -1,3 +1,10 @@
+export interface LogAtividade {
+  timestamp: string;
+  usuario_nome: string;
+  usuario_id?: number;
+  acao: 'INICIOU' | 'PAUSOU' | 'RETOMOU' | 'FINALIZOU';
+}
+
 export interface Atividade {
   id: number;
   numero_opd: string;
@@ -9,7 +16,7 @@ export interface Atividade {
   data_termino: string | null;
   data_entrega: string | null;
   cadastro_opd: string | null;
-  status: 'A REALIZAR' | 'EM ANDAMENTO' | 'CONCLUÍDA';
+  status: 'A REALIZAR' | 'EM ANDAMENTO' | 'PAUSADA' | 'CONCLUÍDA';
   status_alt: string | null;
   tempo_medio: number | null;
   tempo_medio_dias: number | null;
@@ -22,6 +29,10 @@ export interface Atividade {
     url: string;
     size: number;
   } | null;
+  // Timer fields
+  tempo_acumulado_segundos: number | null;
+  ultimo_inicio: string | null;
+  logs: LogAtividade[] | null;
   created: string;
   updated: string;
   opd_cliente?: string;
@@ -34,7 +45,7 @@ export interface AtividadesResponse {
 }
 
 export interface UpdateAtividadeRequest {
-  status?: 'A REALIZAR' | 'EM ANDAMENTO' | 'CONCLUÍDA';
+  status?: 'A REALIZAR' | 'EM ANDAMENTO' | 'PAUSADA' | 'CONCLUÍDA';
   data_inicio?: string;
   data_termino?: string;
   observacoes?: string;

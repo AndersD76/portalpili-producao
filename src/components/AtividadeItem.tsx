@@ -1,7 +1,7 @@
 'use client';
 
-import { Atividade } from '@/types/atividade';
-import { useState } from 'react';
+import { Atividade, LogAtividade } from '@/types/atividade';
+import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import AtividadeForm from './AtividadeForm';
 import FormPreparacao from './FormPreparacao';
@@ -10,7 +10,6 @@ import FormDesembarque from './FormDesembarque';
 import FormEntrega from './FormEntrega';
 import FormReuniaoStart from './FormReuniaoStart';
 import FormularioLiberacaoComercial from './FormularioLiberacaoComercial';
-import ConfirmacaoAtividade from './ConfirmacaoAtividade';
 
 interface AtividadeItemProps {
   atividade: Atividade;
@@ -29,13 +28,49 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
   const [showFormEntrega, setShowFormEntrega] = useState(false);
   const [showFormReuniaoStart, setShowFormReuniaoStart] = useState(false);
   const [showFormLiberacaoComercial, setShowFormLiberacaoComercial] = useState(false);
-  const [showConfirmacao, setShowConfirmacao] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [timerDisplay, setTimerDisplay] = useState('00:00:00');
+
+  // Timer atualizado a cada segundo quando atividade está em andamento
+  useEffect(() => {
+    if (atividade.status !== 'EM ANDAMENTO') {
+      // Mostrar tempo acumulado se existir
+      if (atividade.tempo_acumulado_segundos) {
+        setTimerDisplay(formatarTempo(atividade.tempo_acumulado_segundos));
+      }
+      return;
+    }
+
+    const interval = setInterval(() => {
+      let segundosTotais = atividade.tempo_acumulado_segundos || 0;
+
+      if (atividade.ultimo_inicio) {
+        const diff = Math.floor((new Date().getTime() - new Date(atividade.ultimo_inicio).getTime()) / 1000);
+        segundosTotais += diff;
+      }
+
+      setTimerDisplay(formatarTempo(segundosTotais));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [atividade.status, atividade.ultimo_inicio, atividade.tempo_acumulado_segundos]);
+
+  const formatarTempo = (segundos: number) => {
+    const h = Math.floor(segundos / 3600);
+    const m = Math.floor((segundos % 3600) / 60);
+    const s = segundos % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('pt-BR');
   };
 
   const getStatusColor = (status: string) => {
@@ -44,6 +79,8 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
         return 'bg-green-100 text-green-800 border-green-300';
       case 'EM ANDAMENTO':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'PAUSADA':
+        return 'bg-orange-100 text-orange-800 border-orange-300';
       case 'A REALIZAR':
         return 'bg-gray-100 text-gray-800 border-gray-300';
       default:
@@ -51,16 +88,44 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'CONCLUÍDA':
-        return '✓';
-      case 'EM ANDAMENTO':
-        return '↻';
-      case 'A REALIZAR':
-        return '○';
-      default:
-        return '○';
+  const getUsuario = () => {
+    const userDataString = localStorage.getItem('user_data');
+    if (userDataString) {
+      try {
+        const usuario = JSON.parse(userDataString);
+        return { nome: usuario.nome || 'Anônimo', id: usuario.id };
+      } catch {
+        return { nome: 'Anônimo' };
+      }
+    }
+    return { nome: 'Anônimo' };
+  };
+
+  const handleTimerAction = async (acao: 'INICIAR' | 'PAUSAR' | 'RETOMAR' | 'FINALIZAR') => {
+    setLoading(true);
+    try {
+      const usuario = getUsuario();
+      const response = await fetch(`/api/atividades/${atividade.numero_opd}/${atividade.id}/timer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          acao,
+          usuario_nome: usuario.nome,
+          usuario_id: usuario.id
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        onRefresh();
+      } else {
+        alert(result.error || 'Erro ao executar ação');
+      }
+    } catch (error) {
+      console.error('Erro ao controlar timer:', error);
+      alert('Erro ao controlar timer');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,56 +151,30 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
     }
   };
 
-  const handleConfirmSimples = async () => {
-    if (!pendingStatus) return;
+  // Verificar se atividade requer formulário especial
+  const atividadesComFormulario = ['PREPARAÇÃO', 'LIBERAÇÃO E EMBARQUE', 'DESEMBARQUE E PRÉ-INSTALAÇÃO', 'ENTREGA', 'REUNIÃO DE START 1', 'REUNIÃO DE START 2', 'LIBERAÇÃO COMERCIAL'];
+  const requerFormulario = atividadesComFormulario.includes(atividade.atividade);
 
-    setShowConfirmacao(false);
-    await handleStatusChange(pendingStatus);
-    setPendingStatus(null);
-  };
-
-  const handleCheckboxClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (loading) return;
-
-    // Verificar se é uma atividade especial que requer formulário
-    const atividadesComFormulario = ['PREPARAÇÃO', 'LIBERAÇÃO E EMBARQUE', 'DESEMBARQUE E PRÉ-INSTALAÇÃO', 'ENTREGA', 'REUNIÃO DE START 1', 'REUNIÃO DE START 2', 'LIBERAÇÃO COMERCIAL'];
-    const requerFormulario = atividadesComFormulario.includes(atividade.atividade);
-
-    // Lógica de progressão com suporte a desmarcar (ciclo reverso)
-    if (atividade.status === 'CONCLUÍDA') {
-      // CONCLUÍDA → EM ANDAMENTO (desmarcar)
-      setPendingStatus('EM ANDAMENTO');
-      setShowConfirmacao(true);
-    } else if (atividade.status === 'EM ANDAMENTO') {
-      // EM ANDAMENTO → A REALIZAR (desmarcar completamente)
-      setPendingStatus('A REALIZAR');
-      setShowConfirmacao(true);
-    } else if (atividade.status === 'A REALIZAR') {
-      // A REALIZAR → EM ANDAMENTO ou abre formulário para concluir diretamente
-      if (requerFormulario) {
-        // Para atividades com formulário, abrir o formulário diretamente
-        if (atividade.atividade === 'PREPARAÇÃO') {
-          setShowFormPreparacao(true);
-        } else if (atividade.atividade === 'LIBERAÇÃO E EMBARQUE') {
-          setShowFormLiberacaoEmbarque(true);
-        } else if (atividade.atividade === 'DESEMBARQUE E PRÉ-INSTALAÇÃO') {
-          setShowFormDesembarque(true);
-        } else if (atividade.atividade === 'ENTREGA') {
-          setShowFormEntrega(true);
-        } else if (atividade.atividade === 'REUNIÃO DE START 1' || atividade.atividade === 'REUNIÃO DE START 2') {
-          setShowFormReuniaoStart(true);
-        } else if (atividade.atividade === 'LIBERAÇÃO COMERCIAL') {
-          setShowFormLiberacaoComercial(true);
-        }
-      } else {
-        // Atividade normal: A REALIZAR → EM ANDAMENTO
-        setPendingStatus('EM ANDAMENTO');
-        setShowConfirmacao(true);
-      }
+  const handleFinalizarComFormulario = () => {
+    if (atividade.atividade === 'PREPARAÇÃO') {
+      setShowFormPreparacao(true);
+    } else if (atividade.atividade === 'LIBERAÇÃO E EMBARQUE') {
+      setShowFormLiberacaoEmbarque(true);
+    } else if (atividade.atividade === 'DESEMBARQUE E PRÉ-INSTALAÇÃO') {
+      setShowFormDesembarque(true);
+    } else if (atividade.atividade === 'ENTREGA') {
+      setShowFormEntrega(true);
+    } else if (atividade.atividade === 'REUNIÃO DE START 1' || atividade.atividade === 'REUNIÃO DE START 2') {
+      setShowFormReuniaoStart(true);
+    } else if (atividade.atividade === 'LIBERAÇÃO COMERCIAL') {
+      setShowFormLiberacaoComercial(true);
     }
   };
+
+  // Parse logs
+  const logs: LogAtividade[] = atividade.logs
+    ? (typeof atividade.logs === 'string' ? JSON.parse(atividade.logs) : atividade.logs)
+    : [];
 
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-lg transition">
@@ -145,24 +184,77 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 flex-1">
-            {/* Checkbox visual baseado no status */}
-            <div
-              onClick={handleCheckboxClick}
-              className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform ${
-                atividade.status === 'CONCLUÍDA'
-                  ? 'bg-green-500 border-green-500'
-                  : atividade.status === 'EM ANDAMENTO'
-                  ? 'bg-yellow-100 border-yellow-500'
-                  : 'bg-white border-gray-300 hover:border-gray-400'
-              } ${loading ? 'opacity-50 cursor-wait' : ''}`}
-            >
-              {atividade.status === 'CONCLUÍDA' && (
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
+            {/* Botões de controle do Timer */}
+            <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+              {atividade.status === 'A REALIZAR' && (
+                <button
+                  onClick={() => handleTimerAction('INICIAR')}
+                  disabled={loading}
+                  className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                  title="Iniciar"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </button>
               )}
+
               {atividade.status === 'EM ANDAMENTO' && (
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <>
+                  <button
+                    onClick={() => handleTimerAction('PAUSAR')}
+                    disabled={loading}
+                    className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    title="Pausar"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => requerFormulario ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
+                    disabled={loading}
+                    className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    title="Finalizar"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 6h12v12H6z"/>
+                    </svg>
+                  </button>
+                </>
+              )}
+
+              {atividade.status === 'PAUSADA' && (
+                <>
+                  <button
+                    onClick={() => handleTimerAction('RETOMAR')}
+                    disabled={loading}
+                    className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    title="Retomar"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => requerFormulario ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
+                    disabled={loading}
+                    className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    title="Finalizar"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 6h12v12H6z"/>
+                    </svg>
+                  </button>
+                </>
+              )}
+
+              {atividade.status === 'CONCLUÍDA' && (
+                <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               )}
             </div>
 
@@ -188,6 +280,16 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* Timer Display */}
+            {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || atividade.tempo_acumulado_segundos) && (
+              <div className={`font-mono text-lg font-bold ${
+                atividade.status === 'EM ANDAMENTO' ? 'text-yellow-600' :
+                atividade.status === 'PAUSADA' ? 'text-orange-600' : 'text-gray-600'
+              }`}>
+                {timerDisplay}
+              </div>
+            )}
+
             <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(atividade.status)}`}>
               {atividade.status}
             </div>
@@ -208,24 +310,6 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       {expanded && (
         <div className="px-4 pb-4">
           <div className="pt-4 border-t border-gray-200">
-            {/* Mudar Status */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Alterar Status:</label>
-              <select
-                value={atividade.status}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleStatusChange(e.target.value);
-                }}
-                disabled={loading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
-              >
-                <option value="A REALIZAR">A Realizar</option>
-                <option value="EM ANDAMENTO">Em Andamento</option>
-                <option value="CONCLUÍDA">Concluída</option>
-              </select>
-            </div>
-
             {/* Detalhes */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -240,16 +324,10 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                 <span className="font-semibold text-gray-700">Data de Término:</span>
                 <p className="text-gray-600">{formatDate(atividade.data_termino)}</p>
               </div>
-              {atividade.tempo_medio && (
+              {atividade.tempo_acumulado_segundos && (
                 <div>
-                  <span className="font-semibold text-gray-700">Tempo Médio:</span>
-                  <p className="text-gray-600">{atividade.tempo_medio.toFixed(2)} dias</p>
-                </div>
-              )}
-              {atividade.dias && (
-                <div>
-                  <span className="font-semibold text-gray-700">Duração:</span>
-                  <p className="text-gray-600">{atividade.dias} dias</p>
+                  <span className="font-semibold text-gray-700">Tempo Total:</span>
+                  <p className="text-gray-600">{formatarTempo(atividade.tempo_acumulado_segundos)}</p>
                 </div>
               )}
             </div>
@@ -281,6 +359,48 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                     Abrir
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Logs de Ações */}
+            {logs.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowLogs(!showLogs);
+                  }}
+                  className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-semibold">Histórico de Ações ({logs.length})</span>
+                  <svg className={`w-4 h-4 transition-transform ${showLogs ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showLogs && (
+                  <div className="mt-2 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                    {logs.slice().reverse().map((log, index) => (
+                      <div key={index} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            log.acao === 'INICIOU' ? 'bg-green-100 text-green-800' :
+                            log.acao === 'PAUSOU' ? 'bg-orange-100 text-orange-800' :
+                            log.acao === 'RETOMOU' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {log.acao}
+                          </span>
+                          <span className="text-sm text-gray-700">{log.usuario_nome}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">{formatDateTime(log.timestamp)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -327,11 +447,9 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         <FormPreparacao
           numeroOpd={atividade.numero_opd}
-          onSubmit={async (data) => {
-            // Salvar o formulário e mudar status para CONCLUÍDA
-            await handleStatusChange('CONCLUÍDA');
+          onSubmit={async () => {
+            await handleTimerAction('FINALIZAR');
             setShowFormPreparacao(false);
-            alert('Formulário de Preparação enviado com sucesso!');
           }}
           onCancel={() => setShowFormPreparacao(false)}
         />
@@ -345,11 +463,9 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         <FormLiberacaoEmbarque
           numeroOpd={atividade.numero_opd}
-          onSubmit={async (data) => {
-            // Salvar o formulário e mudar status para CONCLUÍDA
-            await handleStatusChange('CONCLUÍDA');
+          onSubmit={async () => {
+            await handleTimerAction('FINALIZAR');
             setShowFormLiberacaoEmbarque(false);
-            alert('Formulário de Liberação e Embarque enviado com sucesso!');
           }}
           onCancel={() => setShowFormLiberacaoEmbarque(false)}
         />
@@ -363,11 +479,9 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         <FormDesembarque
           numeroOpd={atividade.numero_opd}
-          onSubmit={async (data) => {
-            // Salvar o formulário e mudar status para CONCLUÍDA
-            await handleStatusChange('CONCLUÍDA');
+          onSubmit={async () => {
+            await handleTimerAction('FINALIZAR');
             setShowFormDesembarque(false);
-            alert('Formulário de Desembarque enviado com sucesso!');
           }}
           onCancel={() => setShowFormDesembarque(false)}
         />
@@ -381,11 +495,9 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         <FormEntrega
           numeroOpd={atividade.numero_opd}
-          onSubmit={async (data) => {
-            // Salvar o formulário e mudar status para CONCLUÍDA
-            await handleStatusChange('CONCLUÍDA');
+          onSubmit={async () => {
+            await handleTimerAction('FINALIZAR');
             setShowFormEntrega(false);
-            alert('Formulário de Entrega enviado com sucesso!');
           }}
           onCancel={() => setShowFormEntrega(false)}
         />
@@ -399,11 +511,9 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         <FormReuniaoStart
           numeroOpd={atividade.numero_opd}
-          onSubmit={async (data) => {
-            // Salvar o formulário e mudar status para CONCLUÍDA
-            await handleStatusChange('CONCLUÍDA');
+          onSubmit={async () => {
+            await handleTimerAction('FINALIZAR');
             setShowFormReuniaoStart(false);
-            alert('Formulário de Reunião de Start enviado com sucesso!');
           }}
           onCancel={() => setShowFormReuniaoStart(false)}
         />
@@ -419,26 +529,13 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
           opd={atividade.numero_opd}
           cliente={atividade.responsavel || ''}
           atividadeId={atividade.id}
-          onSubmit={async (data) => {
-            // Salvar o formulário e mudar status para CONCLUÍDA
-            await handleStatusChange('CONCLUÍDA');
+          onSubmit={async () => {
+            await handleTimerAction('FINALIZAR');
             setShowFormLiberacaoComercial(false);
           }}
           onCancel={() => setShowFormLiberacaoComercial(false)}
         />
       </Modal>
-
-      {/* Confirmação Simples */}
-      <ConfirmacaoAtividade
-        isOpen={showConfirmacao}
-        onClose={() => {
-          setShowConfirmacao(false);
-          setPendingStatus(null);
-        }}
-        onConfirm={handleConfirmSimples}
-        atividade={atividade.atividade}
-        novoStatus={pendingStatus || ''}
-      />
     </div>
   );
 }
