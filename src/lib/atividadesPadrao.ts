@@ -136,6 +136,7 @@ export const ATIVIDADES_PADRAO = [
 
 // Subtarefas de PRODUÇÃO (serão criadas como filhas da atividade PRODUÇÃO)
 export const SUBTAREFAS_PRODUCAO = [
+  // Etapas principais de produção
   {
     atividade: 'CORTE',
     responsavel: 'PRODUÇÃO',
@@ -179,15 +180,106 @@ export const SUBTAREFAS_PRODUCAO = [
     visivel_cq: true,
   },
   {
-    atividade: 'MONTAGEM ELÉTRICA/HIDRÁULICA',
+    atividade: 'MONTAGEM CALHAS',
     responsavel: 'PRODUÇÃO',
     ordem: 8,
     visivel_cq: true,
   },
   {
-    atividade: 'PINTURA',
+    atividade: 'TRAVADOR DE RODAS',
     responsavel: 'PRODUÇÃO',
     ordem: 9,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'TRAVA CHASSI',
+    responsavel: 'PRODUÇÃO',
+    ordem: 10,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'CAIXA TRAVA CHASSI',
+    responsavel: 'PRODUÇÃO',
+    ordem: 11,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'CAVALETE TRAVA CHASSI',
+    responsavel: 'PRODUÇÃO',
+    ordem: 12,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'PAINEL ELÉTRICO',
+    responsavel: 'PRODUÇÃO',
+    ordem: 13,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'MONTAGEM ELÉTRICA/HIDRÁULICA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 14,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'MONTAGEM HIDRÁULICA SOB PLATAFORMA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 15,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'PINTURA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 16,
+    visivel_cq: true,
+  },
+  // Etapas do Coletor
+  {
+    atividade: 'COLETOR - MONTAGEM INICIAL',
+    responsavel: 'PRODUÇÃO',
+    ordem: 17,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - CENTRAL HIDRÁULICA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 18,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - CICLONE',
+    responsavel: 'PRODUÇÃO',
+    ordem: 19,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - TUBO COLETA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 20,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - COLUNA INFERIOR',
+    responsavel: 'PRODUÇÃO',
+    ordem: 21,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - COLUNA SUPERIOR',
+    responsavel: 'PRODUÇÃO',
+    ordem: 22,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - ESCADA PLATIBANDA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 23,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'COLETOR - PINTURA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 24,
     visivel_cq: true,
   },
 ];
