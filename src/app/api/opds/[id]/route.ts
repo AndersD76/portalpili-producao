@@ -140,7 +140,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Verificar se a OPD existe
+    // Verificar se a OPD existe e pegar o número
     const checkResult = await pool.query(
       'SELECT id, numero FROM opds WHERE id = $1',
       [parseInt(id)]
@@ -153,12 +153,17 @@ export async function DELETE(
       );
     }
 
+    const numeroOpd = checkResult.rows[0].numero;
+
+    // Deletar atividades relacionadas primeiro
+    await pool.query('DELETE FROM registros_atividades WHERE numero_opd = $1', [numeroOpd]);
+
     // Deletar a OPD
     await pool.query('DELETE FROM opds WHERE id = $1', [parseInt(id)]);
 
     return NextResponse.json({
       success: true,
-      message: 'OPD deletada com sucesso'
+      message: 'OPD e atividades deletadas com sucesso'
     });
   } catch (error) {
     console.error('Erro ao deletar OPD:', error);
