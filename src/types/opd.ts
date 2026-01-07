@@ -10,6 +10,7 @@ export interface OPD {
   id: number;
   opd: string | null;
   numero: string;
+  cliente: string | null;
   data_pedido: string | null;
   previsao_inicio: string | null;
   previsao_termino: string | null;
