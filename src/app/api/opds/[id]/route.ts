@@ -163,14 +163,33 @@ export async function DELETE(
 
     const numeroOpd = checkResult.rows[0].numero;
 
-    // Deletar atividades relacionadas primeiro (ignorar erros se não existirem)
+    // 1. Buscar IDs das atividades relacionadas
+    const atividadesResult = await pool.query(
+      'SELECT id FROM registros_atividades WHERE numero_opd = $1',
+      [numeroOpd]
+    );
+    const atividadeIds = atividadesResult.rows.map(r => r.id);
+
+    // 2. Deletar formulários preenchidos das atividades (se existirem)
+    if (atividadeIds.length > 0) {
+      try {
+        await pool.query(
+          'DELETE FROM formularios_preenchidos WHERE atividade_id = ANY($1)',
+          [atividadeIds]
+        );
+      } catch (formError) {
+        console.log('Aviso ao deletar formulários:', formError);
+      }
+    }
+
+    // 3. Deletar atividades relacionadas
     try {
       await pool.query('DELETE FROM registros_atividades WHERE numero_opd = $1', [numeroOpd]);
     } catch (atividadesError) {
       console.log('Aviso ao deletar atividades:', atividadesError);
     }
 
-    // Deletar a OPD
+    // 4. Deletar a OPD
     await pool.query('DELETE FROM opds WHERE id = $1', [opdId]);
 
     return NextResponse.json({
