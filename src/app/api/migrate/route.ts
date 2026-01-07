@@ -88,7 +88,33 @@ export async function POST() {
       }
     }
 
-    // 4. Atualizar constraint de status para incluir PAUSADA
+    // 4. Adicionar coluna tipo_produto na tabela de OPDs
+    try {
+      await pool.query(`
+        ALTER TABLE opds
+        ADD COLUMN IF NOT EXISTS tipo_produto VARCHAR(50) DEFAULT 'TOMBADOR'
+      `);
+      results.push('✅ Coluna tipo_produto adicionada às OPDs');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro tipo_produto: ${e.message}`);
+      }
+    }
+
+    // 5. Adicionar coluna tem_nao_conformidade nas atividades
+    try {
+      await pool.query(`
+        ALTER TABLE registros_atividades
+        ADD COLUMN IF NOT EXISTS tem_nao_conformidade BOOLEAN DEFAULT FALSE
+      `);
+      results.push('✅ Coluna tem_nao_conformidade adicionada às atividades');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro tem_nao_conformidade: ${e.message}`);
+      }
+    }
+
+    // 6. Atualizar constraint de status para incluir PAUSADA
     try {
       await pool.query(`
         ALTER TABLE registros_atividades

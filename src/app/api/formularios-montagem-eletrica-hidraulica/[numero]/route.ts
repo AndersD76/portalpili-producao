@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarNaoConformidade } from '@/lib/naoConformidade';
 
 // POST - Salvar formulário de controle de qualidade - Montagem Elétrica/Hidráulica
 export async function POST(
@@ -52,6 +53,8 @@ export async function POST(
       new Date().toISOString(),
       new Date().toISOString()
     ]);
+
+    if (atividade_id) { await verificarNaoConformidade(atividade_id, dados_formulario); }
 
     await client.query('COMMIT');
 

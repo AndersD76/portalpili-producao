@@ -18,6 +18,7 @@ export interface OPD {
   data_entrega: string | null;
   inicio_producao: string | null;
   tipo_opd: string;
+  tipo_produto: 'TOMBADOR' | 'COLETOR' | null;
   responsavel_opd: string;
   atividades_opd: string | null;
   anexo_pedido: {

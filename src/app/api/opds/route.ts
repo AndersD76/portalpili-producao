@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { ATIVIDADES_PADRAO, SUBTAREFAS_PRODUCAO, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
+import { ATIVIDADES_PADRAO, getSubtarefasProducao, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
 
 export async function GET() {
   try {
@@ -18,6 +18,7 @@ export async function GET() {
         o.data_prevista_entrega as data_entrega,
         o.inicio_producao,
         o.tipo_opd,
+        o.tipo_produto,
         o.responsavel_opd,
         o.atividades_opd,
         o.anexo_pedido,
@@ -37,7 +38,7 @@ export async function GET() {
       FROM opds o
       LEFT JOIN registros_atividades ra ON o.numero = ra.numero_opd
       GROUP BY o.id, o.opd, o.numero, o.cliente, o.data_pedido, o.previsao_inicio, o.previsao_termino,
-               o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.responsavel_opd, o.atividades_opd,
+               o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.tipo_produto, o.responsavel_opd, o.atividades_opd,
                o.anexo_pedido, o.registros_atividade, o.mensagens, o.created, o.updated
       ORDER BY o.numero DESC
     `);
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       data_prevista_entrega,
       inicio_producao,
       tipo_opd,
+      tipo_produto,
       responsavel_opd,
       atividades_opd,
       anexo_pedido
@@ -102,10 +104,11 @@ export async function POST(request: Request) {
         data_prevista_entrega,
         inicio_producao,
         tipo_opd,
+        tipo_produto,
         responsavel_opd,
         atividades_opd,
         anexo_pedido
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `, [
       numero,
@@ -115,6 +118,7 @@ export async function POST(request: Request) {
       data_prevista_entrega || null,
       inicio_producao || null,
       tipo_opd || null,
+      tipo_produto || 'TOMBADOR',
       responsavel_opd || null,
       atividades_opd || null,
       anexo_pedido || null
@@ -155,9 +159,12 @@ export async function POST(request: Request) {
         }
       }
 
-      // Criar subtarefas de PRODUÇÃO como filhas
+      // Criar subtarefas de PRODUÇÃO como filhas (baseado no tipo de produto)
       if (producaoId) {
-        for (const subtarefa of SUBTAREFAS_PRODUCAO) {
+        const tipoProdutoNormalizado = (tipo_produto === 'COLETOR' ? 'COLETOR' : 'TOMBADOR') as 'TOMBADOR' | 'COLETOR';
+        const subtarefas = getSubtarefasProducao(tipoProdutoNormalizado);
+
+        for (const subtarefa of subtarefas) {
           const previsaoInicio = calcularPrevisaoInicio(dataPedidoDate, 17 + subtarefa.ordem);
 
           await pool.query(`
@@ -180,7 +187,7 @@ export async function POST(request: Request) {
             producaoId
           ]);
         }
-        console.log(`✅ ${SUBTAREFAS_PRODUCAO.length} subtarefas de PRODUÇÃO criadas para OPD ${numero}`);
+        console.log(`✅ ${subtarefas.length} subtarefas de PRODUÇÃO (${tipoProdutoNormalizado}) criadas para OPD ${numero}`);
       }
 
       console.log(`✅ ${ATIVIDADES_PADRAO.length} atividades padrão criadas para OPD ${numero}`);

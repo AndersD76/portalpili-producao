@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarNaoConformidade } from '@/lib/naoConformidade';
 
 export async function POST(request: Request, { params }: { params: Promise<{ numero: string }> }) {
   const client = await pool.connect();
@@ -9,6 +10,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ num
     if (!dados_formulario) return NextResponse.json({ success: false, error: 'Dados obrigatórios' }, { status: 400 });
     await client.query('BEGIN');
     const result = await client.query(`INSERT INTO formularios_preenchidos (atividade_id, numero_opd, tipo_formulario, dados_formulario, anexos, preenchido_por, data_preenchimento, created, updated) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [atividade_id || null, numero, 'CONTROLE_QUALIDADE_COLETOR_MONTAGEM_INICIAL', JSON.stringify(dados_formulario), null, preenchido_por || 'Sistema', new Date().toISOString(), new Date().toISOString(), new Date().toISOString()]);
+    // Verificar e marcar não-conformidade
+    if (atividade_id) {
+      await verificarNaoConformidade(atividade_id, dados_formulario);
+    }
     await client.query('COMMIT');
     return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
   } catch (error) { await client.query('ROLLBACK'); return NextResponse.json({ success: false, error: 'Erro ao salvar' }, { status: 500 }); }

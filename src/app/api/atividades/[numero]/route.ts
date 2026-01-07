@@ -33,6 +33,7 @@ export async function GET(
         tempo_acumulado_segundos,
         ultimo_inicio,
         logs,
+        tem_nao_conformidade,
         created,
         updated
       FROM registros_atividades

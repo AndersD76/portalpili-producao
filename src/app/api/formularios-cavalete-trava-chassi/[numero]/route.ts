@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarNaoConformidade } from '@/lib/naoConformidade';
 
 export async function POST(
   request: Request,
@@ -22,6 +23,7 @@ export async function POST(
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
     `, [atividade_id || null, numero, 'CONTROLE_QUALIDADE_CAVALETE_TRAVA_CHASSI', JSON.stringify(dados_formulario), null, preenchido_por || 'Sistema', new Date().toISOString(), new Date().toISOString(), new Date().toISOString()]);
 
+    if (atividade_id) { await verificarNaoConformidade(atividade_id, dados_formulario); }
     await client.query('COMMIT');
     return NextResponse.json({ success: true, data: formularioResult.rows[0], message: 'Formulário CQ-L salvo com sucesso' }, { status: 201 });
   } catch (error) {

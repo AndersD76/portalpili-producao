@@ -17,6 +17,7 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
     previsao_termino: '',
     inicio_producao: '',
     tipo_opd: 'PAI',
+    tipo_produto: 'TOMBADOR', // TOMBADOR ou COLETOR
     responsavel_opd: 'PCP'
   });
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
         previsao_termino: opd.previsao_termino ? opd.previsao_termino.split('T')[0] : '',
         inicio_producao: opd.inicio_producao ? opd.inicio_producao.split('T')[0] : '',
         tipo_opd: opd.tipo_opd || 'PAI',
+        tipo_produto: (opd as any).tipo_produto || 'TOMBADOR',
         responsavel_opd: opd.responsavel_opd || 'PCP'
       });
     }
@@ -96,6 +98,64 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:bg-gray-100"
           placeholder="Ex: 3212025"
         />
+      </div>
+
+      {/* Tipo de Produto - IMPORTANTE */}
+      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+        <label className="block text-sm font-bold text-blue-900 mb-2">
+          Tipo de Produto *
+        </label>
+        <p className="text-xs text-blue-700 mb-3">
+          Define as atividades e formulários de produção
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <label
+            className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition ${
+              formData.tipo_produto === 'TOMBADOR'
+                ? 'border-red-500 bg-red-50 text-red-700'
+                : 'border-gray-300 bg-white hover:border-gray-400'
+            }`}
+          >
+            <input
+              type="radio"
+              name="tipo_produto"
+              value="TOMBADOR"
+              checked={formData.tipo_produto === 'TOMBADOR'}
+              onChange={handleChange}
+              className="sr-only"
+            />
+            <div className="text-center">
+              <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span className="font-bold">TOMBADOR</span>
+              <p className="text-xs mt-1">Plataformas de descarga</p>
+            </div>
+          </label>
+          <label
+            className={`flex items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition ${
+              formData.tipo_produto === 'COLETOR'
+                ? 'border-green-500 bg-green-50 text-green-700'
+                : 'border-gray-300 bg-white hover:border-gray-400'
+            }`}
+          >
+            <input
+              type="radio"
+              name="tipo_produto"
+              value="COLETOR"
+              checked={formData.tipo_produto === 'COLETOR'}
+              onChange={handleChange}
+              className="sr-only"
+            />
+            <div className="text-center">
+              <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+              </svg>
+              <span className="font-bold">COLETOR</span>
+              <p className="text-xs mt-1">Coletores de grãos</p>
+            </div>
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

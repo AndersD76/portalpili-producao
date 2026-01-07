@@ -134,9 +134,8 @@ export const ATIVIDADES_PADRAO = [
   },
 ];
 
-// Subtarefas de PRODUÇÃO (serão criadas como filhas da atividade PRODUÇÃO)
-export const SUBTAREFAS_PRODUCAO = [
-  // Etapas principais de produção
+// Subtarefas de PRODUÇÃO para TOMBADOR (Plataformas de descarga)
+export const SUBTAREFAS_PRODUCAO_TOMBADOR = [
   {
     atividade: 'CORTE',
     responsavel: 'PRODUÇÃO',
@@ -233,56 +232,67 @@ export const SUBTAREFAS_PRODUCAO = [
     ordem: 16,
     visivel_cq: true,
   },
-  // Etapas do Coletor
+];
+
+// Subtarefas de PRODUÇÃO para COLETOR (Coletores de grãos)
+export const SUBTAREFAS_PRODUCAO_COLETOR = [
   {
     atividade: 'COLETOR - MONTAGEM INICIAL',
     responsavel: 'PRODUÇÃO',
-    ordem: 17,
+    ordem: 1,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - CENTRAL HIDRÁULICA',
     responsavel: 'PRODUÇÃO',
-    ordem: 18,
+    ordem: 2,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - CICLONE',
     responsavel: 'PRODUÇÃO',
-    ordem: 19,
+    ordem: 3,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - TUBO COLETA',
     responsavel: 'PRODUÇÃO',
-    ordem: 20,
+    ordem: 4,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - COLUNA INFERIOR',
     responsavel: 'PRODUÇÃO',
-    ordem: 21,
+    ordem: 5,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - COLUNA SUPERIOR',
     responsavel: 'PRODUÇÃO',
-    ordem: 22,
+    ordem: 6,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - ESCADA PLATIBANDA',
     responsavel: 'PRODUÇÃO',
-    ordem: 23,
+    ordem: 7,
     visivel_cq: true,
   },
   {
     atividade: 'COLETOR - PINTURA',
     responsavel: 'PRODUÇÃO',
-    ordem: 24,
+    ordem: 8,
     visivel_cq: true,
   },
 ];
+
+// Função para obter subtarefas de produção baseado no tipo de produto
+export function getSubtarefasProducao(tipoProduto: 'TOMBADOR' | 'COLETOR' = 'TOMBADOR') {
+  return tipoProduto === 'COLETOR' ? SUBTAREFAS_PRODUCAO_COLETOR : SUBTAREFAS_PRODUCAO_TOMBADOR;
+}
+
+// Para compatibilidade, exportar SUBTAREFAS_PRODUCAO como TOMBADOR por padrão
+export const SUBTAREFAS_PRODUCAO = SUBTAREFAS_PRODUCAO_TOMBADOR;
 
 export function calcularPrevisaoInicio(dataPedido: Date, ordemAtividade: number): Date {
   const previsao = new Date(dataPedido);
