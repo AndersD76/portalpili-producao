@@ -160,7 +160,7 @@ export default function OPDCard({ opd }: OPDCardProps) {
           Atualizado em: {formatDate(opd.updated)}
         </span>
         <Link
-          href={`/opd/${opd.numero}`}
+          href={`/producao/opd/${opd.numero}`}
           className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
         >
           <span>Ver Detalhes</span>
