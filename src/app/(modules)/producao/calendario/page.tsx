@@ -19,7 +19,8 @@ export default function CalendarioPage() {
       const data = await response.json();
 
       if (data.success) {
-        setOpds(data.data.filter((opd: OPD) => opd.data_entrega));
+        // Usar data_entrega ou data_prevista_entrega como fallback
+        setOpds(data.data.filter((opd: OPD) => opd.data_entrega || opd.data_prevista_entrega));
       }
     } catch (error) {
       console.error('Erro ao carregar OPDs:', error);
@@ -39,11 +40,14 @@ export default function CalendarioPage() {
     return { daysInMonth, startingDayOfWeek, year, month };
   };
 
+  const getDataEntrega = (opd: OPD) => opd.data_entrega || opd.data_prevista_entrega;
+
   const getOPDsForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     return opds.filter(opd => {
-      if (!opd.data_entrega) return false;
-      const opdDate = new Date(opd.data_entrega).toISOString().split('T')[0];
+      const dataEntrega = getDataEntrega(opd);
+      if (!dataEntrega) return false;
+      const opdDate = new Date(dataEntrega).toISOString().split('T')[0];
       return opdDate === dateStr;
     });
   };
@@ -140,13 +144,14 @@ export default function CalendarioPage() {
               <tbody>
                 {opds
                   .filter(opd => {
-                    if (!opd.data_entrega) return false;
-                    const opdDate = new Date(opd.data_entrega);
+                    const dataEntrega = getDataEntrega(opd);
+                    if (!dataEntrega) return false;
+                    const opdDate = new Date(dataEntrega);
                     return opdDate.getMonth() === month && opdDate.getFullYear() === year;
                   })
                   .sort((a, b) => {
-                    const dateA = new Date(a.data_entrega!).getTime();
-                    const dateB = new Date(b.data_entrega!).getTime();
+                    const dateA = new Date(getDataEntrega(a)!).getTime();
+                    const dateB = new Date(getDataEntrega(b)!).getTime();
                     return dateA - dateB;
                   })
                   .map(opd => (
@@ -163,7 +168,7 @@ export default function CalendarioPage() {
                         {opd.cliente || '-'}
                       </td>
                       <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-700 text-sm">
-                        {new Date(opd.data_entrega!).toLocaleDateString('pt-BR')}
+                        {new Date(getDataEntrega(opd)!).toLocaleDateString('pt-BR')}
                       </td>
                       <td className="py-2 sm:py-3 px-2 sm:px-4 text-center">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -179,8 +184,9 @@ export default function CalendarioPage() {
                     </tr>
                   ))}
                 {opds.filter(opd => {
-                  if (!opd.data_entrega) return false;
-                  const opdDate = new Date(opd.data_entrega);
+                  const dataEntrega = getDataEntrega(opd);
+                  if (!dataEntrega) return false;
+                  const opdDate = new Date(dataEntrega);
                   return opdDate.getMonth() === month && opdDate.getFullYear() === year;
                 }).length === 0 && (
                   <tr>

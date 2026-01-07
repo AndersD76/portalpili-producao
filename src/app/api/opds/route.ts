@@ -9,10 +9,12 @@ export async function GET() {
         o.id,
         o.opd,
         o.numero,
+        o.cliente,
         o.data_pedido,
         o.previsao_inicio,
         o.previsao_termino,
         o.data_prevista_entrega,
+        o.data_entrega,
         o.inicio_producao,
         o.tipo_opd,
         o.responsavel_opd,
@@ -24,6 +26,8 @@ export async function GET() {
         o.updated,
         COUNT(ra.id) as total_atividades,
         SUM(CASE WHEN ra.status = 'CONCLUÍDA' THEN 1 ELSE 0 END) as atividades_concluidas,
+        SUM(CASE WHEN ra.status = 'EM ANDAMENTO' THEN 1 ELSE 0 END) as atividades_em_andamento,
+        SUM(CASE WHEN ra.status = 'A REALIZAR' THEN 1 ELSE 0 END) as atividades_a_realizar,
         CASE
           WHEN COUNT(ra.id) > 0
           THEN ROUND((SUM(CASE WHEN ra.status = 'CONCLUÍDA' THEN 1 ELSE 0 END)::numeric / COUNT(ra.id)::numeric * 100)::numeric, 1)
@@ -31,8 +35,8 @@ export async function GET() {
         END as percentual_conclusao
       FROM opds o
       LEFT JOIN registros_atividades ra ON o.numero = ra.numero_opd
-      GROUP BY o.id, o.opd, o.numero, o.data_pedido, o.previsao_inicio, o.previsao_termino,
-               o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.responsavel_opd, o.atividades_opd,
+      GROUP BY o.id, o.opd, o.numero, o.cliente, o.data_pedido, o.previsao_inicio, o.previsao_termino,
+               o.data_prevista_entrega, o.data_entrega, o.inicio_producao, o.tipo_opd, o.responsavel_opd, o.atividades_opd,
                o.anexo_pedido, o.registros_atividade, o.mensagens, o.created, o.updated
       ORDER BY o.numero DESC
     `);
