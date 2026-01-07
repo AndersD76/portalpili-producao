@@ -575,9 +575,6 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
           <p className="text-gray-700">
             Tem certeza que deseja deletar a OPD <strong>{opd?.numero}</strong>?
           </p>
-          <p className="text-sm text-red-600">
-            Esta ação não pode ser desfeita e todas as atividades relacionadas permanecerão no banco de dados.
-          </p>
           <div className="flex justify-end space-x-3 pt-4">
             <button
               onClick={() => setShowDeleteConfirm(false)}
