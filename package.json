@@ -2,6 +2,9 @@
   "name": "portal-pili",
   "version": "1.0.0",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "set TURBOPACK=0&& next dev",
     "dev:turbo": "next dev --turbo",
@@ -22,7 +25,7 @@
     "buffer": "^6.0.3",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
-    "next": "^16.0.3",
+    "next": "^16.1.1",
     "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
