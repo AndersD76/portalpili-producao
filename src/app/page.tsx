@@ -110,8 +110,8 @@ export default function Home() {
       titulo: 'Qualidade',
       descricao: 'Gestão de NCs, Reclamações e Ações Corretivas',
       href: '/qualidade',
-      cor: 'from-green-500 to-green-700',
-      corHover: 'hover:from-green-600 hover:to-green-800',
+      cor: 'from-red-600 to-red-800',
+      corHover: 'hover:from-red-700 hover:to-red-900',
       icone: (
         <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -126,8 +126,8 @@ export default function Home() {
       titulo: 'Dashboard',
       descricao: 'Visão geral e indicadores de desempenho',
       href: '/dashboard',
-      cor: 'from-blue-500 to-blue-700',
-      corHover: 'hover:from-blue-600 hover:to-blue-800',
+      cor: 'from-red-500 to-red-700',
+      corHover: 'hover:from-red-600 hover:to-red-800',
       icone: (
         <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -142,8 +142,8 @@ export default function Home() {
       titulo: 'Calendário',
       descricao: 'Visualização de entregas e prazos',
       href: '/producao/calendario',
-      cor: 'from-purple-500 to-purple-700',
-      corHover: 'hover:from-purple-600 hover:to-purple-800',
+      cor: 'from-red-400 to-red-600',
+      corHover: 'hover:from-red-500 hover:to-red-700',
       icone: (
         <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -175,18 +175,18 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
       {/* Header */}
-      <header className="bg-white shadow-lg">
+      <header className="bg-red-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-center sm:text-left">
-              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">SIG</h1>
-              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-lg">
+              <h1 className="text-2xl sm:text-4xl font-bold text-white">SIG</h1>
+              <p className="text-red-100 mt-1 sm:mt-2 text-sm sm:text-lg">
                 Sistema Integrado de Gestão
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+              className="flex items-center gap-2 px-4 py-2 text-white bg-red-600 hover:bg-red-500 rounded-lg transition"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -269,8 +269,8 @@ export default function Home() {
               href="/qualidade/nao-conformidade/nova"
               className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
             >
-              <div className="p-2 bg-yellow-100 rounded-lg group-hover:bg-yellow-200 transition">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
@@ -281,8 +281,8 @@ export default function Home() {
               href="/qualidade/reclamacao-cliente/nova"
               className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
             >
-              <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
               </div>
@@ -293,8 +293,8 @@ export default function Home() {
               href="/qualidade/acao-corretiva/nova"
               className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
             >
-              <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>

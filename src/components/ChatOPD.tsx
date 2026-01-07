@@ -166,37 +166,37 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 flex flex-col h-[600px]">
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 flex flex-col h-[400px] sm:h-[600px]">
       {/* Header */}
-      <div className="bg-red-600 text-white px-4 py-3 rounded-t-lg flex-shrink-0">
+      <div className="bg-red-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-t-lg flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <h3 className="font-semibold">Chat da OPD</h3>
+            <h3 className="font-semibold text-sm sm:text-base">Chat da OPD</h3>
           </div>
-          <span className="text-xs bg-red-500 px-2 py-1 rounded-full">
+          <span className="text-xs bg-red-500 px-2 py-0.5 sm:py-1 rounded-full">
             {comentarios.length}
           </span>
         </div>
       </div>
 
       {/* Área de Mensagens */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4 bg-gray-50">
         {comentarios.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 sm:w-16 sm:h-16 mb-2 sm:mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <p className="text-sm">Nenhuma mensagem ainda</p>
+            <p className="text-xs sm:text-sm">Nenhuma mensagem ainda</p>
             <p className="text-xs mt-1">Seja o primeiro a comentar!</p>
           </div>
         ) : (
           comentarios.map((comentario) => (
             <div key={comentario.id} className="flex space-x-2">
               {/* Avatar */}
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full ${getCoresAvatar(comentario.usuario_nome)} flex items-center justify-center text-white font-semibold text-xs`}>
+              <div className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full ${getCoresAvatar(comentario.usuario_nome)} flex items-center justify-center text-white font-semibold text-xs`}>
                 {getIniciais(comentario.usuario_nome)}
               </div>
 
@@ -230,36 +230,34 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
       </div>
 
       {/* Formulário de Nova Mensagem */}
-      <form onSubmit={handleEnviarMensagem} className="border-t border-gray-200 p-3 bg-white rounded-b-lg flex-shrink-0">
+      <form onSubmit={handleEnviarMensagem} className="border-t border-gray-200 p-2 sm:p-3 bg-white rounded-b-lg flex-shrink-0">
         <div className="flex space-x-2">
           <input
             type="text"
             value={novaMensagem}
             onChange={(e) => setNovaMensagem(e.target.value)}
-            placeholder="Digite sua mensagem..."
+            placeholder="Mensagem..."
             disabled={enviando}
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-2 sm:px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
             disabled={enviando || !novaMensagem.trim()}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+            className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
           >
             {enviando ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              </>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-                <span className="text-sm">Enviar</span>
+                <span className="text-sm hidden sm:inline">Enviar</span>
               </>
             )}
           </button>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-gray-500 mt-1 sm:mt-2 hidden sm:block">
           As mensagens ficam salvas permanentemente nesta OPD
         </p>
       </form>

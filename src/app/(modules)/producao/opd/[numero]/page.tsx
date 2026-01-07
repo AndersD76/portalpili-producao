@@ -239,78 +239,78 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
       <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <button
-            onClick={() => router.push('/')}
-            className="text-red-600 hover:text-red-800 mb-4 flex items-center"
+            onClick={() => router.push('/producao')}
+            className="text-red-600 hover:text-red-800 mb-4 flex items-center text-sm sm:text-base"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Voltar ao Controle Geral
           </button>
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">OPD {opd.numero}</h1>
-              {opd.cliente && (
-                <div className="mt-2 inline-flex items-center px-4 py-2 bg-blue-100 border-2 border-blue-400 rounded-lg">
-                  <svg className="w-5 h-5 mr-2 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span className="text-sm font-semibold text-blue-700">Cliente:</span>
-                  <span className="ml-2 text-sm font-bold text-blue-900">{opd.cliente}</span>
-                </div>
-              )}
-              {opd.data_entrega && (
-                <div className="mt-2 inline-flex items-center px-4 py-2 bg-blue-100 border-2 border-blue-400 rounded-lg ml-2">
-                  <svg className="w-5 h-5 mr-2 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-sm font-semibold text-blue-700">Previsão de Entrega:</span>
-                  <span className="ml-2 text-sm font-bold text-blue-900">{formatDate(opd.data_entrega)}</span>
-                </div>
-              )}
-              <p className="text-gray-600 mt-2">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">OPD {opd.numero}</h1>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {opd.cliente && (
+                  <div className="inline-flex items-center px-3 py-1.5 bg-blue-100 border-2 border-blue-400 rounded-lg">
+                    <svg className="w-4 h-4 mr-1.5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span className="text-xs sm:text-sm font-bold text-blue-900">{opd.cliente}</span>
+                  </div>
+                )}
+                {opd.data_entrega && (
+                  <div className="inline-flex items-center px-3 py-1.5 bg-green-100 border-2 border-green-400 rounded-lg">
+                    <svg className="w-4 h-4 mr-1.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-xs sm:text-sm font-bold text-green-900">{formatDate(opd.data_entrega)}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-600 mt-2 text-sm">
                 {opd.tipo_opd} - {opd.responsavel_opd}
               </p>
             </div>
 
-            <div className="mt-4 md:mt-0 flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowPostitModal(true)}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center space-x-2"
+                className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center space-x-1.5 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>Post-it</span>
+                <span className="hidden sm:inline">Post-it</span>
               </button>
 
               <button
                 onClick={() => setShowEditModal(true)}
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition flex items-center space-x-2"
+                className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition flex items-center space-x-1.5 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                <span>Editar</span>
+                <span className="hidden sm:inline">Editar</span>
               </button>
 
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center space-x-1.5 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                <span>Deletar</span>
+                <span className="hidden sm:inline">Deletar</span>
               </button>
 
-              <div className="bg-red-50 px-6 py-4 rounded-lg">
+              <div className="bg-red-50 px-4 py-2 sm:px-6 sm:py-4 rounded-lg">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-red-600">{stats.percentual}%</div>
-                  <div className="text-sm text-gray-600">Completo</div>
+                  <div className="text-xl sm:text-3xl font-bold text-red-600">{stats.percentual}%</div>
+                  <div className="text-xs text-gray-600">Completo</div>
                 </div>
               </div>
             </div>
@@ -337,32 +337,32 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
           </div>
 
           {/* Status Stats */}
-          <div className="mt-6 grid grid-cols-4 gap-4">
-            <div className="bg-gray-100 px-4 py-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-gray-700">{stats.total}</div>
+          <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-gray-100 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center">
+              <div className="text-xl sm:text-2xl font-bold text-gray-700">{stats.total}</div>
               <div className="text-xs text-gray-600">Total</div>
             </div>
-            <div className="bg-green-100 px-4 py-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-green-700">{stats.concluidas}</div>
+            <div className="bg-green-100 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center">
+              <div className="text-xl sm:text-2xl font-bold text-green-700">{stats.concluidas}</div>
               <div className="text-xs text-green-600">Concluídas</div>
             </div>
-            <div className="bg-yellow-100 px-4 py-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-yellow-700">{stats.emAndamento}</div>
-              <div className="text-xs text-yellow-600">Em Andamento</div>
+            <div className="bg-yellow-100 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center">
+              <div className="text-xl sm:text-2xl font-bold text-yellow-700">{stats.emAndamento}</div>
+              <div className="text-xs text-yellow-600">Andamento</div>
             </div>
-            <div className="bg-gray-100 px-4 py-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-gray-700">{stats.aRealizar}</div>
+            <div className="bg-gray-100 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-center">
+              <div className="text-xl sm:text-2xl font-bold text-gray-700">{stats.aRealizar}</div>
               <div className="text-xs text-gray-600">A Realizar</div>
             </div>
           </div>
 
           {/* Filtros por Status */}
-          <div className="mt-6">
-            <div className="text-sm font-medium text-gray-600 mb-2">Filtrar por Status:</div>
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-4 sm:mt-6">
+            <div className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Filtrar por Status:</div>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <button
                 onClick={() => setFilter('TODAS')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   filter === 'TODAS'
                     ? 'bg-red-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -372,27 +372,29 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
               </button>
               <button
                 onClick={() => setFilter('A REALIZAR')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   filter === 'A REALIZAR'
                     ? 'bg-red-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                A Realizar
+                <span className="hidden sm:inline">A Realizar</span>
+                <span className="sm:hidden">Realizar</span>
               </button>
               <button
                 onClick={() => setFilter('EM ANDAMENTO')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   filter === 'EM ANDAMENTO'
                     ? 'bg-red-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                Em Andamento
+                <span className="hidden sm:inline">Em Andamento</span>
+                <span className="sm:hidden">Andamento</span>
               </button>
               <button
                 onClick={() => setFilter('CONCLUÍDA')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition ${
                   filter === 'CONCLUÍDA'
                     ? 'bg-red-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -404,12 +406,12 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
           </div>
 
           {/* Filtros por Dias Restantes */}
-          <div className="mt-4">
-            <div className="text-sm font-medium text-gray-600 mb-2">Filtrar por Prazo:</div>
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-3 sm:mt-4">
+            <div className="text-xs sm:text-sm font-medium text-gray-600 mb-2">Filtrar por Prazo:</div>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               <button
                 onClick={() => setDiasFilter('TODOS')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   diasFilter === 'TODOS'
                     ? 'bg-blue-600 text-white'
                     : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -419,7 +421,7 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
               </button>
               <button
                 onClick={() => setDiasFilter('ATRASADAS')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   diasFilter === 'ATRASADAS'
                     ? 'bg-red-600 text-white'
                     : 'bg-red-100 text-red-700 hover:bg-red-200'
@@ -429,7 +431,7 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
               </button>
               <button
                 onClick={() => setDiasFilter('HOJE')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   diasFilter === 'HOJE'
                     ? 'bg-orange-600 text-white'
                     : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
@@ -439,46 +441,46 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
               </button>
               <button
                 onClick={() => setDiasFilter('3_DIAS')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   diasFilter === '3_DIAS'
                     ? 'bg-yellow-600 text-white'
                     : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                 }`}
               >
-                Próximos 3 dias
+                <span className="hidden sm:inline">Próximos </span>3 dias
               </button>
               <button
                 onClick={() => setDiasFilter('7_DIAS')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   diasFilter === '7_DIAS'
                     ? 'bg-green-600 text-white'
                     : 'bg-green-100 text-green-700 hover:bg-green-200'
                 }`}
               >
-                Próximos 7 dias
+                <span className="hidden sm:inline">Próximos </span>7 dias
               </button>
               <button
                 onClick={() => setDiasFilter('30_DIAS')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
                   diasFilter === '30_DIAS'
                     ? 'bg-blue-600 text-white'
                     : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                 }`}
               >
-                Próximos 30 dias
+                <span className="hidden sm:inline">Próximos </span>30 dias
               </button>
             </div>
           </div>
 
           {/* Ordenação */}
-          <div className="mt-4 flex items-center space-x-4">
-            <div className="text-sm font-medium text-gray-600">Ordenar por:</div>
+          <div className="mt-3 sm:mt-4 flex items-center space-x-2 sm:space-x-4">
+            <div className="text-xs sm:text-sm font-medium text-gray-600">Ordenar:</div>
             <select
               value={ordenacao}
               onChange={(e) => setOrdenacao(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-gray-300 text-xs sm:text-sm font-medium bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
             >
-              <option value="DATA">Data de Previsão</option>
+              <option value="DATA">Data Previsão</option>
               <option value="DIAS_RESTANTES">Dias Restantes</option>
               <option value="STATUS">Status</option>
             </select>
@@ -491,13 +493,13 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Coluna de Atividades - 2/3 */}
           <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Atividades ({filteredAtividades.length})
               </h2>
               <button
                 onClick={() => setShowNewAtividadeModal(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
+                className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center space-x-2 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

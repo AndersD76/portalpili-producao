@@ -38,13 +38,13 @@ export default function OPDCard({ opd }: OPDCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border-t-4 border-red-600">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 hover:shadow-xl transition-shadow duration-300 border-t-4 border-red-600">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0 mb-4">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-gray-800">OPD {opd.numero}</h2>
-          <p className="text-sm text-gray-500">ID: {opd.id}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">OPD {opd.numero}</h2>
+          <p className="text-xs sm:text-sm text-gray-500">ID: {opd.id}</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 self-start">
           {/* Indicador de mensagens novas */}
           {mensagensNovas > 0 && (
             <div className="relative">
@@ -62,53 +62,53 @@ export default function OPDCard({ opd }: OPDCardProps) {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2 sm:space-y-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
           <div>
             <p className="text-xs text-gray-500 uppercase font-semibold">Tipo</p>
-            <p className="text-sm font-medium text-gray-800">{opd.tipo_opd}</p>
+            <p className="text-xs sm:text-sm font-medium text-gray-800">{opd.tipo_opd}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase font-semibold">Responsável</p>
-            <p className="text-sm font-medium text-gray-800">{opd.responsavel_opd}</p>
+            <p className="text-xs sm:text-sm font-medium text-gray-800 truncate">{opd.responsavel_opd}</p>
           </div>
         </div>
 
-        <div className="border-t pt-3">
-          <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Datas</p>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
+        <div className="border-t pt-2 sm:pt-3">
+          <p className="text-xs text-gray-500 uppercase font-semibold mb-1 sm:mb-2">Datas</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm">
+            <div className="flex justify-between sm:block">
               <span className="text-gray-600">Pedido:</span>
-              <span className="ml-2 font-medium">{formatDate(opd.data_pedido)}</span>
+              <span className="sm:ml-2 font-medium">{formatDate(opd.data_pedido)}</span>
             </div>
-            <div>
+            <div className="flex justify-between sm:block">
               <span className="text-gray-600">Início Prod.:</span>
-              <span className="ml-2 font-medium">{formatDate(opd.inicio_producao)}</span>
+              <span className="sm:ml-2 font-medium">{formatDate(opd.inicio_producao)}</span>
             </div>
-            <div>
+            <div className="flex justify-between sm:block">
               <span className="text-gray-600">Prev. Início:</span>
-              <span className="ml-2 font-medium">{formatDate(opd.previsao_inicio)}</span>
+              <span className="sm:ml-2 font-medium">{formatDate(opd.previsao_inicio)}</span>
             </div>
-            <div>
+            <div className="flex justify-between sm:block">
               <span className="text-gray-600">Prev. Término:</span>
-              <span className="ml-2 font-medium">{formatDate(opd.previsao_termino)}</span>
+              <span className="sm:ml-2 font-medium">{formatDate(opd.previsao_termino)}</span>
             </div>
-            <div>
-              <span className="text-gray-600">Prev. Entrega:</span>
-              <span className="ml-2 font-medium">{formatDate(opd.data_prevista_entrega)}</span>
+            <div className="flex justify-between sm:block col-span-1 sm:col-span-2 bg-orange-50 p-1 sm:p-0 sm:bg-transparent rounded">
+              <span className="text-gray-600 font-semibold">Entrega:</span>
+              <span className="sm:ml-2 font-bold text-orange-600">{formatDate(opd.data_prevista_entrega)}</span>
             </div>
           </div>
         </div>
 
         {/* Barra de Progresso */}
-        <div className="border-t pt-3">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-xs text-gray-500 uppercase font-semibold">Progresso das Atividades</p>
+        <div className="border-t pt-2 sm:pt-3">
+          <div className="flex justify-between items-center mb-1 sm:mb-2">
+            <p className="text-xs text-gray-500 uppercase font-semibold">Progresso</p>
             <div className="flex items-center space-x-2">
               <span className="text-xs text-gray-600">
                 {opd.atividades_concluidas || 0}/{opd.total_atividades || 0}
               </span>
-              <p className="text-sm font-bold text-gray-700">{progress}%</p>
+              <p className="text-xs sm:text-sm font-bold text-gray-700">{progress}%</p>
             </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -121,9 +121,9 @@ export default function OPDCard({ opd }: OPDCardProps) {
 
         {/* Anexo */}
         {opd.anexo_pedido && (
-          <div className="border-t pt-3">
-            <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Anexo do Pedido</p>
-            <div className="flex items-center justify-between bg-blue-50 p-3 rounded border border-blue-200">
+          <div className="border-t pt-2 sm:pt-3">
+            <p className="text-xs text-gray-500 uppercase font-semibold mb-1 sm:mb-2">Anexo</p>
+            <div className="flex items-center justify-between bg-blue-50 p-2 sm:p-3 rounded border border-blue-200">
               <div className="flex items-center space-x-2 flex-1 min-w-0">
                 <svg
                   className="w-5 h-5 text-red-600 flex-shrink-0"
@@ -155,13 +155,13 @@ export default function OPDCard({ opd }: OPDCardProps) {
         )}
       </div>
 
-      <div className="mt-4 pt-4 border-t flex items-center justify-between">
-        <span className="text-xs text-gray-400">
-          Atualizado em: {formatDate(opd.updated)}
+      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex items-center justify-between">
+        <span className="text-xs text-gray-400 hidden sm:inline">
+          Atualizado: {formatDate(opd.updated)}
         </span>
         <Link
           href={`/producao/opd/${opd.numero}`}
-          className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
+          className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center justify-center space-x-2"
         >
           <span>Ver Detalhes</span>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

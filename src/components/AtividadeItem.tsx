@@ -328,21 +328,21 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-lg transition">
       <div
-        className="p-4 cursor-pointer"
+        className="p-3 sm:p-4 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
             {/* Botões de controle do Timer */}
-            <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               {atividade.status === 'A REALIZAR' && (
                 <button
                   onClick={() => handleTimerAction('INICIAR')}
                   disabled={loading}
-                  className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition disabled:opacity-50"
                   title="Iniciar"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 </button>
@@ -353,7 +353,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                   <button
                     onClick={() => handleTimerAction('PAUSAR')}
                     disabled={loading}
-                    className="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition disabled:opacity-50"
                     title="Pausar"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -363,7 +363,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                   <button
                     onClick={() => requerFormulario && FormComponent ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
                     disabled={loading}
-                    className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
                     title="Finalizar"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -378,7 +378,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                   <button
                     onClick={() => handleTimerAction('RETOMAR')}
                     disabled={loading}
-                    className="w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition disabled:opacity-50"
                     title="Retomar"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -388,7 +388,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                   <button
                     onClick={() => requerFormulario && FormComponent ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
                     disabled={loading}
-                    className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
                     title="Finalizar"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -399,17 +399,17 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
               )}
 
               {atividade.status === 'CONCLUÍDA' && (
-                <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-500 text-white flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
               )}
             </div>
 
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-gray-900">{atividade.atividade}</h3>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{atividade.atividade}</h3>
                 {FormComponent && (
                   <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
                     Formulário
@@ -425,7 +425,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
+              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 mt-1">
                 <span className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -444,10 +444,10 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
             {/* Timer Display - só mostra se em andamento, pausada ou se tem tempo > 0 */}
             {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || (atividade.tempo_acumulado_segundos !== null && atividade.tempo_acumulado_segundos > 0)) && (
-              <div className={`font-mono text-lg font-bold ${
+              <div className={`font-mono text-sm sm:text-lg font-bold ${
                 atividade.status === 'EM ANDAMENTO' ? 'text-yellow-600' :
                 atividade.status === 'PAUSADA' ? 'text-orange-600' : 'text-gray-600'
               }`}>
@@ -455,12 +455,13 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
               </div>
             )}
 
-            <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(atividade.status)}`}>
-              {atividade.status}
+            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusColor(atividade.status)}`}>
+              <span className="hidden sm:inline">{atividade.status}</span>
+              <span className="sm:hidden">{atividade.status === 'EM ANDAMENTO' ? 'ANDAMENTO' : atividade.status === 'A REALIZAR' ? 'REALIZAR' : atividade.status}</span>
             </div>
 
             <svg
-              className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -473,10 +474,10 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       </div>
 
       {expanded && (
-        <div className="px-4 pb-4">
-          <div className="pt-4 border-t border-gray-200">
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4">
+          <div className="pt-3 sm:pt-4 border-t border-gray-200">
             {/* Detalhes */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <span className="font-semibold text-gray-700">Data do Pedido:</span>
                 <p className="text-gray-600">{formatDate(atividade.data_pedido)}</p>
@@ -569,7 +570,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
               </div>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row justify-end gap-2">
               {/* Botão para abrir formulário manualmente */}
               {FormComponent && atividade.status !== 'A REALIZAR' && (
                 <button
@@ -577,7 +578,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                     e.stopPropagation();
                     setShowFormModal(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2"
+                  className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2 text-sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -590,12 +591,12 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                   e.stopPropagation();
                   setShowEditModal(true);
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
+                className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center space-x-2 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                <span>Editar Detalhes</span>
+                <span>Editar</span>
               </button>
             </div>
           </div>
