@@ -100,19 +100,19 @@ export const ATIVIDADES_PADRAO = [
     atividade: 'PRODUÇÃO',
     responsavel: 'PRODUÇÃO',
     ordem: 17,
-    visivel_cq: true,  // Visível no CQ
+    visivel_cq: true,
   },
   {
     atividade: 'EXPEDIÇÃO',
     responsavel: 'EXPEDIÇÃO',
     ordem: 18,
-    visivel_cq: true,  // Visível no CQ
+    visivel_cq: true,
   },
   {
     atividade: 'LIBERAÇÃO E EMBARQUE',
     responsavel: 'EXPEDIÇÃO',
     ordem: 19,
-    visivel_cq: true,  // Visível no CQ
+    visivel_cq: true,
   },
   {
     atividade: 'PREPARAÇÃO',
@@ -131,6 +131,64 @@ export const ATIVIDADES_PADRAO = [
     responsavel: 'INSTALAÇÃO',
     ordem: 22,
     visivel_cq: false,
+  },
+];
+
+// Subtarefas de PRODUÇÃO (serão criadas como filhas da atividade PRODUÇÃO)
+export const SUBTAREFAS_PRODUCAO = [
+  {
+    atividade: 'CORTE',
+    responsavel: 'PRODUÇÃO',
+    ordem: 1,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'SOLDA INFERIOR',
+    responsavel: 'PRODUÇÃO',
+    ordem: 2,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'CENTRAL/SUBCONJUNTOS',
+    responsavel: 'PRODUÇÃO',
+    ordem: 3,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'PEDESTAIS',
+    responsavel: 'PRODUÇÃO',
+    ordem: 4,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'SOB PLATAFORMA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 5,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'BRAÇOS',
+    responsavel: 'PRODUÇÃO',
+    ordem: 6,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'RAMPAS',
+    responsavel: 'PRODUÇÃO',
+    ordem: 7,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'MONTAGEM ELÉTRICA/HIDRÁULICA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 8,
+    visivel_cq: true,
+  },
+  {
+    atividade: 'PINTURA',
+    responsavel: 'PRODUÇÃO',
+    ordem: 9,
+    visivel_cq: true,
   },
 ];
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { ATIVIDADES_PADRAO, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
+import { ATIVIDADES_PADRAO, SUBTAREFAS_PRODUCAO, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
 
 export async function GET() {
   try {
@@ -125,11 +125,12 @@ export async function POST(request: Request) {
     // Criar atividades padrão automaticamente
     try {
       const dataPedidoDate = data_pedido ? new Date(data_pedido) : new Date();
+      let producaoId: number | null = null;
 
       for (const atividadePadrao of ATIVIDADES_PADRAO) {
         const previsaoInicio = calcularPrevisaoInicio(dataPedidoDate, atividadePadrao.ordem);
 
-        await pool.query(`
+        const atividadeResult = await pool.query(`
           INSERT INTO registros_atividades (
             numero_opd,
             atividade,
@@ -138,6 +139,7 @@ export async function POST(request: Request) {
             data_pedido,
             status
           ) VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id
         `, [
           numero,
           atividadePadrao.atividade,
@@ -146,6 +148,39 @@ export async function POST(request: Request) {
           data_pedido || null,
           'A REALIZAR'
         ]);
+
+        // Guardar o ID da atividade PRODUÇÃO para criar subtarefas
+        if (atividadePadrao.atividade === 'PRODUÇÃO') {
+          producaoId = atividadeResult.rows[0].id;
+        }
+      }
+
+      // Criar subtarefas de PRODUÇÃO como filhas
+      if (producaoId) {
+        for (const subtarefa of SUBTAREFAS_PRODUCAO) {
+          const previsaoInicio = calcularPrevisaoInicio(dataPedidoDate, 17 + subtarefa.ordem);
+
+          await pool.query(`
+            INSERT INTO registros_atividades (
+              numero_opd,
+              atividade,
+              responsavel,
+              previsao_inicio,
+              data_pedido,
+              status,
+              parent_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `, [
+            numero,
+            subtarefa.atividade,
+            subtarefa.responsavel,
+            previsaoInicio.toISOString(),
+            data_pedido || null,
+            'A REALIZAR',
+            producaoId
+          ]);
+        }
+        console.log(`✅ ${SUBTAREFAS_PRODUCAO.length} subtarefas de PRODUÇÃO criadas para OPD ${numero}`);
       }
 
       console.log(`✅ ${ATIVIDADES_PADRAO.length} atividades padrão criadas para OPD ${numero}`);
