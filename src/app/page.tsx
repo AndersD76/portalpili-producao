@@ -1,8 +1,79 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+interface Stats {
+  opdsAtivas: number;
+  opdsEmAndamento: number;
+  ncsAbertas: number;
+  acoesPendentes: number;
+  entregasEsteMes: number;
+  entregasProximaSemana: number;
+}
 
 export default function Home() {
+  const [stats, setStats] = useState<Stats>({
+    opdsAtivas: 0,
+    opdsEmAndamento: 0,
+    ncsAbertas: 0,
+    acoesPendentes: 0,
+    entregasEsteMes: 0,
+    entregasProximaSemana: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        // Buscar OPDs
+        const opdsResponse = await fetch('/api/opds');
+        if (opdsResponse.ok) {
+          const opdsData = await opdsResponse.json();
+          if (opdsData.success && Array.isArray(opdsData.data)) {
+            const opds = opdsData.data;
+            const opdsAtivas = opds.length;
+            const opdsEmAndamento = opds.filter((opd: { status?: string }) =>
+              opd.status === 'EM ANDAMENTO' || opd.status === 'Em Andamento'
+            ).length;
+
+            // Calcular entregas do mês e próxima semana
+            const hoje = new Date();
+            const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+            const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+            const proximaSemana = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+            const entregasEsteMes = opds.filter((opd: { data_entrega?: string }) => {
+              if (!opd.data_entrega) return false;
+              const dataEntrega = new Date(opd.data_entrega);
+              return dataEntrega >= inicioMes && dataEntrega <= fimMes;
+            }).length;
+
+            const entregasProximaSemana = opds.filter((opd: { data_entrega?: string }) => {
+              if (!opd.data_entrega) return false;
+              const dataEntrega = new Date(opd.data_entrega);
+              return dataEntrega >= hoje && dataEntrega <= proximaSemana;
+            }).length;
+
+            setStats(prev => ({
+              ...prev,
+              opdsAtivas,
+              opdsEmAndamento,
+              entregasEsteMes,
+              entregasProximaSemana
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchStats();
+  }, []);
+
   const modulos = [
     {
       titulo: 'Produção',
@@ -16,8 +87,8 @@ export default function Home() {
         </svg>
       ),
       stats: [
-        { label: 'OPDs Ativas', valor: '19' },
-        { label: 'Em Andamento', valor: '12' },
+        { label: 'OPDs Ativas', valor: loading ? '...' : String(stats.opdsAtivas) },
+        { label: 'Em Andamento', valor: loading ? '...' : String(stats.opdsEmAndamento) },
       ]
     },
     {
@@ -32,8 +103,8 @@ export default function Home() {
         </svg>
       ),
       stats: [
-        { label: 'NCs Abertas', valor: '—' },
-        { label: 'Ações Pendentes', valor: '—' },
+        { label: 'NCs Abertas', valor: loading ? '...' : String(stats.ncsAbertas) },
+        { label: 'Ações Pendentes', valor: loading ? '...' : String(stats.acoesPendentes) },
       ]
     },
     {
@@ -48,8 +119,8 @@ export default function Home() {
         </svg>
       ),
       stats: [
-        { label: 'KPIs', valor: '—' },
-        { label: 'Relatórios', valor: '—' },
+        { label: 'OPDs Total', valor: loading ? '...' : String(stats.opdsAtivas) },
+        { label: 'Este Mês', valor: loading ? '...' : String(stats.entregasEsteMes) },
       ]
     },
     {
@@ -64,8 +135,8 @@ export default function Home() {
         </svg>
       ),
       stats: [
-        { label: 'Este Mês', valor: '—' },
-        { label: 'Próxima Semana', valor: '—' },
+        { label: 'Este Mês', valor: loading ? '...' : String(stats.entregasEsteMes) },
+        { label: 'Próx. Semana', valor: loading ? '...' : String(stats.entregasProximaSemana) },
       ]
     },
   ];
@@ -76,9 +147,9 @@ export default function Home() {
       <header className="bg-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900">Portal Pili</h1>
+            <h1 className="text-4xl font-bold text-gray-900">SIG</h1>
             <p className="text-gray-600 mt-2 text-lg">
-              Sistema de Gestão de Produção e Qualidade
+              Sistema Integrado de Gestão
             </p>
           </div>
         </div>
@@ -195,7 +266,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-500 text-sm">
-            Portal Pili - Sistema de Gestão de Produção e Qualidade
+            SIG - Sistema Integrado de Gestão
           </p>
         </div>
       </footer>

@@ -4,12 +4,55 @@ import { Atividade, LogAtividade } from '@/types/atividade';
 import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import AtividadeForm from './AtividadeForm';
+
+// Forms de Instalação
 import FormPreparacao from './FormPreparacao';
 import FormLiberacaoEmbarque from './FormLiberacaoEmbarque';
 import FormDesembarque from './FormDesembarque';
 import FormEntrega from './FormEntrega';
 import FormReuniaoStart from './FormReuniaoStart';
 import FormularioLiberacaoComercial from './FormularioLiberacaoComercial';
+
+// Forms de Produção
+import FormularioCorte from './FormularioCorte';
+import FormularioSoldaInferior from './FormularioSoldaInferior';
+import FormularioBracos from './FormularioBracos';
+import FormularioPedestais from './FormularioPedestais';
+import FormularioCentralSubconjuntos from './FormularioCentralSubconjuntos';
+import FormularioPainelEletrico from './FormularioPainelEletrico';
+import FormularioSobPlataforma from './FormularioSobPlataforma';
+import FormularioMontagem from './FormularioMontagem';
+import FormularioMontagemCalhas from './FormularioMontagemCalhas';
+import FormularioMontagemEletricaHidraulica from './FormularioMontagemEletricaHidraulica';
+import FormularioMontagemSoldaInferior from './FormularioMontagemSoldaInferior';
+import FormularioMontagemHidraulicaSobPlataforma from './FormularioMontagemHidraulicaSobPlataforma';
+import FormularioTravadorRodas from './FormularioTravadorRodas';
+import FormularioCaixaTravaChassi from './FormularioCaixaTravaChassi';
+import FormularioTravaChassi from './FormularioTravaChassi';
+import FormularioCavaleteTravaChassi from './FormularioCavaleteTravaChassi';
+import FormularioRampas from './FormularioRampas';
+import FormularioPintura from './FormularioPintura';
+import FormularioExpedicao from './FormularioExpedicao';
+
+// Forms de Coletor
+import FormularioColetorMontagemInicial from './FormularioColetorMontagemInicial';
+import FormularioColetorCentralHidraulica from './FormularioColetorCentralHidraulica';
+import FormularioColetorCiclone from './FormularioColetorCiclone';
+import FormularioColetorTuboColeta from './FormularioColetorTuboColeta';
+import FormularioColetorColunaInferior from './FormularioColetorColunaInferior';
+import FormularioColetorColunaSuperior from './FormularioColetorColunaSuperior';
+import FormularioColetorEscadaPlatibanda from './FormularioColetorEscadaPlatibanda';
+import FormularioColetorPintura from './FormularioColetorPintura';
+
+// Forms de Controle de Qualidade
+import FormularioControleQualidade from './FormularioControleQualidade';
+import FormularioControleQualidadeCentral from './FormularioControleQualidadeCentral';
+import FormularioControleQualidadeSolda from './FormularioControleQualidadeSolda';
+import FormularioControleQualidadeSoldaLado2 from './FormularioControleQualidadeSoldaLado2';
+
+// Forms Extras
+import FormularioInstalacao from './FormularioInstalacao';
+import FormularioDesembarquePreInstalacao from './FormularioDesembarquePreInstalacao';
 
 interface AtividadeItemProps {
   atividade: Atividade;
@@ -18,23 +61,112 @@ interface AtividadeItemProps {
   onRefresh: () => void | Promise<void>;
 }
 
+// Mapeamento de tipo_formulario para componente
+const FORM_COMPONENTS: { [key: string]: React.ComponentType<any> } = {
+  // Instalação
+  'PREPARACAO': FormPreparacao,
+  'LIBERACAO_EMBARQUE': FormLiberacaoEmbarque,
+  'DESEMBARQUE': FormDesembarque,
+  'DESEMBARQUE_PRE_INSTALACAO': FormularioDesembarquePreInstalacao,
+  'ENTREGA': FormEntrega,
+  'REUNIAO_START': FormReuniaoStart,
+  'LIBERACAO_COMERCIAL': FormularioLiberacaoComercial,
+  'INSTALACAO': FormularioInstalacao,
+
+  // Produção
+  'CORTE': FormularioCorte,
+  'SOLDA_INFERIOR': FormularioSoldaInferior,
+  'BRACOS': FormularioBracos,
+  'PEDESTAIS': FormularioPedestais,
+  'CENTRAL_SUBCONJUNTOS': FormularioCentralSubconjuntos,
+  'PAINEL_ELETRICO': FormularioPainelEletrico,
+  'SOB_PLATAFORMA': FormularioSobPlataforma,
+  'MONTAGEM': FormularioMontagem,
+  'MONTAGEM_CALHAS': FormularioMontagemCalhas,
+  'MONTAGEM_ELETRICA_HIDRAULICA': FormularioMontagemEletricaHidraulica,
+  'MONTAGEM_SOLDA_INFERIOR': FormularioMontagemSoldaInferior,
+  'MONTAGEM_HIDRAULICA_SOB_PLATAFORMA': FormularioMontagemHidraulicaSobPlataforma,
+  'TRAVADOR_RODAS': FormularioTravadorRodas,
+  'CAIXA_TRAVA_CHASSI': FormularioCaixaTravaChassi,
+  'TRAVA_CHASSI': FormularioTravaChassi,
+  'CAVALETE_TRAVA_CHASSI': FormularioCavaleteTravaChassi,
+  'RAMPAS': FormularioRampas,
+  'PINTURA': FormularioPintura,
+  'EXPEDICAO': FormularioExpedicao,
+
+  // Coletor
+  'COLETOR_MONTAGEM_INICIAL': FormularioColetorMontagemInicial,
+  'COLETOR_CENTRAL_HIDRAULICA': FormularioColetorCentralHidraulica,
+  'COLETOR_CICLONE': FormularioColetorCiclone,
+  'COLETOR_TUBO_COLETA': FormularioColetorTuboColeta,
+  'COLETOR_COLUNA_INFERIOR': FormularioColetorColunaInferior,
+  'COLETOR_COLUNA_SUPERIOR': FormularioColetorColunaSuperior,
+  'COLETOR_ESCADA_PLATIBANDA': FormularioColetorEscadaPlatibanda,
+  'COLETOR_PINTURA': FormularioColetorPintura,
+
+  // Controle de Qualidade
+  'CONTROLE_QUALIDADE': FormularioControleQualidade,
+  'CONTROLE_QUALIDADE_CENTRAL': FormularioControleQualidadeCentral,
+  'CONTROLE_QUALIDADE_SOLDA': FormularioControleQualidadeSolda,
+  'CONTROLE_QUALIDADE_SOLDA_LADO2': FormularioControleQualidadeSoldaLado2,
+};
+
+// Mapeamento de nome de atividade para tipo de formulário (fallback)
+const ATIVIDADE_TO_FORM: { [key: string]: string } = {
+  'PREPARAÇÃO': 'PREPARACAO',
+  'LIBERAÇÃO E EMBARQUE': 'LIBERACAO_EMBARQUE',
+  'DESEMBARQUE E PRÉ-INSTALAÇÃO': 'DESEMBARQUE_PRE_INSTALACAO',
+  'ENTREGA': 'ENTREGA',
+  'REUNIÃO DE START 1': 'REUNIAO_START',
+  'REUNIÃO DE START 2': 'REUNIAO_START',
+  'LIBERAÇÃO COMERCIAL': 'LIBERACAO_COMERCIAL',
+  'INSTALAÇÃO': 'INSTALACAO',
+  'CORTE': 'CORTE',
+  'SOLDA INFERIOR': 'SOLDA_INFERIOR',
+  'BRAÇOS': 'BRACOS',
+  'PEDESTAIS': 'PEDESTAIS',
+  'CENTRAL/SUBCONJUNTOS': 'CENTRAL_SUBCONJUNTOS',
+  'PAINEL ELÉTRICO': 'PAINEL_ELETRICO',
+  'SOB PLATAFORMA': 'SOB_PLATAFORMA',
+  'MONTAGEM': 'MONTAGEM',
+  'MONTAGEM CALHAS': 'MONTAGEM_CALHAS',
+  'MONTAGEM ELÉTRICA/HIDRÁULICA': 'MONTAGEM_ELETRICA_HIDRAULICA',
+  'MONTAGEM SOLDA INFERIOR': 'MONTAGEM_SOLDA_INFERIOR',
+  'MONTAGEM HIDRÁULICA SOB PLATAFORMA': 'MONTAGEM_HIDRAULICA_SOB_PLATAFORMA',
+  'TRAVADOR DE RODAS': 'TRAVADOR_RODAS',
+  'CAIXA TRAVA CHASSI': 'CAIXA_TRAVA_CHASSI',
+  'TRAVA CHASSI': 'TRAVA_CHASSI',
+  'CAVALETE TRAVA CHASSI': 'CAVALETE_TRAVA_CHASSI',
+  'RAMPAS': 'RAMPAS',
+  'PINTURA': 'PINTURA',
+  'EXPEDIÇÃO': 'EXPEDICAO',
+  // Coletor
+  'MONTAGEM INICIAL (COLETOR)': 'COLETOR_MONTAGEM_INICIAL',
+  'CENTRAL HIDRÁULICA (COLETOR)': 'COLETOR_CENTRAL_HIDRAULICA',
+  'CICLONE (COLETOR)': 'COLETOR_CICLONE',
+  'TUBO DE COLETA (COLETOR)': 'COLETOR_TUBO_COLETA',
+  'COLUNA INFERIOR (COLETOR)': 'COLETOR_COLUNA_INFERIOR',
+  'COLUNA SUPERIOR (COLETOR)': 'COLETOR_COLUNA_SUPERIOR',
+  'ESCADA/PLATIBANDA (COLETOR)': 'COLETOR_ESCADA_PLATIBANDA',
+  'PINTURA (COLETOR)': 'COLETOR_PINTURA',
+  // QC
+  'CONTROLE DE QUALIDADE': 'CONTROLE_QUALIDADE',
+  'QC - CENTRAL': 'CONTROLE_QUALIDADE_CENTRAL',
+  'QC - SOLDA': 'CONTROLE_QUALIDADE_SOLDA',
+  'QC - SOLDA LADO 2': 'CONTROLE_QUALIDADE_SOLDA_LADO2',
+};
+
 export default function AtividadeItem({ atividade, onUpdate, onRefresh }: AtividadeItemProps) {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showFormPreparacao, setShowFormPreparacao] = useState(false);
-  const [showFormLiberacaoEmbarque, setShowFormLiberacaoEmbarque] = useState(false);
-  const [showFormDesembarque, setShowFormDesembarque] = useState(false);
-  const [showFormEntrega, setShowFormEntrega] = useState(false);
-  const [showFormReuniaoStart, setShowFormReuniaoStart] = useState(false);
-  const [showFormLiberacaoComercial, setShowFormLiberacaoComercial] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [timerDisplay, setTimerDisplay] = useState('00:00:00');
 
   // Timer atualizado a cada segundo quando atividade está em andamento
   useEffect(() => {
     if (atividade.status !== 'EM ANDAMENTO') {
-      // Mostrar tempo acumulado se existir
       if (atividade.tempo_acumulado_segundos) {
         setTimerDisplay(formatarTempo(atividade.tempo_acumulado_segundos));
       }
@@ -129,45 +261,25 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
-    setLoading(true);
-    try {
-      const updateData: any = { status: newStatus };
-
-      if (newStatus === 'EM ANDAMENTO' && !atividade.data_inicio) {
-        updateData.data_inicio = new Date().toISOString();
-      }
-
-      if (newStatus === 'CONCLUÍDA' && !atividade.data_termino) {
-        updateData.data_termino = new Date().toISOString();
-      }
-
-      await onUpdate(atividade.id, updateData);
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-      alert('Erro ao atualizar status da atividade');
-    } finally {
-      setLoading(false);
+  // Determinar qual formulário usar
+  const getTipoFormulario = (): string | null => {
+    // Primeiro verificar se há tipo_formulario definido na atividade
+    if ((atividade as any).tipo_formulario) {
+      return (atividade as any).tipo_formulario;
     }
+    // Fallback para mapeamento por nome da atividade
+    return ATIVIDADE_TO_FORM[atividade.atividade] || null;
   };
 
-  // Verificar se atividade requer formulário especial
-  const atividadesComFormulario = ['PREPARAÇÃO', 'LIBERAÇÃO E EMBARQUE', 'DESEMBARQUE E PRÉ-INSTALAÇÃO', 'ENTREGA', 'REUNIÃO DE START 1', 'REUNIÃO DE START 2', 'LIBERAÇÃO COMERCIAL'];
-  const requerFormulario = atividadesComFormulario.includes(atividade.atividade);
+  const tipoFormulario = getTipoFormulario();
+  const FormComponent = tipoFormulario ? FORM_COMPONENTS[tipoFormulario] : null;
+  const requerFormulario = (atividade as any).requer_formulario || FormComponent !== null;
 
   const handleFinalizarComFormulario = () => {
-    if (atividade.atividade === 'PREPARAÇÃO') {
-      setShowFormPreparacao(true);
-    } else if (atividade.atividade === 'LIBERAÇÃO E EMBARQUE') {
-      setShowFormLiberacaoEmbarque(true);
-    } else if (atividade.atividade === 'DESEMBARQUE E PRÉ-INSTALAÇÃO') {
-      setShowFormDesembarque(true);
-    } else if (atividade.atividade === 'ENTREGA') {
-      setShowFormEntrega(true);
-    } else if (atividade.atividade === 'REUNIÃO DE START 1' || atividade.atividade === 'REUNIÃO DE START 2') {
-      setShowFormReuniaoStart(true);
-    } else if (atividade.atividade === 'LIBERAÇÃO COMERCIAL') {
-      setShowFormLiberacaoComercial(true);
+    if (FormComponent) {
+      setShowFormModal(true);
+    } else {
+      handleTimerAction('FINALIZAR');
     }
   };
 
@@ -175,6 +287,34 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
   const logs: LogAtividade[] = atividade.logs
     ? (typeof atividade.logs === 'string' ? JSON.parse(atividade.logs) : atividade.logs)
     : [];
+
+  // Renderizar formulário dinâmico
+  const renderFormulario = () => {
+    if (!FormComponent) return null;
+
+    const commonProps = {
+      numeroOpd: atividade.numero_opd,
+      opd: atividade.numero_opd,
+      onSubmit: async () => {
+        await handleTimerAction('FINALIZAR');
+        setShowFormModal(false);
+      },
+      onCancel: () => setShowFormModal(false),
+    };
+
+    // Alguns forms precisam de props extras
+    if (tipoFormulario === 'LIBERACAO_COMERCIAL') {
+      return (
+        <FormComponent
+          {...commonProps}
+          cliente={atividade.responsavel || ''}
+          atividadeId={atividade.id}
+        />
+      );
+    }
+
+    return <FormComponent {...commonProps} />;
+  };
 
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-lg transition">
@@ -212,7 +352,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                     </svg>
                   </button>
                   <button
-                    onClick={() => requerFormulario ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
+                    onClick={() => requerFormulario && FormComponent ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
                     disabled={loading}
                     className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
                     title="Finalizar"
@@ -237,7 +377,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
                     </svg>
                   </button>
                   <button
-                    onClick={() => requerFormulario ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
+                    onClick={() => requerFormulario && FormComponent ? handleFinalizarComFormulario() : handleTimerAction('FINALIZAR')}
                     disabled={loading}
                     className="w-10 h-10 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition disabled:opacity-50"
                     title="Finalizar"
@@ -259,7 +399,14 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
             </div>
 
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">{atividade.atividade}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">{atividade.atividade}</h3>
+                {FormComponent && (
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                    Formulário
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
                 <span className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +551,22 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
               </div>
             )}
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end gap-2">
+              {/* Botão para abrir formulário manualmente */}
+              {FormComponent && atividade.status !== 'A REALIZAR' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowFormModal(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Formulário</span>
+                </button>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -439,102 +601,13 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
         />
       </Modal>
 
-      {/* Modal de Formulário de Preparação */}
+      {/* Modal de Formulário Dinâmico */}
       <Modal
-        isOpen={showFormPreparacao}
-        onClose={() => setShowFormPreparacao(false)}
-        title="Registro de Instalação - Preparação"
+        isOpen={showFormModal}
+        onClose={() => setShowFormModal(false)}
+        title={`Formulário - ${atividade.atividade}`}
       >
-        <FormPreparacao
-          numeroOpd={atividade.numero_opd}
-          onSubmit={async () => {
-            await handleTimerAction('FINALIZAR');
-            setShowFormPreparacao(false);
-          }}
-          onCancel={() => setShowFormPreparacao(false)}
-        />
-      </Modal>
-
-      {/* Modal de Formulário de Liberação e Embarque */}
-      <Modal
-        isOpen={showFormLiberacaoEmbarque}
-        onClose={() => setShowFormLiberacaoEmbarque(false)}
-        title="Registro de Instalação - Liberação e Embarque"
-      >
-        <FormLiberacaoEmbarque
-          numeroOpd={atividade.numero_opd}
-          onSubmit={async () => {
-            await handleTimerAction('FINALIZAR');
-            setShowFormLiberacaoEmbarque(false);
-          }}
-          onCancel={() => setShowFormLiberacaoEmbarque(false)}
-        />
-      </Modal>
-
-      {/* Modal de Formulário de Desembarque e Pré-Instalação */}
-      <Modal
-        isOpen={showFormDesembarque}
-        onClose={() => setShowFormDesembarque(false)}
-        title="Registro de Instalação - Desembarque e Pré-Instalação"
-      >
-        <FormDesembarque
-          numeroOpd={atividade.numero_opd}
-          onSubmit={async () => {
-            await handleTimerAction('FINALIZAR');
-            setShowFormDesembarque(false);
-          }}
-          onCancel={() => setShowFormDesembarque(false)}
-        />
-      </Modal>
-
-      {/* Modal de Formulário de Entrega */}
-      <Modal
-        isOpen={showFormEntrega}
-        onClose={() => setShowFormEntrega(false)}
-        title="Registro de Instalação - Entrega Final"
-      >
-        <FormEntrega
-          numeroOpd={atividade.numero_opd}
-          onSubmit={async () => {
-            await handleTimerAction('FINALIZAR');
-            setShowFormEntrega(false);
-          }}
-          onCancel={() => setShowFormEntrega(false)}
-        />
-      </Modal>
-
-      {/* Modal de Formulário de Reunião de Start */}
-      <Modal
-        isOpen={showFormReuniaoStart}
-        onClose={() => setShowFormReuniaoStart(false)}
-        title={`Registro - ${atividade.atividade}`}
-      >
-        <FormReuniaoStart
-          numeroOpd={atividade.numero_opd}
-          onSubmit={async () => {
-            await handleTimerAction('FINALIZAR');
-            setShowFormReuniaoStart(false);
-          }}
-          onCancel={() => setShowFormReuniaoStart(false)}
-        />
-      </Modal>
-
-      {/* Modal de Formulário de Liberação Comercial */}
-      <Modal
-        isOpen={showFormLiberacaoComercial}
-        onClose={() => setShowFormLiberacaoComercial(false)}
-        title="Liberação Comercial"
-      >
-        <FormularioLiberacaoComercial
-          opd={atividade.numero_opd}
-          cliente={atividade.responsavel || ''}
-          atividadeId={atividade.id}
-          onSubmit={async () => {
-            await handleTimerAction('FINALIZAR');
-            setShowFormLiberacaoComercial(false);
-          }}
-          onCancel={() => setShowFormLiberacaoComercial(false)}
-        />
+        {renderFormulario()}
       </Modal>
     </div>
   );
