@@ -140,7 +140,16 @@ const ATIVIDADE_TO_FORM: { [key: string]: string } = {
   'RAMPAS': 'RAMPAS',
   'PINTURA': 'PINTURA',
   'EXPEDIÇÃO': 'EXPEDICAO',
-  // Coletor
+  // Coletor - formato "COLETOR - X"
+  'COLETOR - MONTAGEM INICIAL': 'COLETOR_MONTAGEM_INICIAL',
+  'COLETOR - CENTRAL HIDRÁULICA': 'COLETOR_CENTRAL_HIDRAULICA',
+  'COLETOR - CICLONE': 'COLETOR_CICLONE',
+  'COLETOR - TUBO COLETA': 'COLETOR_TUBO_COLETA',
+  'COLETOR - COLUNA INFERIOR': 'COLETOR_COLUNA_INFERIOR',
+  'COLETOR - COLUNA SUPERIOR': 'COLETOR_COLUNA_SUPERIOR',
+  'COLETOR - ESCADA PLATIBANDA': 'COLETOR_ESCADA_PLATIBANDA',
+  'COLETOR - PINTURA': 'COLETOR_PINTURA',
+  // Coletor - formato alternativo
   'MONTAGEM INICIAL (COLETOR)': 'COLETOR_MONTAGEM_INICIAL',
   'CENTRAL HIDRÁULICA (COLETOR)': 'COLETOR_CENTRAL_HIDRAULICA',
   'CICLONE (COLETOR)': 'COLETOR_CICLONE',
@@ -427,8 +436,8 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* Timer Display */}
-            {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || atividade.tempo_acumulado_segundos) && (
+            {/* Timer Display - só mostra se em andamento, pausada ou se tem tempo > 0 */}
+            {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || (atividade.tempo_acumulado_segundos && atividade.tempo_acumulado_segundos > 0)) && (
               <div className={`font-mono text-lg font-bold ${
                 atividade.status === 'EM ANDAMENTO' ? 'text-yellow-600' :
                 atividade.status === 'PAUSADA' ? 'text-orange-600' : 'text-gray-600'
