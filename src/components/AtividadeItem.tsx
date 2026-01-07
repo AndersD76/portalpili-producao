@@ -86,37 +86,12 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
     }
   };
 
-  const handleConfirmResponsavel = async (data: { responsavel: string; dataFinalizacao: string; horaFinalizacao: string; fotoComprovacao: string }) => {
+  const handleConfirmSimples = async () => {
     if (!pendingStatus) return;
 
     setShowConfirmacao(false);
-    setLoading(true);
-
-    try {
-      const updateData: any = {
-        status: pendingStatus,
-        responsavel_execucao: data.responsavel,
-        data_execucao: data.dataFinalizacao,
-        hora_execucao: data.horaFinalizacao,
-        foto_comprovacao: data.fotoComprovacao
-      };
-
-      if (pendingStatus === 'EM ANDAMENTO' && !atividade.data_inicio) {
-        updateData.data_inicio = new Date().toISOString();
-      }
-
-      if (pendingStatus === 'CONCLUÍDA' && !atividade.data_termino) {
-        updateData.data_termino = new Date().toISOString();
-      }
-
-      await onUpdate(atividade.id, updateData);
-      setPendingStatus(null);
-    } catch (error) {
-      console.error('Erro ao atualizar atividade:', error);
-      alert('Erro ao confirmar atividade');
-    } finally {
-      setLoading(false);
-    }
+    await handleStatusChange(pendingStatus);
+    setPendingStatus(null);
   };
 
   const handleCheckboxClick = async (e: React.MouseEvent) => {
@@ -453,14 +428,14 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
         />
       </Modal>
 
-      {/* Confirmação de Responsável */}
+      {/* Confirmação Simples */}
       <ConfirmacaoAtividade
         isOpen={showConfirmacao}
         onClose={() => {
           setShowConfirmacao(false);
           setPendingStatus(null);
         }}
-        onConfirm={handleConfirmResponsavel}
+        onConfirm={handleConfirmSimples}
         atividade={atividade.atividade}
         novoStatus={pendingStatus || ''}
       />
