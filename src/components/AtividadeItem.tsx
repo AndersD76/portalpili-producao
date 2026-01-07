@@ -446,7 +446,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
 
           <div className="flex items-center space-x-3">
             {/* Timer Display - só mostra se em andamento, pausada ou se tem tempo > 0 */}
-            {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || (atividade.tempo_acumulado_segundos && atividade.tempo_acumulado_segundos > 0)) && (
+            {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || (atividade.tempo_acumulado_segundos !== null && atividade.tempo_acumulado_segundos > 0)) && (
               <div className={`font-mono text-lg font-bold ${
                 atividade.status === 'EM ANDAMENTO' ? 'text-yellow-600' :
                 atividade.status === 'PAUSADA' ? 'text-orange-600' : 'text-gray-600'
