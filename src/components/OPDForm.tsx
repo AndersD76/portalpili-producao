@@ -15,6 +15,7 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
     data_pedido: '',
     previsao_inicio: '',
     previsao_termino: '',
+    data_prevista_entrega: '',
     inicio_producao: '',
     tipo_opd: 'PAI',
     tipo_produto: 'TOMBADOR', // TOMBADOR ou COLETOR
@@ -30,6 +31,7 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
         data_pedido: opd.data_pedido ? opd.data_pedido.split('T')[0] : '',
         previsao_inicio: opd.previsao_inicio ? opd.previsao_inicio.split('T')[0] : '',
         previsao_termino: opd.previsao_termino ? opd.previsao_termino.split('T')[0] : '',
+        data_prevista_entrega: opd.data_prevista_entrega ? opd.data_prevista_entrega.split('T')[0] : (opd.data_entrega ? opd.data_entrega.split('T')[0] : ''),
         inicio_producao: opd.inicio_producao ? opd.inicio_producao.split('T')[0] : '',
         tipo_opd: opd.tipo_opd || 'PAI',
         tipo_produto: (opd as any).tipo_produto || 'TOMBADOR',
@@ -236,6 +238,23 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
           />
         </div>
+      </div>
+
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <label htmlFor="data_prevista_entrega" className="block text-sm font-bold text-orange-900 mb-1">
+          📅 Data de Entrega Prevista
+        </label>
+        <p className="text-xs text-orange-700 mb-2">
+          Data que aparecerá no calendário de entregas
+        </p>
+        <input
+          type="date"
+          id="data_prevista_entrega"
+          name="data_prevista_entrega"
+          value={formData.data_prevista_entrega}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+        />
       </div>
 
       <div>

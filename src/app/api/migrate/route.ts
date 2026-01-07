@@ -133,6 +133,93 @@ export async function POST() {
       }
     }
 
+    // 7. Criar tabela de não conformidades
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS nao_conformidades (
+          id SERIAL PRIMARY KEY,
+          numero VARCHAR(50) UNIQUE NOT NULL,
+          data_ocorrencia DATE NOT NULL,
+          local_ocorrencia VARCHAR(255),
+          setor_responsavel VARCHAR(100),
+          tipo VARCHAR(50) NOT NULL,
+          origem VARCHAR(100),
+          gravidade VARCHAR(50),
+          descricao TEXT NOT NULL,
+          evidencias JSONB,
+          produtos_afetados TEXT,
+          quantidade_afetada VARCHAR(100),
+          detectado_por VARCHAR(255),
+          detectado_por_id INTEGER,
+          disposicao VARCHAR(50),
+          disposicao_descricao TEXT,
+          acao_contencao TEXT,
+          responsavel_contencao VARCHAR(255),
+          causa_raiz TEXT,
+          acao_corretiva TEXT,
+          responsavel_acao VARCHAR(255),
+          prazo_acao DATE,
+          verificacao_eficacia TEXT,
+          data_verificacao DATE,
+          responsavel_verificacao VARCHAR(255),
+          status VARCHAR(50) DEFAULT 'ABERTA',
+          created_by VARCHAR(255),
+          numero_opd VARCHAR(50),
+          atividade_id INTEGER,
+          created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_nc_numero ON nao_conformidades(numero)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_nc_status ON nao_conformidades(status)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_nc_numero_opd ON nao_conformidades(numero_opd)`);
+      results.push('✅ Tabela nao_conformidades criada');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro nao_conformidades: ${e.message}`);
+      }
+    }
+
+    // 8. Criar sequência para NCs
+    try {
+      await pool.query(`
+        CREATE SEQUENCE IF NOT EXISTS seq_nao_conformidade START 1
+      `);
+      results.push('✅ Sequência seq_nao_conformidade criada');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro seq_nao_conformidade: ${e.message}`);
+      }
+    }
+
+    // 9. Reprocessar NCs dos formulários existentes
+    try {
+      // Buscar formulários com "não conforme" e atualizar atividades
+      const atividadesComNC = await pool.query(`
+        SELECT DISTINCT ra.id
+        FROM registros_atividades ra
+        JOIN formularios_preenchidos fp ON fp.atividade_id = ra.id
+        WHERE fp.dados_formulario::text ILIKE '%não conforme%'
+           OR fp.dados_formulario::text ILIKE '%nao conforme%'
+           OR fp.dados_formulario::text ILIKE '%Não conforme%'
+           OR fp.dados_formulario::text ILIKE '%Nao conforme%'
+      `);
+
+      if (atividadesComNC.rowCount && atividadesComNC.rowCount > 0) {
+        for (const row of atividadesComNC.rows) {
+          await pool.query(
+            'UPDATE registros_atividades SET tem_nao_conformidade = true WHERE id = $1',
+            [row.id]
+          );
+        }
+        results.push(`✅ ${atividadesComNC.rowCount} atividades marcadas com NC`);
+      } else {
+        results.push('✅ Nenhuma NC encontrada nos formulários');
+      }
+    } catch (e: any) {
+      errors.push(`❌ Erro ao reprocessar NCs: ${e.message}`);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Migrações executadas',
