@@ -14,6 +14,7 @@ export interface OPD {
   previsao_inicio: string | null;
   previsao_termino: string | null;
   data_prevista_entrega: string | null;
+  data_entrega: string | null;
   inicio_producao: string | null;
   tipo_opd: string;
   responsavel_opd: string;
