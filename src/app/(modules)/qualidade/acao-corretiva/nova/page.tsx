@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -10,7 +10,7 @@ import {
   MetodoAnalise
 } from '@/types/qualidade';
 
-export default function NovaAcaoCorretivaPage() {
+function NovaAcaoCorretivaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -95,6 +95,185 @@ export default function NovaAcaoCorretivaPage() {
   };
 
   return (
+    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Identificação */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Identificação</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data de Abertura *</label>
+            <input
+              type="date"
+              name="data_abertura"
+              value={formData.data_abertura}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Origem *</label>
+            <select
+              name="origem_tipo"
+              value={formData.origem_tipo}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Selecione...</option>
+              {Object.entries(ORIGENS_ACAO_CORRETIVA).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+          {(formData.origem_tipo === 'NAO_CONFORMIDADE' || formData.origem_tipo === 'RECLAMACAO') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ID de Referência</label>
+              <input
+                type="text"
+                name="origem_id"
+                value={formData.origem_id}
+                onChange={handleChange}
+                placeholder="ID da NC ou Reclamação"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          )}
+          <div className={formData.origem_tipo === 'NAO_CONFORMIDADE' || formData.origem_tipo === 'RECLAMACAO' ? '' : 'sm:col-span-2'}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Origem</label>
+            <input
+              type="text"
+              name="origem_descricao"
+              value={formData.origem_descricao}
+              onChange={handleChange}
+              placeholder="Descrição resumida da origem"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Descrição do Problema */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Descrição do Problema</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada *</label>
+            <textarea
+              name="descricao_problema"
+              value={formData.descricao_problema}
+              onChange={handleChange}
+              required
+              rows={5}
+              placeholder="Descreva detalhadamente o problema que originou esta ação corretiva..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Método de Análise</label>
+            <select
+              name="metodo_analise"
+              value={formData.metodo_analise}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Selecione...</option>
+              {Object.entries(METODOS_ANALISE).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">Selecione o método que será usado para análise de causa raiz</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Responsáveis */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Responsáveis e Prazo</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Responsável Principal</label>
+            <input
+              type="text"
+              name="responsavel_principal"
+              value={formData.responsavel_principal}
+              onChange={handleChange}
+              placeholder="Nome do responsável"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Conclusão</label>
+            <input
+              type="date"
+              name="prazo_conclusao"
+              value={formData.prazo_conclusao}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Equipe</label>
+            <input
+              type="text"
+              name="equipe"
+              value={formData.equipe}
+              onChange={handleChange}
+              placeholder="Nomes separados por vírgula (ex: João, Maria, Pedro)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">Membros da equipe que participarão da análise</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Informação Adicional */}
+      <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex items-start gap-3">
+          <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-sm text-blue-800">
+            <p className="font-medium mb-1">Próximas Etapas</p>
+            <p>Após criar esta RAC, você poderá:</p>
+            <ul className="list-disc ml-4 mt-1 space-y-1">
+              <li>Realizar a análise de causa raiz</li>
+              <li>Definir e acompanhar ações corretivas</li>
+              <li>Verificar a eficácia das ações</li>
+              <li>Documentar a padronização</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Botões */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        >
+          {loading ? 'Salvando...' : 'Registrar Ação Corretiva'}
+        </button>
+        <Link
+          href="/qualidade/acao-corretiva"
+          className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-center font-medium"
+        >
+          Cancelar
+        </Link>
+      </div>
+    </form>
+  );
+}
+
+export default function NovaAcaoCorretivaPage() {
+  return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <header className="bg-white shadow-md sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -116,180 +295,18 @@ export default function NovaAcaoCorretivaPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          {/* Identificação */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Identificação</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data de Abertura *</label>
-                <input
-                  type="date"
-                  name="data_abertura"
-                  value={formData.data_abertura}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Origem *</label>
-                <select
-                  name="origem_tipo"
-                  value={formData.origem_tipo}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Selecione...</option>
-                  {Object.entries(ORIGENS_ACAO_CORRETIVA).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              {(formData.origem_tipo === 'NAO_CONFORMIDADE' || formData.origem_tipo === 'RECLAMACAO') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ID de Referência</label>
-                  <input
-                    type="text"
-                    name="origem_id"
-                    value={formData.origem_id}
-                    onChange={handleChange}
-                    placeholder="ID da NC ou Reclamação"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              )}
-              <div className={formData.origem_tipo === 'NAO_CONFORMIDADE' || formData.origem_tipo === 'RECLAMACAO' ? '' : 'sm:col-span-2'}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Origem</label>
-                <input
-                  type="text"
-                  name="origem_descricao"
-                  value={formData.origem_descricao}
-                  onChange={handleChange}
-                  placeholder="Descrição resumida da origem"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+        <Suspense fallback={
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+              <div className="h-32 bg-gray-200 rounded"></div>
             </div>
           </div>
-
-          {/* Descrição do Problema */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Descrição do Problema</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada *</label>
-                <textarea
-                  name="descricao_problema"
-                  value={formData.descricao_problema}
-                  onChange={handleChange}
-                  required
-                  rows={5}
-                  placeholder="Descreva detalhadamente o problema que originou esta ação corretiva..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Método de Análise</label>
-                <select
-                  name="metodo_analise"
-                  value={formData.metodo_analise}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Selecione...</option>
-                  {Object.entries(METODOS_ANALISE).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500">Selecione o método que será usado para análise de causa raiz</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Responsáveis */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Responsáveis e Prazo</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Responsável Principal</label>
-                <input
-                  type="text"
-                  name="responsavel_principal"
-                  value={formData.responsavel_principal}
-                  onChange={handleChange}
-                  placeholder="Nome do responsável"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Conclusão</label>
-                <input
-                  type="date"
-                  name="prazo_conclusao"
-                  value={formData.prazo_conclusao}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Equipe</label>
-                <input
-                  type="text"
-                  name="equipe"
-                  value={formData.equipe}
-                  onChange={handleChange}
-                  placeholder="Nomes separados por vírgula (ex: João, Maria, Pedro)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="mt-1 text-xs text-gray-500">Membros da equipe que participarão da análise</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Informação Adicional */}
-          <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Próximas Etapas</p>
-                <p>Após criar esta RAC, você poderá:</p>
-                <ul className="list-disc ml-4 mt-1 space-y-1">
-                  <li>Realizar a análise de causa raiz</li>
-                  <li>Definir e acompanhar ações corretivas</li>
-                  <li>Verificar a eficácia das ações</li>
-                  <li>Documentar a padronização</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Botões */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {loading ? 'Salvando...' : 'Registrar Ação Corretiva'}
-            </button>
-            <Link
-              href="/qualidade/acao-corretiva"
-              className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-center font-medium"
-            >
-              Cancelar
-            </Link>
-          </div>
-        </form>
+        }>
+          <NovaAcaoCorretivaForm />
+        </Suspense>
       </main>
     </div>
   );

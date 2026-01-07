@@ -14,8 +14,9 @@ import ConfirmacaoAtividade from './ConfirmacaoAtividade';
 
 interface AtividadeItemProps {
   atividade: Atividade;
+  opdCliente?: string;
   onUpdate: (id: number, data: any) => Promise<void>;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
 }
 
 export default function AtividadeItem({ atividade, onUpdate, onRefresh }: AtividadeItemProps) {

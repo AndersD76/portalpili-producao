@@ -773,7 +773,7 @@ export default function ModalVisualizarFormulario({
                 <span className="font-semibold">Preenchido por:</span> {formulario.preenchido_por}
               </p>
               <p className="text-sm text-gray-700">
-                <span className="font-semibold">Data:</span> {new Date(formulario.data_preenchimento).toLocaleString('pt-BR')}
+                <span className="font-semibold">Data:</span> {new Date(formulario.data_preenchimento || formulario.created).toLocaleString('pt-BR')}
               </p>
             </div>
 

@@ -178,7 +178,7 @@ export default function FormularioEntrega({
 
   const renderSelectField = (
     label: string,
-    field: keyof DadosEntrega,
+    field: string,
     options: { value: string; label: string }[],
     required: boolean = false
   ) => (
@@ -189,7 +189,7 @@ export default function FormularioEntrega({
       <select
         name={field}
         value={(formData[field] as string) || ''}
-        onChange={(e) => handleSelectChange(field, e.target.value || null)}
+        onChange={(e) => handleSelectChange(field as keyof DadosEntrega, e.target.value || null)}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
       >
         <option value="">Selecione...</option>
@@ -202,7 +202,7 @@ export default function FormularioEntrega({
 
   const renderBooleanField = (
     label: string,
-    field: keyof DadosEntrega,
+    field: string,
     required: boolean = false
   ) => (
     <div className="mb-4">
@@ -215,7 +215,7 @@ export default function FormularioEntrega({
             type="radio"
             name={field}
             checked={formData[field] === true}
-            onChange={() => handleBooleanChange(field, true)}
+            onChange={() => handleBooleanChange(field as keyof DadosEntrega, true)}
             className="mr-2"
           />
           <span className="text-green-700 font-medium">Sim</span>
@@ -225,7 +225,7 @@ export default function FormularioEntrega({
             type="radio"
             name={field}
             checked={formData[field] === false}
-            onChange={() => handleBooleanChange(field, false)}
+            onChange={() => handleBooleanChange(field as keyof DadosEntrega, false)}
             className="mr-2"
           />
           <span className="text-red-700 font-medium">Não</span>
