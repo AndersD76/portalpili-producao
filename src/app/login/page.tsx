@@ -13,14 +13,12 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirecionar se já estiver autenticado e já viu a política nesta sessão
+    // Redirecionar se já estiver autenticado
     const authenticated = localStorage.getItem('authenticated');
-    const politicaVista = sessionStorage.getItem('politica_vista');
-
-    if (authenticated === 'true' && politicaVista === 'true') {
-      router.push('/dashboard');
+    if (authenticated === 'true') {
+      router.push('/');
     }
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +65,8 @@ export default function LoginPage() {
     setShowPoliticaModal(false);
     // Marcar que a política foi vista nesta sessão
     sessionStorage.setItem('politica_vista', 'true');
-    // Redirecionar para dashboard após fechar o modal
-    router.push('/dashboard');
+    // Redirecionar para página de módulos após fechar o modal
+    router.push('/');
   };
 
   return (

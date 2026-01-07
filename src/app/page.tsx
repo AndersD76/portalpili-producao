@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Stats {
   opdsAtivas: number;
@@ -22,8 +23,22 @@ export default function Home() {
     entregasProximaSemana: 0
   });
   const [loading, setLoading] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
+
+  // Verificar autenticação
+  useEffect(() => {
+    const authenticated = localStorage.getItem('authenticated');
+    if (authenticated !== 'true') {
+      router.push('/login');
+      return;
+    }
+    setCheckingAuth(false);
+  }, [router]);
 
   useEffect(() => {
+    if (checkingAuth) return;
+
     async function fetchStats() {
       try {
         // Buscar OPDs
@@ -72,7 +87,7 @@ export default function Home() {
     }
 
     fetchStats();
-  }, []);
+  }, [checkingAuth]);
 
   const modulos = [
     {
@@ -141,16 +156,43 @@ export default function Home() {
     },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem('authenticated');
+    localStorage.removeItem('user_data');
+    sessionStorage.removeItem('politica_vista');
+    router.push('/login');
+  };
+
+  // Tela de carregamento enquanto verifica autenticação
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
       {/* Header */}
       <header className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900">SIG</h1>
-            <p className="text-gray-600 mt-2 text-lg">
-              Sistema Integrado de Gestão
-            </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">SIG</h1>
+              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-lg">
+                Sistema Integrado de Gestão
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="font-medium">Sair</span>
+            </button>
           </div>
         </div>
       </header>
