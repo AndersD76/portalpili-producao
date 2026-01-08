@@ -284,9 +284,10 @@ export default function FormReuniaoStart({ numeroOpd, onSubmit, onCancel }: Form
             <label className="block text-sm font-semibold mb-1">Tipo Acionamento</label>
             <select name="tipo_acionamento" value={formData.tipo_acionamento} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
               <option value="">Selecione</option>
-              <option value="MANUAL">MANUAL</option>
-              <option value="AUTOMÁTICO">AUTOMÁTICO</option>
-              <option value="SEMI-AUTOMÁTICO">SEMI-AUTOMÁTICO</option>
+              <option value="CONTROLE_SEM_FIO">CONTROLE SEM FIO</option>
+              <option value="CONTROLE_COM_FIO">CONTROLE COM FIO</option>
+              <option value="PEDESTAIS">PEDESTAIS</option>
+              <option value="ALAVANCA">ALAVANCA</option>
             </select>
           </div>
           <div>
@@ -441,12 +442,7 @@ export default function FormReuniaoStart({ numeroOpd, onSubmit, onCancel }: Form
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">Fixação Pedestais</label>
-            <select name="fixacao_pedestais" value={formData.fixacao_pedestais} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500">
-              <option value="">Selecione</option>
-              <option value="CHUMBADORES">CHUMBADORES</option>
-              <option value="SOLDA">SOLDA</option>
-              <option value="PARAFUSOS">PARAFUSOS</option>
-            </select>
+            <input type="text" name="fixacao_pedestais" value={formData.fixacao_pedestais} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500" />
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">Localização Central</label>
@@ -527,16 +523,17 @@ export default function FormReuniaoStart({ numeroOpd, onSubmit, onCancel }: Form
             <label className="block text-sm font-semibold mb-1">Hidráulica</label>
             <select name="hidraulica" value={formData.hidraulica} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
               <option value="">Selecione</option>
-              <option value="SIM">SIM</option>
-              <option value="NÃO">NÃO</option>
+              <option value="MANGUEIRA">MANGUEIRA</option>
+              <option value="TUBULAÇÃO">TUBULAÇÃO</option>
+              <option value="OUTRA">OUTRA</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1">Passagem</label>
             <select name="passagem" value={formData.passagem} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500">
               <option value="">Selecione</option>
-              <option value="SIM">SIM</option>
-              <option value="NÃO">NÃO</option>
+              <option value="LATERAL">LATERAL</option>
+              <option value="NO_MEIO">NO MEIO</option>
             </select>
           </div>
           <div>
