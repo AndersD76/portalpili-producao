@@ -16,15 +16,13 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
 
   const [formData, setFormData] = useState({
-    // CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA
+    // CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA (não requer imagem)
     cq1a_status: '',
-    cq1a_imagem: null as { filename: string; url: string; size: number }[] | null,
 
-    // CQ2-A: VERIFICAR DETALHE PARA CORTE DE ENCAIXE DE VIGA
+    // CQ2-A: VERIFICAR DETALHE PARA CORTE DE ENCAIXE DE VIGA (não requer imagem)
     cq2a_status: '',
-    cq2a_imagem: null as { filename: string; url: string; size: number }[] | null,
 
-    // CQ3-A: VERIFICAR DISTRIBUIÇÃO DAS VIGAS E MEDIDA TOTAL
+    // CQ3-A: VERIFICAR DISTRIBUIÇÃO DAS VIGAS E MEDIDA TOTAL (requer imagem)
     cq3a_status: '',
     cq3a_imagem: null as { filename: string; url: string; size: number }[] | null,
   });
@@ -207,7 +205,7 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
           'Avaliação: 100% | Medida crítica: Comprimento total (após esquadro pronto) | Método de verificação: Dimensional | Instrumento de medição: Trena',
           '+/- 10 mm',
           false,
-          true
+          false
         )}
 
         {renderCQField(
@@ -216,7 +214,7 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
           'Avaliação: 100% | Medida crítica: Medida de corte da aba e presença de chanfro | Método de verificação: Dimensional | Instrumento de medição: Trena',
           '+/- 5 mm',
           false,
-          true
+          false
         )}
 
         {renderCQField(

@@ -16,31 +16,30 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
 
   const [formData, setFormData] = useState({
-    // CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA
+    // CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA (não requer imagem)
     cq1a_status: '',
-    cq1a_imagem: null as { filename: string; url: string; size: number }[] | null,
 
-    // CQ2-A: VERIFICAR DETALHE PARA CORTE DE ENCAIXE DE VIGA
+    // CQ2-A: VERIFICAR DETALHE PARA CORTE DE ENCAIXE DE VIGA (não requer imagem)
     cq2a_status: '',
-    cq2a_imagem: null as { filename: string; url: string; size: number }[] | null,
 
-    // CQ3-A: VERIFICAR DISTRIBUIÇÃO DAS VIGAS E MEDIDA TOTAL
+    // CQ3-A: VERIFICAR DISTRIBUIÇÃO DAS VIGAS E MEDIDA TOTAL (requer imagem)
     cq3a_status: '',
     cq3a_imagem: null as { filename: string; url: string; size: number }[] | null,
 
-    // CQ1-B: MEDIDA DA MONTAGEM INICIAL
+    // CQ1-B: MEDIDA DA MONTAGEM INICIAL (requer imagem)
     cq1b_status: '',
+    cq1b_imagem: null as { filename: string; url: string; size: number }[] | null,
 
-    // CQ2-B: ESQUADRO
+    // CQ2-B: ESQUADRO (não requer imagem)
     cq2b_status: '',
 
-    // CQ3-B: POSICIONAMENTO DO TRAVA CHASSI
+    // CQ3-B: POSICIONAMENTO DO TRAVA CHASSI (não requer imagem)
     cq3b_status: '',
 
-    // CQ4-B: POSICIONAMENTO DO APOIO DO TRAVADOR DE RODAS COD. 23691
+    // CQ4-B: POSICIONAMENTO DO APOIO DO TRAVADOR DE RODAS COD. 23691 (não requer imagem)
     cq4b_status: '',
 
-    // CQ5-B: POSICIONAMENTO DO APOIO DO TRAVADOR DE RODAS COD. 23789
+    // CQ5-B: POSICIONAMENTO DO APOIO DO TRAVADOR DE RODAS COD. 23789 (não requer imagem)
     cq5b_status: '',
 
     // CQ6-B: MONTAGEM DA MÃO FRANCESA E PRESENÇA DE OLHAL
@@ -371,26 +370,26 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
         {renderCQField(
           'CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA',
           'cq1a',
-          'Avaliação: 100% | Medida crítica: Comprimento total | Método: Dimensional | Instrumento: Trena',
+          'Avaliação: 100% | Medida crítica: Comprimento total (após esquadro pronto) | Método: Dimensional | Instrumento: Trena',
           '+/- 10 mm',
           false,
-          true
+          false
         )}
 
         {renderCQField(
           'CQ2-A: VERIFICAR DETALHE PARA CORTE DE ENCAIXE DE VIGA',
           'cq2a',
-          'Avaliação: 100% | Medida crítica: Detalhe de encaixe | Método: Dimensional | Instrumento: Trena',
+          'Avaliação: 100% | Medida crítica: Medida de corte da aba e presença de chanfro | Método: Dimensional | Instrumento: Trena',
           '+/- 5 mm',
           false,
-          true
+          false
         )}
 
         {renderCQField(
-          'CQ3-A: VERIFICAR DISTRIBUIÇÃO DAS VIGAS E MEDIDA TOTAL',
+          'CQ3-A: VERIFICAR DISTRIBUIÇÃO DAS VIGAS E MEDIDA TOTAL (IDENTIFICAÇÃO DA VIGA 72/82/92)',
           'cq3a',
-          'Avaliação: 100% | Medida crítica: Distribuição e medida total | Método: Dimensional | Instrumento: Trena',
-          '+/- 8 mm',
+          'Avaliação: 100% | Medida crítica: Comprimento e identificação das vigas | Método: Dimensional e Visual | Instrumento: Trena',
+          '+/- 8 mm. Seguir conforme desenho.',
           false,
           true
         )}
@@ -404,35 +403,45 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
           'CQ1-B: MEDIDA DA MONTAGEM INICIAL (CONFORME DESENHO ETAPA 0)',
           'cq1b',
           'ETAPA DO PROCESSO: VIGA | Avaliação: 100% | Medida crítica: Comprimento; Largura | Método: Dimensional | Instrumento: Trena',
-          '+/- 5 mm'
+          '+/- 5 mm',
+          false,
+          true
         )}
 
         {renderCQField(
           'CQ2-B: ESQUADRO',
           'cq2b',
           'ETAPA DO PROCESSO: VIGA | Avaliação: 100% | Medida crítica: Comprimento; Ângulo | Método: Dimensional | Instrumento: Trena; Esquadro',
-          '+/- 5 mm; +/- 1 grau'
+          '+/- 5 mm; +/- 1 grau',
+          false,
+          false
         )}
 
         {renderCQField(
           'CQ3-B: POSICIONAMENTO DO TRAVA CHASSI COD.24569 (CONFORME DESENHO ETAPA 0)',
           'cq3b',
           'ETAPA DO PROCESSO: MONTAGEM | Avaliação: 100% | Medida crítica: Comprimento | Método: Dimensional | Instrumento: Trena',
-          '+/- 5 mm'
+          '+/- 5 mm',
+          false,
+          false
         )}
 
         {renderCQField(
           'CQ4-B: POSICIONAMENTO DO APOIO DO TRAVADOR DE RODAS COD. 23691 (CONFORME DESENHO ETAPA 1)',
           'cq4b',
           'ETAPA DO PROCESSO: MONTAGEM | Avaliação: 100% | Medida crítica: Comprimento | Método: Dimensional | Instrumento: Trena',
-          '+/- 5 mm'
+          '+/- 5 mm',
+          false,
+          false
         )}
 
         {renderCQField(
           'CQ5-B: POSICIONAMENTO DO APOIO DO TRAVADOR DE RODAS COD. 23789 (CONFORME DESENHO ETAPA 1)',
           'cq5b',
           'ETAPA DO PROCESSO: MONTAGEM | Avaliação: 100% | Medida crítica: Comprimento | Método: Dimensional | Instrumento: Trena',
-          '+/- 5 mm'
+          '+/- 5 mm',
+          false,
+          false
         )}
 
         {renderCQField(
