@@ -228,15 +228,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-3">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div className="flex items-center gap-3">
               <Link
                 href="/producao"
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition mt-1"
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
                 title="Voltar"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -244,51 +244,56 @@ export default function DashboardPage() {
                 </svg>
               </Link>
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Dashboard de Controle</h1>
-                <p className="text-gray-600 mt-1 text-sm sm:text-base">Visão completa de todas as OPDs e atividades</p>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Dashboard de Produção</h1>
                 {user && (
-                  <div className="flex items-center mt-2 text-xs sm:text-sm text-gray-600">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span className="font-medium">{user.nome}</span>
-                  </div>
+                  <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setLoading(true); fetchOPDs(); }}
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Atualizar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
               <Link
                 href="/producao/calendario"
-                className="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center text-sm"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Calendário"
               >
-                Calendário
-              </Link>
-              <Link
-                href="/producao"
-                className="flex-1 sm:flex-none px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-center text-sm"
-              >
-                OPDs
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </Link>
               <Link
                 href="/"
-                className="flex-1 sm:flex-none px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-center text-sm"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Módulos"
               >
-                Módulos
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center justify-center space-x-2 text-sm"
-                title="Sair do sistema"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Sair"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span className="hidden sm:inline">Sair</span>
               </button>
             </div>
           </div>
         </div>
+      </header>
 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6">
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">

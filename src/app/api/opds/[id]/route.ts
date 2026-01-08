@@ -168,8 +168,36 @@ export async function PATCH(
         'SEPARAR LISTAS PARA A PRODUÇÃO'
       ];
 
-      // Atividades de produção
-      const atividadesProducao = ['PRODUÇÃO'];
+      // Atividades de produção (PRODUÇÃO + todas as subtarefas)
+      const atividadesProducao = [
+        'PRODUÇÃO',
+        // Subtarefas TOMBADOR
+        'CORTE',
+        'SOLDA INFERIOR',
+        'CENTRAL/SUBCONJUNTOS',
+        'PEDESTAIS',
+        'SOB PLATAFORMA',
+        'BRAÇOS',
+        'RAMPAS',
+        'MONTAGEM CALHAS',
+        'TRAVADOR DE RODAS',
+        'TRAVA CHASSI',
+        'CAIXA TRAVA CHASSI',
+        'CAVALETE TRAVA CHASSI',
+        'PAINEL ELÉTRICO',
+        'MONTAGEM ELÉTRICA/HIDRÁULICA',
+        'MONTAGEM HIDRÁULICA SOB PLATAFORMA',
+        'PINTURA',
+        // Subtarefas COLETOR
+        'COLETOR - MONTAGEM INICIAL',
+        'COLETOR - CENTRAL HIDRÁULICA',
+        'COLETOR - CICLONE',
+        'COLETOR - TUBO COLETA',
+        'COLETOR - COLUNA INFERIOR',
+        'COLETOR - COLUNA SUPERIOR',
+        'COLETOR - ESCADA PLATIBANDA',
+        'COLETOR - PINTURA'
+      ];
 
       // Atividade de entrega
       const atividadeEntrega = ['ENTREGA'];
