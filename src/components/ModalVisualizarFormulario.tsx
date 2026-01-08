@@ -29,77 +29,96 @@ export default function ModalVisualizarFormulario({
     }
   }, [isOpen, atividadeId]);
 
+  // Mapeamento de tipo de formulário para endpoint da API
+  const ENDPOINT_MAP: Record<string, string> = {
+    // Instalação
+    'REUNIAO_START': 'formularios-reuniao',
+    'REUNIAO_START_2': 'formularios-start2',
+    'PREPARACAO': 'formularios-preparacao',
+    'LIBERACAO_EMBARQUE': 'formularios-liberacao-embarque',
+    'LIBERACAO_COMERCIAL': 'formularios-liberacao-comercial',
+    'DESEMBARQUE': 'formularios-desembarque',
+    'DESEMBARQUE_PRE_INSTALACAO': 'formularios-desembarque',
+    'ENTREGA': 'formularios-entrega',
+    'INSTALACAO': 'formularios-instalacao',
+
+    // Produção - Tombador
+    'CORTE': 'formularios-corte',
+    'SOLDA_INFERIOR': 'formularios-solda-inferior',
+    'BRACOS': 'formularios-bracos',
+    'PEDESTAIS': 'formularios-pedestais',
+    'CENTRAL_SUBCONJUNTOS': 'formularios-central-subconjuntos',
+    'PAINEL_ELETRICO': 'formularios-painel-eletrico',
+    'SOB_PLATAFORMA': 'formularios-sob-plataforma',
+    'MONTAGEM': 'formularios-montagem',
+    'MONTAGEM_CALHAS': 'formularios-montagem-calhas',
+    'MONTAGEM_ELETRICA_HIDRAULICA': 'formularios-montagem-eletrica-hidraulica',
+    'MONTAGEM_SOLDA_INFERIOR': 'formularios-montagem-solda-inferior',
+    'MONTAGEM_HIDRAULICA_SOB_PLATAFORMA': 'formularios-montagem-hidraulica-sob-plataforma',
+    'TRAVADOR_RODAS': 'formularios-travador-rodas',
+    'CAIXA_TRAVA_CHASSI': 'formularios-caixa-trava-chassi',
+    'TRAVA_CHASSI': 'formularios-trava-chassi',
+    'CAVALETE_TRAVA_CHASSI': 'formularios-cavalete-trava-chassi',
+    'RAMPAS': 'formularios-rampas',
+    'PINTURA': 'formularios-pintura',
+    'EXPEDICAO': 'formularios-expedicao',
+
+    // Produção - Coletor
+    'COLETOR_MONTAGEM_INICIAL': 'formularios-coletor-montagem-inicial',
+    'COLETOR_CENTRAL_HIDRAULICA': 'formularios-coletor-central-hidraulica',
+    'COLETOR_CICLONE': 'formularios-coletor-ciclone',
+    'COLETOR_TUBO_COLETA': 'formularios-coletor-tubo-coleta',
+    'COLETOR_COLUNA_INFERIOR': 'formularios-coletor-coluna-inferior',
+    'COLETOR_COLUNA_SUPERIOR': 'formularios-coletor-coluna-superior',
+    'COLETOR_ESCADA_PLATIBANDA': 'formularios-coletor-escada-platibanda',
+    'COLETOR_PINTURA': 'formularios-coletor-pintura',
+
+    // Controle de Qualidade (prefixo CONTROLE_QUALIDADE_)
+    'CONTROLE_QUALIDADE_CORTE': 'formularios-corte',
+    'CONTROLE_QUALIDADE_MONTAGEM': 'formularios-montagem',
+    'CONTROLE_QUALIDADE_CENTRAL': 'formularios-controle-qualidade-central',
+    'CONTROLE_QUALIDADE_SOLDA': 'formularios-controle-qualidade-solda',
+    'CONTROLE_QUALIDADE_TRAVADOR_RODAS': 'formularios-travador-rodas',
+    'CONTROLE_QUALIDADE_CAIXA_TRAVA_CHASSI': 'formularios-caixa-trava-chassi',
+    'CONTROLE_QUALIDADE_TRAVA_CHASSI': 'formularios-trava-chassi',
+    'CONTROLE_QUALIDADE_CAVALETE_TRAVA_CHASSI': 'formularios-cavalete-trava-chassi',
+    'CONTROLE_QUALIDADE_CENTRAL_SUBCONJUNTOS': 'formularios-central-subconjuntos',
+    'CONTROLE_QUALIDADE_PAINEL_ELETRICO': 'formularios-painel-eletrico',
+    'CONTROLE_QUALIDADE_PEDESTAIS': 'formularios-pedestais',
+    'CONTROLE_QUALIDADE_SOB_PLATAFORMA': 'formularios-sob-plataforma',
+    'CONTROLE_QUALIDADE_SOLDA_INFERIOR': 'formularios-solda-inferior',
+    'CONTROLE_QUALIDADE_BRACOS': 'formularios-bracos',
+    'CONTROLE_QUALIDADE_RAMPAS': 'formularios-rampas',
+    'CONTROLE_QUALIDADE_PINTURA': 'formularios-pintura',
+    'CONTROLE_QUALIDADE_MONTAGEM_HIDRAULICA_SOB_PLATAFORMA': 'formularios-montagem-hidraulica-sob-plataforma',
+    'CONTROLE_QUALIDADE_EXPEDICAO': 'formularios-expedicao',
+    'CONTROLE_QUALIDADE_COLETOR_MONTAGEM_INICIAL': 'formularios-coletor-montagem-inicial',
+    'CONTROLE_QUALIDADE_COLETOR_CENTRAL_HIDRAULICA': 'formularios-coletor-central-hidraulica',
+    'CONTROLE_QUALIDADE_COLETOR_CICLONE': 'formularios-coletor-ciclone',
+    'CONTROLE_QUALIDADE_COLETOR_TUBO_COLETA': 'formularios-coletor-tubo-coleta',
+    'CONTROLE_QUALIDADE_COLETOR_COLUNA_INFERIOR': 'formularios-coletor-coluna-inferior',
+    'CONTROLE_QUALIDADE_COLETOR_COLUNA_SUPERIOR': 'formularios-coletor-coluna-superior',
+    'CONTROLE_QUALIDADE_COLETOR_ESCADA_PLATIBANDA': 'formularios-coletor-escada-platibanda',
+    'CONTROLE_QUALIDADE_COLETOR_PINTURA': 'formularios-coletor-pintura',
+  };
+
   const carregarFormulario = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      let endpoint = '';
-      if (tipoFormulario === 'REUNIAO_START') {
-        endpoint = `/api/formularios-reuniao/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'REUNIAO_START_2') {
-        endpoint = `/api/formularios-start2/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'PREPARACAO') {
-        endpoint = `/api/formularios-preparacao/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'LIBERACAO_EMBARQUE') {
-        endpoint = `/api/formularios-liberacao-embarque/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CORTE') {
-        endpoint = `/api/formularios-corte/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM') {
-        endpoint = `/api/formularios-montagem/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL') {
-        endpoint = `/api/formularios-controle-qualidade-central/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA') {
-        endpoint = `/api/formularios-controle-qualidade-solda/${numeroOpd}?atividade_id=${atividadeId}`;
-      // Tombadores (I-V)
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_TRAVADOR_RODAS') {
-        endpoint = `/api/formularios-travador-rodas/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CAIXA_TRAVA_CHASSI') {
-        endpoint = `/api/formularios-caixa-trava-chassi/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_TRAVA_CHASSI') {
-        endpoint = `/api/formularios-trava-chassi/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CAVALETE_TRAVA_CHASSI') {
-        endpoint = `/api/formularios-cavalete-trava-chassi/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL_SUBCONJUNTOS') {
-        endpoint = `/api/formularios-central-subconjuntos/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_PAINEL_ELETRICO') {
-        endpoint = `/api/formularios-painel-eletrico/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_PEDESTAIS') {
-        endpoint = `/api/formularios-pedestais/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOB_PLATAFORMA') {
-        endpoint = `/api/formularios-sob-plataforma/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA_INFERIOR') {
-        endpoint = `/api/formularios-solda-inferior/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_BRACOS') {
-        endpoint = `/api/formularios-bracos/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_RAMPAS') {
-        endpoint = `/api/formularios-rampas/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_PINTURA') {
-        endpoint = `/api/formularios-pintura/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM_HIDRAULICA_SOB_PLATAFORMA') {
-        endpoint = `/api/formularios-montagem-hidraulica-sob-plataforma/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_EXPEDICAO') {
-        endpoint = `/api/formularios-expedicao/${numeroOpd}?atividade_id=${atividadeId}`;
-      // Coletores (Ac-Hc)
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_MONTAGEM_INICIAL') {
-        endpoint = `/api/formularios-coletor-montagem-inicial/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_CENTRAL_HIDRAULICA') {
-        endpoint = `/api/formularios-coletor-central-hidraulica/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_CICLONE') {
-        endpoint = `/api/formularios-coletor-ciclone/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_TUBO_COLETA') {
-        endpoint = `/api/formularios-coletor-tubo-coleta/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_COLUNA_INFERIOR') {
-        endpoint = `/api/formularios-coletor-coluna-inferior/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_COLUNA_SUPERIOR') {
-        endpoint = `/api/formularios-coletor-coluna-superior/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_ESCADA_PLATIBANDA') {
-        endpoint = `/api/formularios-coletor-escada-platibanda/${numeroOpd}?atividade_id=${atividadeId}`;
-      } else if (tipoFormulario === 'CONTROLE_QUALIDADE_COLETOR_PINTURA') {
-        endpoint = `/api/formularios-coletor-pintura/${numeroOpd}?atividade_id=${atividadeId}`;
+      // Buscar o endpoint no mapeamento
+      const apiEndpoint = ENDPOINT_MAP[tipoFormulario];
+
+      if (!apiEndpoint) {
+        console.warn('Tipo de formulário não mapeado:', tipoFormulario);
+        setError(`Tipo de formulário não suportado: ${tipoFormulario}`);
+        setLoading(false);
+        return;
       }
 
-      if (!endpoint) return;
+      const endpoint = `/api/${apiEndpoint}/${numeroOpd}?atividade_id=${atividadeId}`;
+      console.log('Carregando formulário:', endpoint);
 
       const response = await fetch(endpoint);
       const result = await response.json();
