@@ -46,11 +46,11 @@ interface DashboardData {
     recentes: Array<{
       id: number;
       numero: string;
-      nome_cliente: string;
+      cliente_nome: string;
       status: string;
       descricao: string;
-      data_emissao: string;
-      tipo_defeito: string;
+      data_reclamacao: string;
+      tipo_reclamacao: string;
     }>;
   };
   acoesCorretivas: {
@@ -60,21 +60,18 @@ interface DashboardData {
       em_andamento: number;
       aguardando_verificacao: number;
       fechadas: number;
-      eficazes: number;
-      nao_eficazes: number;
     };
     porStatus: Array<{ status: string; count: number }>;
     porMes: Array<{ mes: string; count: number }>;
-    porEficacia: Array<{ situacao: string; count: number }>;
+    porOrigem: Array<{ origem: string; count: number }>;
     recentes: Array<{
       id: number;
       numero: string;
-      emitente: string;
+      responsavel_principal: string;
       status: string;
-      falha: string;
-      data_emissao: string;
-      prazo: string;
-      situacao_final: string;
+      descricao_problema: string;
+      data_abertura: string;
+      prazo_conclusao: string;
     }>;
     vencidas: number;
   };
@@ -394,7 +391,7 @@ export default function QualidadeDashboardPage() {
           <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
             <p className="text-xs text-gray-600">Ações Corretivas</p>
             <p className="text-2xl font-bold text-gray-900">{formatNumber(acStats.total)}</p>
-            <p className="text-xs text-green-600">{formatNumber(acStats.eficazes)} eficazes</p>
+            <p className="text-xs text-green-600">{formatNumber(acStats.fechadas)} fechadas</p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
             <p className="text-xs text-gray-600">RACs Vencidas</p>
@@ -681,9 +678,9 @@ export default function QualidadeDashboardPage() {
                             {rec.numero}
                           </Link>
                         </td>
-                        <td className="px-3 py-2 text-sm text-gray-600">{formatDate(rec.data_emissao)}</td>
-                        <td className="px-3 py-2 text-sm text-gray-900">{rec.nome_cliente || '-'}</td>
-                        <td className="px-3 py-2 text-sm text-gray-600">{rec.tipo_defeito || '-'}</td>
+                        <td className="px-3 py-2 text-sm text-gray-600">{formatDate(rec.data_reclamacao)}</td>
+                        <td className="px-3 py-2 text-sm text-gray-900">{rec.cliente_nome || '-'}</td>
+                        <td className="px-3 py-2 text-sm text-gray-600">{rec.tipo_reclamacao || '-'}</td>
                         <td className="px-3 py-2">{getStatusBadge(rec.status)}</td>
                       </tr>
                     ))}
@@ -703,7 +700,7 @@ export default function QualidadeDashboardPage() {
         {viewMode === 'acoes' && (
           <div className="space-y-6">
             {/* Cards de Status */}
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="bg-white rounded-lg shadow p-3 text-center">
                 <p className="text-2xl font-bold text-gray-900">{formatNumber(acStats.total)}</p>
                 <p className="text-xs text-gray-600">Total</p>
@@ -717,12 +714,8 @@ export default function QualidadeDashboardPage() {
                 <p className="text-xs text-gray-600">Em Andamento</p>
               </div>
               <div className="bg-white rounded-lg shadow p-3 text-center">
-                <p className="text-2xl font-bold text-purple-600">{formatNumber(acStats.aguardando_verificacao)}</p>
-                <p className="text-xs text-gray-600">Aguard. Verif.</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">{formatNumber(acStats.eficazes)}</p>
-                <p className="text-xs text-gray-600">Eficazes</p>
+                <p className="text-2xl font-bold text-gray-600">{formatNumber(acStats.fechadas)}</p>
+                <p className="text-xs text-gray-600">Fechadas</p>
               </div>
               <div className="bg-white rounded-lg shadow p-3 text-center">
                 <p className="text-2xl font-bold text-yellow-600">{formatNumber(data.acoesCorretivas.vencidas)}</p>
@@ -743,13 +736,15 @@ export default function QualidadeDashboardPage() {
                 />
               </div>
               <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="text-sm font-bold text-gray-900 mb-3 text-center">Eficácia das Ações</h3>
-                <PieChart
-                  data={data.acoesCorretivas.porEficacia.map(e => ({
-                    label: e.situacao === 'EFICAZ' ? 'Eficaz' : e.situacao === 'NAO_EFICAZ' ? 'Não Eficaz' : 'Parcialmente',
-                    value: Number(e.count)
+                <h3 className="text-sm font-bold text-gray-900 mb-3">Origem das Ações</h3>
+                <HorizontalBarChart
+                  data={data.acoesCorretivas.porOrigem.map(o => ({
+                    label: o.origem === 'NAO_CONFORMIDADE' ? 'Não Conformidade' : o.origem === 'RECLAMACAO' ? 'Reclamação' : o.origem || 'N/D',
+                    value: Number(o.count)
                   }))}
-                  colors={['#10B981', '#EF4444', '#F59E0B']}
+                  color="bg-green-500"
+                  showPercentage
+                  total={Number(acStats.total)}
                 />
               </div>
             </div>
@@ -769,15 +764,15 @@ export default function QualidadeDashboardPage() {
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Número</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Data</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Emitente</th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Falha</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Responsável</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Problema</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Prazo</th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {data.acoesCorretivas.recentes.map(ac => {
-                      const prazoVencido = ac.prazo && new Date(ac.prazo) < new Date() && ac.status !== 'FECHADA';
+                      const prazoVencido = ac.prazo_conclusao && new Date(ac.prazo_conclusao) < new Date() && ac.status !== 'FECHADA';
                       return (
                         <tr key={ac.id} className="hover:bg-gray-50">
                           <td className="px-3 py-2">
@@ -785,11 +780,11 @@ export default function QualidadeDashboardPage() {
                               {ac.numero}
                             </Link>
                           </td>
-                          <td className="px-3 py-2 text-sm text-gray-600">{formatDate(ac.data_emissao)}</td>
-                          <td className="px-3 py-2 text-sm text-gray-900">{ac.emitente || '-'}</td>
-                          <td className="px-3 py-2 text-sm text-gray-600 max-w-xs truncate">{ac.falha || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-gray-600">{formatDate(ac.data_abertura)}</td>
+                          <td className="px-3 py-2 text-sm text-gray-900">{ac.responsavel_principal || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-gray-600 max-w-xs truncate">{ac.descricao_problema || '-'}</td>
                           <td className={`px-3 py-2 text-sm ${prazoVencido ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
-                            {formatDate(ac.prazo)}
+                            {formatDate(ac.prazo_conclusao)}
                             {prazoVencido && ' !'}
                           </td>
                           <td className="px-3 py-2">{getStatusBadge(ac.status)}</td>

@@ -170,29 +170,29 @@ export async function GET(request: NextRequest) {
     // Reclamações por mês
     const recPorMes = await pool.query(`
       SELECT
-        TO_CHAR(data_emissao, 'YYYY-MM') as mes,
+        TO_CHAR(data_reclamacao, 'YYYY-MM') as mes,
         COUNT(*) as count
       FROM reclamacoes_clientes
-      WHERE data_emissao >= NOW() - INTERVAL '12 months'
-      GROUP BY TO_CHAR(data_emissao, 'YYYY-MM')
+      WHERE data_reclamacao >= NOW() - INTERVAL '12 months'
+      GROUP BY TO_CHAR(data_reclamacao, 'YYYY-MM')
       ORDER BY mes
     `);
 
-    // Reclamações por tipo de defeito
+    // Reclamações por tipo
     const recPorTipoDefeito = await pool.query(`
-      SELECT tipo_defeito as tipo, COUNT(*) as count
+      SELECT tipo_reclamacao as tipo, COUNT(*) as count
       FROM reclamacoes_clientes
-      WHERE tipo_defeito IS NOT NULL AND tipo_defeito != ''
-      GROUP BY tipo_defeito
+      WHERE tipo_reclamacao IS NOT NULL AND tipo_reclamacao != ''
+      GROUP BY tipo_reclamacao
       ORDER BY count DESC
       LIMIT 10
     `);
 
     // Reclamações recentes
     const recRecentes = await pool.query(`
-      SELECT id, numero, nome_cliente, status, descricao, data_emissao, tipo_defeito
+      SELECT id, numero, cliente_nome, status, descricao, data_reclamacao, tipo_reclamacao
       FROM reclamacoes_clientes
-      ORDER BY created_at DESC
+      ORDER BY created DESC
       LIMIT 10
     `);
 
@@ -203,9 +203,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE status = 'ABERTA') as abertas,
         COUNT(*) FILTER (WHERE status = 'EM_ANDAMENTO') as em_andamento,
         COUNT(*) FILTER (WHERE status = 'AGUARDANDO_VERIFICACAO') as aguardando_verificacao,
-        COUNT(*) FILTER (WHERE status = 'FECHADA') as fechadas,
-        COUNT(*) FILTER (WHERE situacao_final = 'EFICAZ') as eficazes,
-        COUNT(*) FILTER (WHERE situacao_final = 'NAO_EFICAZ') as nao_eficazes
+        COUNT(*) FILTER (WHERE status = 'FECHADA') as fechadas
       FROM acoes_corretivas
     `);
 
@@ -220,28 +218,28 @@ export async function GET(request: NextRequest) {
     // Ações por mês
     const acPorMes = await pool.query(`
       SELECT
-        TO_CHAR(data_emissao, 'YYYY-MM') as mes,
+        TO_CHAR(data_abertura, 'YYYY-MM') as mes,
         COUNT(*) as count
       FROM acoes_corretivas
-      WHERE data_emissao >= NOW() - INTERVAL '12 months'
-      GROUP BY TO_CHAR(data_emissao, 'YYYY-MM')
+      WHERE data_abertura >= NOW() - INTERVAL '12 months'
+      GROUP BY TO_CHAR(data_abertura, 'YYYY-MM')
       ORDER BY mes
     `);
 
-    // Ações por situação final (eficácia)
-    const acPorEficacia = await pool.query(`
-      SELECT situacao_final as situacao, COUNT(*) as count
+    // Ações por origem
+    const acPorOrigem = await pool.query(`
+      SELECT origem_tipo as origem, COUNT(*) as count
       FROM acoes_corretivas
-      WHERE situacao_final IS NOT NULL
-      GROUP BY situacao_final
+      WHERE origem_tipo IS NOT NULL
+      GROUP BY origem_tipo
       ORDER BY count DESC
     `);
 
     // Ações recentes
     const acRecentes = await pool.query(`
-      SELECT id, numero, emitente, status, falha, data_emissao, prazo, situacao_final
+      SELECT id, numero, responsavel_principal, status, descricao_problema, data_abertura, prazo_conclusao
       FROM acoes_corretivas
-      ORDER BY created_at DESC
+      ORDER BY created DESC
       LIMIT 10
     `);
 
@@ -249,7 +247,7 @@ export async function GET(request: NextRequest) {
     const acVencidas = await pool.query(`
       SELECT COUNT(*) as count
       FROM acoes_corretivas
-      WHERE prazo < NOW() AND status != 'FECHADA'
+      WHERE prazo_conclusao < NOW() AND status != 'FECHADA'
     `);
 
     return NextResponse.json({
@@ -278,7 +276,7 @@ export async function GET(request: NextRequest) {
           stats: acStats.rows[0],
           porStatus: acPorStatus.rows,
           porMes: acPorMes.rows,
-          porEficacia: acPorEficacia.rows,
+          porOrigem: acPorOrigem.rows,
           recentes: acRecentes.rows,
           vencidas: Number(acVencidas.rows[0]?.count || 0)
         }
