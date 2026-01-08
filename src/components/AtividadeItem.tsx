@@ -54,6 +54,9 @@ import FormularioControleQualidadeSoldaLado2 from './FormularioControleQualidade
 import FormularioInstalacao from './FormularioInstalacao';
 import FormularioDesembarquePreInstalacao from './FormularioDesembarquePreInstalacao';
 
+// Modal de Visualização de Formulário Preenchido
+import ModalVisualizarFormulario from './ModalVisualizarFormulario';
+
 interface AtividadeItemProps {
   atividade: Atividade;
   opdCliente?: string;
@@ -170,6 +173,7 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
   const [expanded, setExpanded] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [showViewFormModal, setShowViewFormModal] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [timerDisplay, setTimerDisplay] = useState('00:00:00');
 
@@ -455,6 +459,23 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
               </div>
             )}
 
+            {/* Botão de visualizar formulário preenchido - aparece quando atividade concluída com formulário */}
+            {atividade.status === 'CONCLUÍDA' && FormComponent && tipoFormulario && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowViewFormModal(true);
+                }}
+                className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition"
+                title="Visualizar formulário preenchido"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            )}
+
             <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusColor(atividade.status)}`}>
               <span className="hidden sm:inline">{atividade.status}</span>
               <span className="sm:hidden">{atividade.status === 'EM ANDAMENTO' ? 'ANDAMENTO' : atividade.status === 'A REALIZAR' ? 'REALIZAR' : atividade.status}</span>
@@ -628,6 +649,17 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       >
         {renderFormulario()}
       </Modal>
+
+      {/* Modal de Visualização de Formulário Preenchido */}
+      {tipoFormulario && (
+        <ModalVisualizarFormulario
+          isOpen={showViewFormModal}
+          onClose={() => setShowViewFormModal(false)}
+          atividadeId={atividade.id}
+          numeroOpd={atividade.numero_opd}
+          tipoFormulario={tipoFormulario}
+        />
+      )}
     </div>
   );
 }

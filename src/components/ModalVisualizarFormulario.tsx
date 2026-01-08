@@ -777,6 +777,96 @@ export default function ModalVisualizarFormulario({
               </p>
             </div>
 
+            {/* Seção de Anexos - Ícone de Clips */}
+            {(() => {
+              const dados = formulario.dados_formulario
+                ? (typeof formulario.dados_formulario === 'string'
+                    ? JSON.parse(formulario.dados_formulario)
+                    : formulario.dados_formulario)
+                : {};
+
+              // Coletar todos os anexos de diferentes campos
+              const todosAnexos: Array<{ nome: string; arquivos: any[] }> = [];
+
+              // Anexos do campo principal
+              if ((formulario as any).anexos && Array.isArray((formulario as any).anexos) && (formulario as any).anexos.length > 0) {
+                todosAnexos.push({ nome: 'Anexos', arquivos: (formulario as any).anexos });
+              }
+
+              // Anexos dentro de dados_formulario
+              if (dados.anexos && Array.isArray(dados.anexos) && dados.anexos.length > 0) {
+                todosAnexos.push({ nome: 'Anexos do Formulário', arquivos: dados.anexos });
+              }
+
+              // Desenhos técnicos
+              if (dados.desenhos_tecnicos && Array.isArray(dados.desenhos_tecnicos) && dados.desenhos_tecnicos.length > 0) {
+                todosAnexos.push({ nome: 'Desenhos Técnicos', arquivos: dados.desenhos_tecnicos });
+              }
+
+              // Fotos/Evidências
+              if (dados.fotos && Array.isArray(dados.fotos) && dados.fotos.length > 0) {
+                todosAnexos.push({ nome: 'Fotos/Evidências', arquivos: dados.fotos });
+              }
+
+              // Imagens gerais
+              if (dados.imagens && Array.isArray(dados.imagens) && dados.imagens.length > 0) {
+                todosAnexos.push({ nome: 'Imagens', arquivos: dados.imagens });
+              }
+
+              if (todosAnexos.length === 0) return null;
+
+              return (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    {/* Ícone de Clips */}
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    <span className="font-semibold text-blue-900">Anexos do Formulário</span>
+                  </div>
+                  <div className="space-y-3">
+                    {todosAnexos.map((grupo, idx) => (
+                      <div key={idx}>
+                        {todosAnexos.length > 1 && (
+                          <p className="text-xs font-semibold text-gray-600 mb-1">{grupo.nome}:</p>
+                        )}
+                        <div className="space-y-1">
+                          {grupo.arquivos.map((arquivo: any, index: number) => (
+                            <a
+                              key={index}
+                              href={arquivo.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:bg-gray-50 hover:border-blue-300 transition group"
+                            >
+                              {/* Ícone baseado no tipo de arquivo */}
+                              {arquivo.filename?.toLowerCase().endsWith('.pdf') ? (
+                                <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              ) : (arquivo.filename?.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) ? (
+                                <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                              )}
+                              <span className="text-sm text-gray-700 group-hover:text-blue-600 truncate flex-1">{arquivo.filename || 'Arquivo'}</span>
+                              <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Renderizar conteúdo específico */}
             {tipoFormulario === 'REUNIAO_START' && renderReuniaoStart()}
             {tipoFormulario === 'REUNIAO_START_2' && renderReuniaoStart()}
