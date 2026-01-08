@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   BarChart,
   Bar,
@@ -48,6 +49,25 @@ export default function Dashboard() {
   const [opdStats, setOpdStats] = useState<OPDStats | null>(null);
   const [atividadeStats, setAtividadeStats] = useState<AtividadeStats[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
+
+  // Verificar autenticação
+  useEffect(() => {
+    const authenticated = localStorage.getItem('authenticated');
+    if (authenticated !== 'true') {
+      router.push('/login');
+      return;
+    }
+    setCheckingAuth(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authenticated');
+    localStorage.removeItem('user_data');
+    sessionStorage.removeItem('politica_vista');
+    router.push('/login');
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -72,10 +92,11 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    if (checkingAuth) return;
     fetchDashboardData();
-  }, []);
+  }, [checkingAuth]);
 
-  if (loading) {
+  if (checkingAuth || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
@@ -110,39 +131,54 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard de Produção</h1>
-              <p className="text-gray-600 mt-1">Análise e Métricas das OPDs</p>
-            </div>
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center space-x-4">
-              <Link
-                href="/"
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Link href="/" className="text-gray-500 hover:text-gray-700">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                <span>Voltar</span>
               </Link>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">SIG</h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Sistema Integrado de Gestão</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
               <button
                 onClick={() => {
                   setLoading(true);
                   fetchDashboardData();
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Atualizar"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>Atualizar</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Sair"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
               </button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Page Title */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard de Produção</h2>
+          <p className="text-gray-600 text-sm">Análise e Métricas das OPDs</p>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
