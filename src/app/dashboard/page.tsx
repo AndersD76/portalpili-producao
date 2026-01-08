@@ -347,7 +347,8 @@ export default function Dashboard() {
           {/* Gráfico de Tempo Médio - Top 10 */}
           {atividadeStats.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Top 10 - Maior Tempo Médio</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Top 10 - Maior Tempo Médio</h3>
+              <p className="text-xs text-gray-500 mb-4">Tempo em minutos</p>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart
                   data={atividadeStats
@@ -357,7 +358,7 @@ export default function Dashboard() {
                     .map(stat => ({
                       nome: stat.atividade.length > 15 ? stat.atividade.substring(0, 15) + '...' : stat.atividade,
                       nomeCompleto: stat.atividade,
-                      minutos: stat.tempo_medio_minutos,
+                      minutos: Math.round(stat.tempo_medio_minutos || 0),
                       tempoFormatado: formatarTempo(stat.tempo_medio_minutos),
                     }))
                   }
@@ -365,13 +366,22 @@ export default function Dashboard() {
                   margin={{ top: 5, right: 30, left: 5, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => `${Math.round(value)} min`}
+                  />
                   <YAxis dataKey="nome" type="category" width={120} tick={{ fontSize: 10 }} />
                   <Tooltip
-                    formatter={(value, name, props) => [props.payload.tempoFormatado, props.payload.nomeCompleto]}
-                    labelFormatter={() => ''}
+                    formatter={(value, name, props) => [props.payload.tempoFormatado, 'Tempo médio']}
+                    labelFormatter={(label, payload) => payload?.[0]?.payload?.nomeCompleto || label}
                   />
-                  <Bar dataKey="minutos" fill={COLORS.primary} radius={[0, 4, 4, 0]} />
+                  <Bar
+                    dataKey="minutos"
+                    fill={COLORS.primary}
+                    radius={[0, 4, 4, 0]}
+                    label={{ position: 'right', fontSize: 10, formatter: (value: any) => `${Math.round(Number(value))} min` }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -445,7 +455,7 @@ export default function Dashboard() {
                     A Realizar
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tempo Médio
+                    Tempo Médio (min)
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Progresso
