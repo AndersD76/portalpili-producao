@@ -163,7 +163,7 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
   // Tocar som de notificação
   function playNotificationSound() {
     try {
-      const audio = new Audio('/sounds/notification.mp3');
+      const audio = new Audio('/sounds/notification.wav');
       audio.volume = 0.5;
       audio.play().catch(() => {});
     } catch (error) {
