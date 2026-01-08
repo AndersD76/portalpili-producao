@@ -54,6 +54,12 @@ import FormularioControleQualidadeSoldaLado2 from './FormularioControleQualidade
 import FormularioInstalacao from './FormularioInstalacao';
 import FormularioDesembarquePreInstalacao from './FormularioDesembarquePreInstalacao';
 
+// Forms de Documentos
+import FormularioObraCivil from './FormularioObraCivil';
+import FormularioEngenhariaMecanica from './FormularioEngenhariaMecanica';
+import FormularioEngenhariaEletricaHidraulica from './FormularioEngenhariaEletricaHidraulica';
+import FormularioRevisaoProjetos from './FormularioRevisaoProjetos';
+
 // Modal de Visualização de Formulário Preenchido
 import ModalVisualizarFormulario from './ModalVisualizarFormulario';
 
@@ -112,6 +118,12 @@ const FORM_COMPONENTS: { [key: string]: React.ComponentType<any> } = {
   'CONTROLE_QUALIDADE_CENTRAL': FormularioControleQualidadeCentral,
   'CONTROLE_QUALIDADE_SOLDA': FormularioControleQualidadeSolda,
   'CONTROLE_QUALIDADE_SOLDA_LADO2': FormularioControleQualidadeSoldaLado2,
+
+  // Documentos
+  'OBRA_CIVIL': FormularioObraCivil,
+  'ENGENHARIA_MECANICA': FormularioEngenhariaMecanica,
+  'ENGENHARIA_ELETRICA_HIDRAULICA': FormularioEngenhariaEletricaHidraulica,
+  'REVISAO_PROJETOS': FormularioRevisaoProjetos,
 };
 
 // Mapeamento de nome de atividade para tipo de formulário (fallback)
@@ -166,6 +178,11 @@ const ATIVIDADE_TO_FORM: { [key: string]: string } = {
   'QC - CENTRAL': 'CONTROLE_QUALIDADE_CENTRAL',
   'QC - SOLDA': 'CONTROLE_QUALIDADE_SOLDA',
   'QC - SOLDA LADO 2': 'CONTROLE_QUALIDADE_SOLDA_LADO2',
+  // Documentos
+  'DEFINIÇÃO DA OBRA CIVIL': 'OBRA_CIVIL',
+  'ENGENHARIA (MEC)': 'ENGENHARIA_MECANICA',
+  'ENGENHARIA (ELE/HID)': 'ENGENHARIA_ELETRICA_HIDRAULICA',
+  'REVISÃO FINAL DE PROJETOS': 'REVISAO_PROJETOS',
 };
 
 export default function AtividadeItem({ atividade, onUpdate, onRefresh }: AtividadeItemProps) {
@@ -321,6 +338,16 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
         <FormComponent
           {...commonProps}
           cliente={atividade.responsavel || ''}
+          atividadeId={atividade.id}
+        />
+      );
+    }
+
+    // Formulários de documentos precisam de atividadeId
+    if (tipoFormulario === 'OBRA_CIVIL' || tipoFormulario === 'ENGENHARIA_MECANICA' || tipoFormulario === 'ENGENHARIA_ELETRICA_HIDRAULICA' || tipoFormulario === 'REVISAO_PROJETOS') {
+      return (
+        <FormComponent
+          {...commonProps}
           atividadeId={atividade.id}
         />
       );

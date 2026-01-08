@@ -100,6 +100,12 @@ export default function ModalVisualizarFormulario({
     'CONTROLE_QUALIDADE_COLETOR_COLUNA_SUPERIOR': 'formularios-coletor-coluna-superior',
     'CONTROLE_QUALIDADE_COLETOR_ESCADA_PLATIBANDA': 'formularios-coletor-escada-platibanda',
     'CONTROLE_QUALIDADE_COLETOR_PINTURA': 'formularios-coletor-pintura',
+
+    // Documentos
+    'OBRA_CIVIL': 'formularios-documentos',
+    'ENGENHARIA_MECANICA': 'formularios-documentos',
+    'ENGENHARIA_ELETRICA_HIDRAULICA': 'formularios-documentos',
+    'REVISAO_PROJETOS': 'formularios-revisao-projetos',
   };
 
   const carregarFormulario = async () => {
@@ -117,7 +123,11 @@ export default function ModalVisualizarFormulario({
         return;
       }
 
-      const endpoint = `/api/${apiEndpoint}/${numeroOpd}?atividade_id=${atividadeId}`;
+      // Para formulários de documentos, adiciona o tipo como parâmetro
+      let endpoint = `/api/${apiEndpoint}/${numeroOpd}?atividade_id=${atividadeId}`;
+      if (['OBRA_CIVIL', 'ENGENHARIA_MECANICA', 'ENGENHARIA_ELETRICA_HIDRAULICA'].includes(tipoFormulario)) {
+        endpoint += `&tipo=${tipoFormulario}`;
+      }
       console.log('Carregando formulário:', endpoint);
 
       const response = await fetch(endpoint);
@@ -719,6 +729,11 @@ export default function ModalVisualizarFormulario({
       'CONTROLE_QUALIDADE_COLETOR_COLUNA_SUPERIOR': 'CQ Coletor - Coluna Superior',
       'CONTROLE_QUALIDADE_COLETOR_ESCADA_PLATIBANDA': 'CQ Coletor - Escada e Platibanda',
       'CONTROLE_QUALIDADE_COLETOR_PINTURA': 'CQ Coletor - Pintura',
+      // Documentos
+      'OBRA_CIVIL': 'Documentos da Obra Civil',
+      'ENGENHARIA_MECANICA': 'Documentos de Engenharia Mecânica',
+      'ENGENHARIA_ELETRICA_HIDRAULICA': 'Documentos de Engenharia Elétrica/Hidráulica',
+      'REVISAO_PROJETOS': 'Revisão Final de Projetos',
     };
     return titulos[tipoFormulario] || 'Formulário';
   };
@@ -760,6 +775,183 @@ export default function ModalVisualizarFormulario({
   const isNovoCQ = () => {
     return tipoFormulario.startsWith('CONTROLE_QUALIDADE_') &&
            !['CONTROLE_QUALIDADE_CORTE', 'CONTROLE_QUALIDADE_MONTAGEM', 'CONTROLE_QUALIDADE_CENTRAL', 'CONTROLE_QUALIDADE_SOLDA'].includes(tipoFormulario);
+  };
+
+  const isDocumentos = () => {
+    return ['OBRA_CIVIL', 'ENGENHARIA_MECANICA', 'ENGENHARIA_ELETRICA_HIDRAULICA'].includes(tipoFormulario);
+  };
+
+  const renderDocumentos = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    const getCor = () => {
+      if (tipoFormulario === 'OBRA_CIVIL') return { border: 'border-blue-300', bg: 'bg-blue-50', title: 'text-blue-900' };
+      if (tipoFormulario === 'ENGENHARIA_MECANICA') return { border: 'border-green-300', bg: 'bg-green-50', title: 'text-green-900' };
+      return { border: 'border-orange-300', bg: 'bg-orange-50', title: 'text-orange-900' };
+    };
+
+    const cor = getCor();
+
+    const formatFileSize = (bytes: number) => {
+      if (!bytes) return '';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className={`border-2 ${cor.border} rounded-lg p-4 ${cor.bg}`}>
+          <h4 className={`font-bold text-lg ${cor.title}`}>{getTitulo()}</h4>
+          <p className="text-sm text-gray-600 mt-1">Documentos anexados a esta atividade.</p>
+        </div>
+
+        {/* Lista de Documentos */}
+        {dados.documentos && dados.documentos.length > 0 && (
+          <div className="space-y-3">
+            <h5 className="font-semibold text-gray-900">Documentos:</h5>
+            {dados.documentos.map((doc: any, index: number) => (
+              <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-3">
+                  {/* Ícone PDF */}
+                  <svg className="w-8 h-8 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900">{doc.nome || 'Documento sem nome'}</p>
+                    {doc.arquivo && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-500 truncate">{doc.arquivo.filename}</p>
+                        {doc.arquivo.size && (
+                          <span className="text-xs text-gray-400">({formatFileSize(doc.arquivo.size)})</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {doc.arquivo && doc.arquivo.url && (
+                    <a
+                      href={doc.arquivo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      Abrir
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Observações */}
+        {dados.observacoes && (
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <h5 className="font-semibold text-gray-900 mb-2">Observações:</h5>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{dados.observacoes}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const isRevisaoProjetos = () => {
+    return tipoFormulario === 'REVISAO_PROJETOS';
+  };
+
+  const renderRevisaoProjetos = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    const FONTE_LABELS: Record<string, { label: string; cor: string; bg: string; border: string }> = {
+      'OBRA_CIVIL': { label: 'Obra Civil', cor: 'text-blue-900', bg: 'bg-blue-50', border: 'border-blue-300' },
+      'ENGENHARIA_MECANICA': { label: 'Engenharia Mecânica', cor: 'text-green-900', bg: 'bg-green-50', border: 'border-green-300' },
+      'ENGENHARIA_ELETRICA_HIDRAULICA': { label: 'Engenharia Elétrica/Hidráulica', cor: 'text-orange-900', bg: 'bg-orange-50', border: 'border-orange-300' }
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
+          <h4 className="font-bold text-lg text-purple-900">Revisão Final de Projetos</h4>
+          <p className="text-sm text-gray-600 mt-1">Resultado da revisão dos documentos.</p>
+        </div>
+
+        {/* Resumo */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-gray-100 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-gray-700">{dados.total_documentos || 0}</p>
+            <p className="text-xs text-gray-500">Total</p>
+          </div>
+          <div className="bg-green-100 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-green-700">{dados.total_aprovados || 0}</p>
+            <p className="text-xs text-green-600">Aprovados</p>
+          </div>
+          <div className="bg-red-100 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-red-700">{dados.total_reprovados || 0}</p>
+            <p className="text-xs text-red-600">Reprovados</p>
+          </div>
+        </div>
+
+        {/* Lista de Aprovações */}
+        {dados.aprovacoes && dados.aprovacoes.length > 0 && (
+          <div className="space-y-3">
+            <h5 className="font-semibold text-gray-900">Documentos Revisados:</h5>
+            {dados.aprovacoes.map((aprovacao: any, index: number) => {
+              const config = FONTE_LABELS[aprovacao.fonte] || { label: aprovacao.fonte, cor: 'text-gray-900', bg: 'bg-gray-50', border: 'border-gray-300' };
+              return (
+                <div key={index} className={`rounded-lg p-4 border ${aprovacao.aprovado ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div className="flex items-start gap-3">
+                    {/* Status Icon */}
+                    {aprovacao.aprovado ? (
+                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{aprovacao.nome}</p>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs ${config.bg} ${config.cor} ${config.border} border mt-1`}>
+                        {config.label}
+                      </span>
+                      {!aprovacao.aprovado && aprovacao.motivo_reprovacao && (
+                        <div className="mt-2 p-2 bg-red-100 rounded text-sm text-red-800">
+                          <span className="font-semibold">Motivo:</span> {aprovacao.motivo_reprovacao}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Observações Gerais */}
+        {dados.observacoes_gerais && (
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <h5 className="font-semibold text-gray-900 mb-2">Observações Gerais:</h5>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{dados.observacoes_gerais}</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -940,6 +1132,8 @@ export default function ModalVisualizarFormulario({
               </div>
             )}
             {isNovoCQ() && renderGenericCQ()}
+            {isDocumentos() && renderDocumentos()}
+            {isRevisaoProjetos() && renderRevisaoProjetos()}
           </>
         )}
       </div>
