@@ -1024,6 +1024,39 @@ export default function ModalVisualizarFormulario({
                 todosAnexos.push({ nome: 'Imagens', arquivos: dados.imagens });
               }
 
+              // Documentos (formato específico de FormularioDocumentos)
+              if (dados.documentos && Array.isArray(dados.documentos) && dados.documentos.length > 0) {
+                const arquivosDocumentos = dados.documentos
+                  .filter((doc: any) => doc.arquivo && doc.arquivo.url)
+                  .map((doc: any) => ({
+                    url: doc.arquivo.url,
+                    filename: doc.arquivo.filename || doc.nome || 'Documento',
+                    size: doc.arquivo.size
+                  }));
+                if (arquivosDocumentos.length > 0) {
+                  todosAnexos.push({ nome: 'Documentos', arquivos: arquivosDocumentos });
+                }
+              }
+
+              // Coletar imagens de campos específicos (cq1a_imagem, cq2b_imagem, etc.)
+              const imagensColetadas: Array<{ url: string; filename: string; size?: number }> = [];
+              Object.entries(dados).forEach(([key, value]) => {
+                if (key.endsWith('_imagem') && Array.isArray(value) && value.length > 0) {
+                  value.forEach((img: any) => {
+                    if (img && img.url) {
+                      imagensColetadas.push({
+                        url: img.url,
+                        filename: img.filename || `${key.replace('_imagem', '')}.jpg`,
+                        size: img.size
+                      });
+                    }
+                  });
+                }
+              });
+              if (imagensColetadas.length > 0) {
+                todosAnexos.push({ nome: 'Imagens do Checklist', arquivos: imagensColetadas });
+              }
+
               if (todosAnexos.length === 0) return null;
 
               return (

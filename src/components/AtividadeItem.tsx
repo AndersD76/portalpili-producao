@@ -11,6 +11,7 @@ import FormLiberacaoEmbarque from './FormLiberacaoEmbarque';
 import FormDesembarque from './FormDesembarque';
 import FormEntrega from './FormEntrega';
 import FormReuniaoStart from './FormReuniaoStart';
+import FormularioReuniaoStart2 from './FormularioReuniaoStart2';
 import FormularioLiberacaoComercial from './FormularioLiberacaoComercial';
 
 // Forms de Produção
@@ -79,6 +80,7 @@ const FORM_COMPONENTS: { [key: string]: React.ComponentType<any> } = {
   'DESEMBARQUE_PRE_INSTALACAO': FormularioDesembarquePreInstalacao,
   'ENTREGA': FormEntrega,
   'REUNIAO_START': FormReuniaoStart,
+  'REUNIAO_START_2': FormularioReuniaoStart2,
   'LIBERACAO_COMERCIAL': FormularioLiberacaoComercial,
   'INSTALACAO': FormularioInstalacao,
 
@@ -133,7 +135,7 @@ const ATIVIDADE_TO_FORM: { [key: string]: string } = {
   'DESEMBARQUE E PRÉ-INSTALAÇÃO': 'DESEMBARQUE_PRE_INSTALACAO',
   'ENTREGA': 'ENTREGA',
   'REUNIÃO DE START 1': 'REUNIAO_START',
-  'REUNIÃO DE START 2': 'REUNIAO_START',
+  'REUNIÃO DE START 2': 'REUNIAO_START_2',
   'LIBERAÇÃO COMERCIAL': 'LIBERACAO_COMERCIAL',
   'INSTALAÇÃO': 'INSTALACAO',
   'CORTE': 'CORTE',
@@ -348,6 +350,17 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       return (
         <FormComponent
           {...commonProps}
+          atividadeId={atividade.id}
+        />
+      );
+    }
+
+    // Formulário Start 2 precisa de cliente e atividadeId
+    if (tipoFormulario === 'REUNIAO_START_2') {
+      return (
+        <FormComponent
+          {...commonProps}
+          cliente={(atividade as any).cliente || ''}
           atividadeId={atividade.id}
         />
       );
