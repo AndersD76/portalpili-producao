@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ numero: string; id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { numero, id } = await params;
     const body = await request.json();
     const {
       atividade,
@@ -142,9 +143,28 @@ export async function PATCH(
       );
     }
 
+    const atividadeAtualizada = result.rows[0];
+
+    // Enviar notificação push se o status mudou para EM ANDAMENTO ou CONCLUÍDA
+    if (status) {
+      try {
+        const usuario = responsavel_execucao || responsavel || 'Sistema';
+        const nomeAtividade = atividadeAtualizada.atividade;
+
+        if (status === 'EM ANDAMENTO') {
+          await enviarNotificacaoPush(notificacoes.tarefaIniciada(numero, nomeAtividade, usuario));
+        } else if (status === 'CONCLUÍDA') {
+          await enviarNotificacaoPush(notificacoes.tarefaFinalizada(numero, nomeAtividade, usuario));
+        }
+      } catch (notifError) {
+        console.error('Erro ao enviar notificação:', notifError);
+        // Não falha a atualização se falhar a notificação
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: result.rows[0]
+      data: atividadeAtualizada
     });
   } catch (error) {
     console.error('Erro ao atualizar atividade:', error);

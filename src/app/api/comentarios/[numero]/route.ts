@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
 
 // GET - Buscar comentários de uma OPD
 export async function GET(
@@ -88,6 +89,15 @@ export async function POST(
       new Date().toISOString(),
       new Date().toISOString()
     ]);
+
+    // Enviar notificação push para nova mensagem no chat
+    try {
+      const previewMensagem = mensagem.length > 50 ? mensagem.substring(0, 50) + '...' : mensagem;
+      await enviarNotificacaoPush(notificacoes.chatMensagem(numero, usuario_nome, previewMensagem));
+    } catch (notifError) {
+      console.error('Erro ao enviar notificação:', notifError);
+      // Não falha a criação do comentário se falhar a notificação
+    }
 
     return NextResponse.json({
       success: true,

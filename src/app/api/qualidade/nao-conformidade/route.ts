@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
 
 // GET - Listar não conformidades
 export async function GET(request: Request) {
@@ -128,6 +129,17 @@ export async function POST(request: Request) {
     ]);
 
     await client.query('COMMIT');
+
+    // Enviar notificação push para nova NC
+    try {
+      const ncCriada = result.rows[0];
+      const opdReferencia = produtos_afetados || origem || 'N/A';
+      const usuario = detectado_por || created_by || 'Sistema';
+      await enviarNotificacaoPush(notificacoes.ncCriada(ncCriada.numero, opdReferencia, usuario));
+    } catch (notifError) {
+      console.error('Erro ao enviar notificação:', notifError);
+      // Não falha a criação da NC se falhar a notificação
+    }
 
     return NextResponse.json({
       success: true,

@@ -59,6 +59,17 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+    const { motivo_alteracao, usuario_alteracao, ...dadosOPD } = body;
+
+    // Buscar OPD atual para comparar mudanças
+    const opdAtual = await pool.query('SELECT * FROM opds WHERE id = $1', [parseInt(id)]);
+    if (opdAtual.rowCount === 0) {
+      return NextResponse.json(
+        { success: false, error: 'OPD não encontrada' },
+        { status: 404 }
+      );
+    }
+    const opdAnterior = opdAtual.rows[0];
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -81,11 +92,24 @@ export async function PATCH(
       'cliente'
     ];
 
+    // Rastrear mudanças de datas para propagação
+    const datasAlteradas: { campo: string; anterior: string | null; novo: string | null }[] = [];
+
     for (const field of allowedFields) {
-      if (field in body) {
+      if (field in dadosOPD) {
         updates.push(`${field} = $${paramCount}`);
-        values.push(body[field] || null);
+        values.push(dadosOPD[field] || null);
         paramCount++;
+
+        // Verificar se é uma data que mudou
+        const camposData = ['previsao_inicio', 'previsao_termino', 'data_prevista_entrega', 'inicio_producao'];
+        if (camposData.includes(field)) {
+          const valorAnterior = opdAnterior[field] ? opdAnterior[field].toISOString().split('T')[0] : null;
+          const valorNovo = dadosOPD[field] || null;
+          if (valorAnterior !== valorNovo) {
+            datasAlteradas.push({ campo: field, anterior: valorAnterior, novo: valorNovo });
+          }
+        }
       }
     }
 
@@ -119,9 +143,124 @@ export async function PATCH(
       );
     }
 
+    const opdAtualizada = result.rows[0];
+    const numeroOpd = opdAtualizada.numero;
+
+    // Propagar datas para as atividades se houver alterações
+    if (datasAlteradas.length > 0) {
+      // Lista de atividades pré-produção (ordem 1-16)
+      const atividadesPreProducao = [
+        'LIBERAÇÃO COMERCIAL',
+        'LIBERAÇÃO FINANCEIRA',
+        'DEFINIÇÃO DA OBRA CIVIL',
+        'REUNIÃO DE START 1',
+        'ENGENHARIA (MEC)',
+        'ENGENHARIA (ELE/HID)',
+        'REVISÃO FINAL DE PROJETOS',
+        'REUNIÃO DE START 2',
+        'PROGRAMAÇÃO DAS LINHAS',
+        'RESERVAS DE COMP/FAB',
+        'IMPRIMIR LISTAS E PLANOS',
+        'ASSINATURA DOS PLANOS DE CORTE',
+        'IMPRIMIR OF/ETIQUETA',
+        'PROGRAMAÇÃO DE CORTE',
+        "ENTREGAR OF'S/LISTAS PARA ALMOX",
+        'SEPARAR LISTAS PARA A PRODUÇÃO'
+      ];
+
+      // Atividades de produção
+      const atividadesProducao = ['PRODUÇÃO'];
+
+      // Atividade de entrega
+      const atividadeEntrega = ['ENTREGA'];
+
+      for (const alteracao of datasAlteradas) {
+        let atividadesParaAtualizar: string[] = [];
+        let dataInicio: string | null = null;
+        let dataTermino: string | null = null;
+
+        if (alteracao.campo === 'previsao_inicio') {
+          atividadesParaAtualizar = atividadesPreProducao;
+          dataInicio = alteracao.novo;
+        } else if (alteracao.campo === 'previsao_termino') {
+          atividadesParaAtualizar = atividadesPreProducao;
+          dataTermino = alteracao.novo;
+        } else if (alteracao.campo === 'inicio_producao') {
+          atividadesParaAtualizar = atividadesProducao;
+          dataInicio = alteracao.novo;
+        } else if (alteracao.campo === 'data_prevista_entrega') {
+          atividadesParaAtualizar = atividadeEntrega;
+          dataInicio = alteracao.novo;
+          dataTermino = alteracao.novo;
+        }
+
+        // Atualizar atividades
+        if (atividadesParaAtualizar.length > 0) {
+          if (dataInicio) {
+            await pool.query(`
+              UPDATE registros_atividades
+              SET previsao_inicio = $1, updated = CURRENT_TIMESTAMP
+              WHERE numero_opd = $2 AND atividade = ANY($3)
+            `, [dataInicio, numeroOpd, atividadesParaAtualizar]);
+          }
+          if (dataTermino) {
+            await pool.query(`
+              UPDATE registros_atividades
+              SET data_termino = $1, updated = CURRENT_TIMESTAMP
+              WHERE numero_opd = $2 AND atividade = ANY($3) AND status != 'CONCLUÍDA'
+            `, [dataTermino, numeroOpd, atividadesParaAtualizar]);
+          }
+        }
+
+        // Registrar log nas atividades afetadas
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          tipo: 'ALTERACAO_DATA',
+          campo: alteracao.campo,
+          valor_anterior: alteracao.anterior,
+          valor_novo: alteracao.novo,
+          motivo: motivo_alteracao || 'Não informado',
+          usuario: usuario_alteracao || 'Sistema'
+        };
+
+        await pool.query(`
+          UPDATE registros_atividades
+          SET logs = COALESCE(logs, '[]'::jsonb) || $1::jsonb
+          WHERE numero_opd = $2 AND atividade = ANY($3)
+        `, [JSON.stringify([logEntry]), numeroOpd, atividadesParaAtualizar]);
+      }
+
+      // Registrar log geral de alteração na OPD
+      const logOPD = {
+        timestamp: new Date().toISOString(),
+        tipo: 'ALTERACAO_DATAS',
+        alteracoes: datasAlteradas,
+        motivo: motivo_alteracao || 'Não informado',
+        usuario: usuario_alteracao || 'Sistema'
+      };
+
+      // Adicionar ao histórico se tiver mudança de data de entrega
+      const mudouDataEntrega = datasAlteradas.find(a => a.campo === 'data_prevista_entrega');
+      if (mudouDataEntrega) {
+        const historicoAtual = opdAtualizada.historico_data_entrega || [];
+        historicoAtual.push({
+          data_anterior: mudouDataEntrega.anterior,
+          data_nova: mudouDataEntrega.novo,
+          motivo: motivo_alteracao || 'Não informado',
+          usuario: usuario_alteracao || 'Sistema',
+          data_alteracao: new Date().toISOString()
+        });
+        await pool.query(
+          'UPDATE opds SET historico_data_entrega = $1 WHERE id = $2',
+          [JSON.stringify(historicoAtual), parseInt(id)]
+        );
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: result.rows[0],
+      data: opdAtualizada,
+      datasAlteradas,
       message: 'OPD atualizada com sucesso'
     });
   } catch (error) {

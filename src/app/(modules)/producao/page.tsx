@@ -241,122 +241,105 @@ export default function ProducaoHome() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-red-700 shadow-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/"
-                    className="p-2 text-white hover:bg-red-600 rounded-lg transition"
-                    title="Voltar aos Módulos"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                  </Link>
-                  <div>
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">Controle Geral da Produção</h1>
-                    {user && (
-                      <div className="flex items-center mt-1 text-xs sm:text-sm text-red-100">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span className="font-medium">{user.nome}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Mobile menu button */}
-              <button
-                onClick={handleLogout}
-                className="lg:hidden px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition text-sm"
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Voltar aos Módulos"
               >
-                Sair
-              </button>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </Link>
+              <div>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Produção</h1>
+                {user && (
+                  <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
               <Link
                 href="/producao/dashboard"
-                className="flex-1 sm:flex-none px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition flex items-center justify-center space-x-2 text-sm"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Dashboard"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span>Dashboard</span>
               </Link>
               <Link
                 href="/producao/calendario"
-                className="flex-1 sm:flex-none px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition flex items-center justify-center space-x-2 text-sm"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Calendário"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span>Calendário</span>
               </Link>
               <button
+                onClick={handleSyncSinprod}
+                disabled={syncing}
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                title="Sincronizar com SINPROD"
+              >
+                <svg className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+              <button
                 onClick={() => setShowNewOPDModal(true)}
-                className="flex-1 sm:flex-none px-3 py-2 bg-white text-red-700 rounded-lg hover:bg-red-50 transition flex items-center justify-center space-x-2 text-sm font-semibold"
+                className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>Nova OPD</span>
-              </button>
-              <button
-                onClick={handleSyncSinprod}
-                disabled={syncing}
-                className="flex-1 sm:flex-none px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition flex items-center justify-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Sincronizar com SINPROD"
-              >
-                <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden sm:inline">{syncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+                <span className="hidden sm:inline">Nova OPD</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="hidden lg:flex px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition items-center space-x-2 text-sm"
-                title="Sair do sistema"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Sair"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span>Sair</span>
               </button>
             </div>
           </div>
+        </div>
+      </header>
 
+      {/* Toolbar */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           {/* Search Bar */}
-          <div className="mt-4">
-            <input
-              type="text"
-              placeholder="Buscar por número da OPD..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm sm:text-base"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Buscar por número da OPD..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+          />
 
           {/* Sync Status Message */}
           {syncStatus && (
-            <div className={`mt-3 px-4 py-2 rounded-lg text-sm ${
+            <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
               syncStatus.type === 'success'
-                ? 'bg-green-100 text-green-800 border border-green-200'
-                : 'bg-red-100 text-red-800 border border-red-200'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
             }`}>
               {syncStatus.message}
             </div>
           )}
 
-          {/* Filtros por Dias - Responsivo */}
-          <div className="mt-4 overflow-x-auto pb-2">
-            <div className="flex flex-wrap gap-2 items-center min-w-max">
-              <span className="text-xs sm:text-sm text-gray-600 font-medium mr-1 sm:mr-2 whitespace-nowrap">Filtrar:</span>
+          {/* Filtros por Dias */}
+          <div className="mt-3 flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-gray-500 font-medium">Filtrar:</span>
               <button
                 onClick={() => setDiasFilter('todos')}
                 className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition whitespace-nowrap ${
@@ -421,35 +404,34 @@ export default function ProducaoHome() {
               {/* Separador - esconde em mobile muito pequeno */}
               <div className="hidden sm:block h-6 w-px bg-gray-300 mx-1 sm:mx-2"></div>
 
-              {/* Ordenação */}
-              <div className="flex items-center gap-1 sm:gap-2">
-                <span className="text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap">Ordenar:</span>
-                <select
-                  value={ordenacao}
-                  onChange={(e) => setOrdenacao(e.target.value as 'urgencia' | 'alfabetica' | 'recentes')}
-                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option value="urgencia">Por urgência</option>
-                  <option value="alfabetica">Alfabética</option>
-                  <option value="recentes">Mais recentes</option>
-                </select>
-              </div>
+            {/* Ordenação */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="text-xs text-gray-500 font-medium">Ordenar:</span>
+              <select
+                value={ordenacao}
+                onChange={(e) => setOrdenacao(e.target.value as 'urgencia' | 'alfabetica' | 'recentes')}
+                className="px-2 py-1 rounded-lg text-xs border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value="urgencia">Por urgência</option>
+                <option value="alfabetica">Alfabética</option>
+                <option value="recentes">Mais recentes</option>
+              </select>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm text-gray-600">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
             <p>
-              Total de OPDs: <span className="font-bold text-gray-900">{opds.length}</span>
+              Total: <span className="font-semibold text-gray-700">{opds.length}</span> OPDs
             </p>
             {(searchTerm || diasFilter !== 'todos') && (
               <p>
-                Exibindo: <span className="font-bold text-gray-900">{filteredOpds.length}</span> OPDs
+                Exibindo: <span className="font-semibold text-gray-700">{filteredOpds.length}</span>
               </p>
             )}
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

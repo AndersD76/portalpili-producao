@@ -170,13 +170,13 @@ export default function QualidadePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-red-700 shadow-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-3">
               <Link
                 href="/"
-                className="p-2 text-white hover:bg-red-600 rounded-lg transition"
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
                 title="Voltar aos Módulos"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,36 +184,31 @@ export default function QualidadePage() {
                 </svg>
               </Link>
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">Gestão da Qualidade</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Qualidade</h1>
                 {user && (
-                  <div className="flex items-center mt-1 text-xs sm:text-sm text-red-100">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span className="font-medium">{user.nome}</span>
-                  </div>
+                  <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2">
               <Link
                 href="/qualidade/dashboard"
-                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition flex items-center space-x-2 text-sm"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Dashboard"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span>Dashboard</span>
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition flex items-center space-x-2 text-sm"
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Sair"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span>Sair</span>
               </button>
             </div>
           </div>

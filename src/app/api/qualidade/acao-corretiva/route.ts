@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
 
 // GET - Listar ações corretivas
 export async function GET(request: Request) {
@@ -127,6 +128,16 @@ export async function POST(request: Request) {
     }
 
     await client.query('COMMIT');
+
+    // Enviar notificação push para nova AC
+    try {
+      const acCriada = result.rows[0];
+      const usuario = responsavel_principal || created_by || 'Sistema';
+      await enviarNotificacaoPush(notificacoes.acCriada(acCriada.numero, usuario));
+    } catch (notifError) {
+      console.error('Erro ao enviar notificação:', notifError);
+      // Não falha a criação da AC se falhar a notificação
+    }
 
     return NextResponse.json({
       success: true,

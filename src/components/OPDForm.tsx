@@ -21,12 +21,19 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
     tipo_produto: 'TOMBADOR', // TOMBADOR ou COLETOR
     responsavel_opd: 'PCP'
   });
+  const [originalDatas, setOriginalDatas] = useState({
+    previsao_inicio: '',
+    previsao_termino: '',
+    data_prevista_entrega: '',
+    inicio_producao: ''
+  });
+  const [motivo, setMotivo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (opd) {
-      setFormData({
+      const dados = {
         numero: opd.numero || '',
         data_pedido: opd.data_pedido ? opd.data_pedido.split('T')[0] : '',
         previsao_inicio: opd.previsao_inicio ? opd.previsao_inicio.split('T')[0] : '',
@@ -36,9 +43,25 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
         tipo_opd: opd.tipo_opd || 'PAI',
         tipo_produto: (opd as any).tipo_produto || 'TOMBADOR',
         responsavel_opd: opd.responsavel_opd || 'PCP'
+      };
+      setFormData(dados);
+      // Salvar datas originais para comparação
+      setOriginalDatas({
+        previsao_inicio: dados.previsao_inicio,
+        previsao_termino: dados.previsao_termino,
+        data_prevista_entrega: dados.data_prevista_entrega,
+        inicio_producao: dados.inicio_producao
       });
     }
   }, [opd]);
+
+  // Verificar se houve mudança nas datas
+  const datasForamAlteradas = opd && (
+    formData.previsao_inicio !== originalDatas.previsao_inicio ||
+    formData.previsao_termino !== originalDatas.previsao_termino ||
+    formData.data_prevista_entrega !== originalDatas.data_prevista_entrega ||
+    formData.inicio_producao !== originalDatas.inicio_producao
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -47,6 +70,13 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar motivo se houver alteração de datas
+    if (datasForamAlteradas && !motivo.trim()) {
+      setError('Por favor, informe o motivo da alteração das datas');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -54,12 +84,21 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
       const url = opd ? `/api/opds/${opd.id}` : '/api/opds';
       const method = opd ? 'PATCH' : 'POST';
 
+      // Obter nome do usuário do localStorage
+      const userData = localStorage.getItem('user_data');
+      const usuario = userData ? JSON.parse(userData).nome : 'Sistema';
+
+      const bodyData = {
+        ...formData,
+        ...(datasForamAlteradas ? { motivo_alteracao: motivo, usuario_alteracao: usuario } : {})
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(bodyData),
       });
 
       const result = await response.json();
@@ -270,6 +309,27 @@ export default function OPDForm({ opd, onSuccess, onCancel }: OPDFormProps) {
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
       </div>
+
+      {/* Campo de motivo - aparece quando há alteração de datas em edição */}
+      {datasForamAlteradas && (
+        <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+          <label htmlFor="motivo" className="block text-sm font-bold text-yellow-900 mb-1">
+            Motivo da Alteração *
+          </label>
+          <p className="text-xs text-yellow-700 mb-2">
+            Informe o motivo da alteração das datas. Isso será registrado no histórico.
+          </p>
+          <textarea
+            id="motivo"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            rows={3}
+            required
+            className="w-full px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white"
+            placeholder="Ex: Solicitação do cliente, atraso na entrega de materiais, etc."
+          />
+        </div>
+      )}
 
       <div className="flex justify-end space-x-3 pt-4">
         <button

@@ -175,23 +175,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
       {/* Header */}
-      <header className="bg-red-700 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-center sm:text-left">
-              <h1 className="text-2xl sm:text-4xl font-bold text-white">SIG</h1>
-              <p className="text-red-100 mt-1 sm:mt-2 text-sm sm:text-lg">
-                Sistema Integrado de Gestão
-              </p>
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">SIG</h1>
+              <p className="text-xs text-gray-500 hidden sm:block">Sistema Integrado de Gestão</p>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-white bg-red-600 hover:bg-red-500 rounded-lg transition"
+              className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+              title="Sair"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              <span className="font-medium">Sair</span>
             </button>
           </div>
         </div>

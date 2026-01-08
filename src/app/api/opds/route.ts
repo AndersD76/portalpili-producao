@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { ATIVIDADES_PADRAO, getSubtarefasProducao, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
+import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
 
 export async function GET() {
   try {
@@ -194,6 +195,14 @@ export async function POST(request: Request) {
     } catch (atividadeError) {
       console.error('Erro ao criar atividades padrão:', atividadeError);
       // Não falha a criação da OPD se falhar as atividades
+    }
+
+    // Enviar notificação push para todos os usuários
+    try {
+      await enviarNotificacaoPush(notificacoes.opdCriada(numero, responsavel_opd || 'Sistema'));
+    } catch (notifError) {
+      console.error('Erro ao enviar notificação:', notifError);
+      // Não falha a criação se falhar a notificação
     }
 
     return NextResponse.json({

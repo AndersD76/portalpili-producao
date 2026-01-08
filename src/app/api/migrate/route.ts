@@ -192,7 +192,56 @@ export async function POST() {
       }
     }
 
-    // 9. Reprocessar NCs dos formulários existentes
+    // 9. Criar tabela de push subscriptions
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id SERIAL PRIMARY KEY,
+          user_id VARCHAR(255),
+          user_nome VARCHAR(255),
+          endpoint TEXT NOT NULL UNIQUE,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          active BOOLEAN DEFAULT TRUE
+        )
+      `);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_active ON push_subscriptions(active)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_endpoint ON push_subscriptions(endpoint)`);
+      results.push('✅ Tabela push_subscriptions criada');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro push_subscriptions: ${e.message}`);
+      }
+    }
+
+    // 10. Criar tabela de logs de notificações
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS notification_logs (
+          id SERIAL PRIMARY KEY,
+          tipo VARCHAR(50) NOT NULL,
+          referencia VARCHAR(255),
+          titulo VARCHAR(255) NOT NULL,
+          mensagem TEXT NOT NULL,
+          enviado_por VARCHAR(255),
+          total_enviados INTEGER DEFAULT 0,
+          total_falhas INTEGER DEFAULT 0,
+          created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_notification_logs_tipo ON notification_logs(tipo)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_notification_logs_created ON notification_logs(created)`);
+      results.push('✅ Tabela notification_logs criada');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro notification_logs: ${e.message}`);
+      }
+    }
+
+    // 11. Reprocessar NCs dos formulários existentes
     try {
       // Buscar formulários com "não conforme" e atualizar atividades
       const atividadesComNC = await pool.query(`
@@ -245,7 +294,10 @@ export async function GET() {
       'Criar tabela postits',
       'Criar tabela comentarios_opd',
       'Adicionar colunas de timer (tempo_acumulado_segundos, ultimo_inicio, logs)',
-      'Atualizar constraint de status'
+      'Atualizar constraint de status',
+      'Criar tabela nao_conformidades',
+      'Criar tabela push_subscriptions',
+      'Criar tabela notification_logs'
     ]
   });
 }
