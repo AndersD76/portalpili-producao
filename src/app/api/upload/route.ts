@@ -38,6 +38,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      url: dataUrl,
+      filename: file.name,
+      size: file.size,
+      // Manter compatibilidade com formato antigo
       file: {
         url: dataUrl,
         filename: file.name,

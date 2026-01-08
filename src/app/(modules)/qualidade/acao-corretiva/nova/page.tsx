@@ -1,45 +1,53 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  ORIGENS_ACAO_CORRETIVA,
-  METODOS_ANALISE,
-  OrigemAcaoCorretiva,
-  MetodoAnalise
-} from '@/types/qualidade';
+import { Anexo, ProcessoOrigem, PROCESSOS_ORIGEM, StatusAcoesAC, AcoesFinalizadasAC, SituacaoFinalAC, STATUS_ACOES_AC, ACOES_FINALIZADAS_AC, SITUACAO_FINAL_AC } from '@/types/qualidade';
 
 function NovaAcaoCorretivaForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingNC, setUploadingNC] = useState(false);
+  const [uploadingEvidencias, setUploadingEvidencias] = useState(false);
+  const [registroNcAnexos, setRegistroNcAnexos] = useState<Anexo[]>([]);
+  const [evidenciasAnexos, setEvidenciasAnexos] = useState<Anexo[]>([]);
+  const fileInputNCRef = useRef<HTMLInputElement>(null);
+  const fileInputEvidenciasRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    data_abertura: new Date().toISOString().split('T')[0],
-    origem_tipo: '' as OrigemAcaoCorretiva | '',
-    origem_id: '',
-    origem_descricao: '',
-    descricao_problema: '',
-    metodo_analise: '' as MetodoAnalise | '',
-    responsavel_principal: '',
-    prazo_conclusao: '',
-    equipe: ''
+    // Identificação
+    email: '',
+    data_emissao: new Date().toISOString().split('T')[0],
+    emitente: '',
+    numero_nc_relacionada: '',
+    // Análise das Causas
+    processos_envolvidos: [] as ProcessoOrigem[],
+    falha: '',
+    causas: '',
+    subcausas: '',
+    // Ações para Eliminar as Causas
+    acoes: '',
+    responsaveis: '',
+    prazo: '',
+    // Condições das Ações
+    status_acoes: '' as StatusAcoesAC | '',
+    // Análise da Eficácia
+    acoes_finalizadas: '' as AcoesFinalizadasAC | '',
+    situacao_final: '' as SituacaoFinalAC | '',
+    responsavel_analise: '',
+    data_analise: ''
   });
 
-  // Preencher origem se vier de uma NC ou Reclamação
+  // Preencher NC relacionada se vier de uma NC
   useEffect(() => {
-    const origemTipo = searchParams.get('origem_tipo');
-    const origemId = searchParams.get('origem_id');
-    const origemDescricao = searchParams.get('origem_descricao');
-
-    if (origemTipo) {
+    const ncNumero = searchParams.get('nc_numero');
+    if (ncNumero) {
       setFormData(prev => ({
         ...prev,
-        origem_tipo: origemTipo as OrigemAcaoCorretiva,
-        origem_id: origemId || '',
-        origem_descricao: origemDescricao || ''
+        numero_nc_relacionada: ncNumero
       }));
     }
   }, [searchParams]);
@@ -47,6 +55,79 @@ function NovaAcaoCorretivaForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleProcessoChange = (processo: ProcessoOrigem) => {
+    setFormData(prev => {
+      const processos = prev.processos_envolvidos.includes(processo)
+        ? prev.processos_envolvidos.filter(p => p !== processo)
+        : [...prev.processos_envolvidos, processo];
+      return { ...prev, processos_envolvidos: processos };
+    });
+  };
+
+  const handleFileUploadNC = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingNC(true);
+    try {
+      const uploadedFiles: Anexo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('tipo', 'acao_corretiva_nc');
+
+        const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+        const result = await response.json();
+        if (result.success) {
+          uploadedFiles.push({ filename: result.filename, url: result.url, size: file.size });
+        }
+      }
+      setRegistroNcAnexos(prev => [...prev, ...uploadedFiles]);
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+    } finally {
+      setUploadingNC(false);
+      if (fileInputNCRef.current) fileInputNCRef.current.value = '';
+    }
+  };
+
+  const handleFileUploadEvidencias = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingEvidencias(true);
+    try {
+      const uploadedFiles: Anexo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('tipo', 'acao_corretiva_evidencias');
+
+        const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+        const result = await response.json();
+        if (result.success) {
+          uploadedFiles.push({ filename: result.filename, url: result.url, size: file.size });
+        }
+      }
+      setEvidenciasAnexos(prev => [...prev, ...uploadedFiles]);
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+    } finally {
+      setUploadingEvidencias(false);
+      if (fileInputEvidenciasRef.current) fileInputEvidenciasRef.current.value = '';
+    }
+  };
+
+  const removeAnexoNC = (index: number) => {
+    setRegistroNcAnexos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeAnexoEvidencias = (index: number) => {
+    setEvidenciasAnexos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,24 +139,20 @@ function NovaAcaoCorretivaForm() {
       const userData = localStorage.getItem('user_data');
       const user = userData ? JSON.parse(userData) : null;
 
-      // Processar equipe
-      const equipeArray = formData.equipe
-        ? formData.equipe.split(',').map(e => e.trim()).filter(e => e)
-        : null;
-
       const response = await fetch('/api/qualidade/acao-corretiva', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data_abertura: formData.data_abertura,
-          origem_tipo: formData.origem_tipo,
-          origem_id: formData.origem_id ? parseInt(formData.origem_id) : null,
-          origem_descricao: formData.origem_descricao || null,
-          descricao_problema: formData.descricao_problema,
-          metodo_analise: formData.metodo_analise || null,
-          responsavel_principal: formData.responsavel_principal || null,
-          prazo_conclusao: formData.prazo_conclusao || null,
-          equipe: equipeArray,
+          ...formData,
+          registro_nc_anexos: registroNcAnexos.length > 0 ? registroNcAnexos : null,
+          evidencias_anexos: evidenciasAnexos.length > 0 ? evidenciasAnexos : null,
+          processos_envolvidos: formData.processos_envolvidos.length > 0 ? formData.processos_envolvidos : null,
+          status_acoes: formData.status_acoes || null,
+          acoes_finalizadas: formData.acoes_finalizadas || null,
+          situacao_final: formData.situacao_final || null,
+          responsavel_analise: formData.responsavel_analise || null,
+          data_analise: formData.data_analise || null,
+          subcausas: formData.subcausas || null,
           created_by: user?.id || null
         })
       });
@@ -102,152 +179,287 @@ function NovaAcaoCorretivaForm() {
         </div>
       )}
 
-      {/* Identificação */}
+      {/* IDENTIFICAÇÃO */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Identificação</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data de Abertura *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Data da emissão *</label>
             <input
               type="date"
-              name="data_abertura"
-              value={formData.data_abertura}
+              name="data_emissao"
+              value={formData.data_emissao}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Origem *</label>
-            <select
-              name="origem_tipo"
-              value={formData.origem_tipo}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Selecione...</option>
-              {Object.entries(ORIGENS_ACAO_CORRETIVA).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-          {(formData.origem_tipo === 'NAO_CONFORMIDADE' || formData.origem_tipo === 'RECLAMACAO') && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ID de Referência</label>
-              <input
-                type="text"
-                name="origem_id"
-                value={formData.origem_id}
-                onChange={handleChange}
-                placeholder="ID da NC ou Reclamação"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          )}
-          <div className={formData.origem_tipo === 'NAO_CONFORMIDADE' || formData.origem_tipo === 'RECLAMACAO' ? '' : 'sm:col-span-2'}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Origem</label>
-            <input
-              type="text"
-              name="origem_descricao"
-              value={formData.origem_descricao}
-              onChange={handleChange}
-              placeholder="Descrição resumida da origem"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Descrição do Problema */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Descrição do Problema</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada *</label>
-            <textarea
-              name="descricao_problema"
-              value={formData.descricao_problema}
-              onChange={handleChange}
-              required
-              rows={5}
-              placeholder="Descreva detalhadamente o problema que originou esta ação corretiva..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Método de Análise</label>
-            <select
-              name="metodo_analise"
-              value={formData.metodo_analise}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Selecione...</option>
-              {Object.entries(METODOS_ANALISE).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">Selecione o método que será usado para análise de causa raiz</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Responsáveis */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Responsáveis e Prazo</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Responsável Principal</label>
-            <input
-              type="text"
-              name="responsavel_principal"
-              value={formData.responsavel_principal}
-              onChange={handleChange}
-              placeholder="Nome do responsável"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Conclusão</label>
-            <input
-              type="date"
-              name="prazo_conclusao"
-              value={formData.prazo_conclusao}
-              onChange={handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Equipe</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Emitente *</label>
             <input
               type="text"
-              name="equipe"
-              value={formData.equipe}
+              name="emitente"
+              value={formData.emitente}
               onChange={handleChange}
-              placeholder="Nomes separados por vírgula (ex: João, Maria, Pedro)"
+              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <p className="mt-1 text-xs text-gray-500">Membros da equipe que participarão da análise</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Número da NC relacionada</label>
+            <input
+              type="text"
+              name="numero_nc_relacionada"
+              value={formData.numero_nc_relacionada}
+              onChange={handleChange}
+              placeholder="Ex: NC-2024-001"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Registro da NC (Anexos)</label>
+            <input
+              ref={fileInputNCRef}
+              type="file"
+              accept="image/*,video/*,.pdf,.doc,.docx"
+              multiple
+              onChange={handleFileUploadNC}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            {uploadingNC && <p className="text-sm text-gray-500 mt-1">Enviando arquivos...</p>}
+            {registroNcAnexos.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {registroNcAnexos.map((anexo, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span className="text-sm text-gray-700 truncate">{anexo.filename}</span>
+                    <button type="button" onClick={() => removeAnexoNC(index)} className="text-red-600 hover:text-red-800 ml-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Informação Adicional */}
-      <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Próximas Etapas</p>
-            <p>Após criar esta RAC, você poderá:</p>
-            <ul className="list-disc ml-4 mt-1 space-y-1">
-              <li>Realizar a análise de causa raiz</li>
-              <li>Definir e acompanhar ações corretivas</li>
-              <li>Verificar a eficácia das ações</li>
-              <li>Documentar a padronização</li>
-            </ul>
+      {/* ANÁLISE DAS CAUSAS */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ANÁLISE DAS CAUSAS</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Processos envolvidos *</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {Object.entries(PROCESSOS_ORIGEM).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.processos_envolvidos.includes(key as ProcessoOrigem)}
+                    onChange={() => handleProcessoChange(key as ProcessoOrigem)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-gray-700">{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Falha *</label>
+            <textarea
+              name="falha"
+              value={formData.falha}
+              onChange={handleChange}
+              required
+              rows={3}
+              placeholder="Descreva a falha identificada..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Causas *</label>
+            <textarea
+              name="causas"
+              value={formData.causas}
+              onChange={handleChange}
+              required
+              rows={3}
+              placeholder="Descreva as causas identificadas..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Subcausas</label>
+            <textarea
+              name="subcausas"
+              value={formData.subcausas}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Descreva as subcausas, se houver..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* AÇÕES PARA ELIMINAR AS CAUSAS */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">AÇÕES PARA ELIMINAR AS CAUSAS</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ações *</label>
+            <textarea
+              name="acoes"
+              value={formData.acoes}
+              onChange={handleChange}
+              required
+              rows={4}
+              placeholder="Descreva as ações para eliminar as causas..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Responsáveis *</label>
+              <input
+                type="text"
+                name="responsaveis"
+                value={formData.responsaveis}
+                onChange={handleChange}
+                required
+                placeholder="Nomes dos responsáveis"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prazo *</label>
+              <input
+                type="date"
+                name="prazo"
+                value={formData.prazo}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CONDIÇÕES DAS AÇÕES */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CONDIÇÕES DAS AÇÕES</h2>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Status das ações *</label>
+          <select
+            name="status_acoes"
+            value={formData.status_acoes}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Selecione...</option>
+            {Object.entries(STATUS_ACOES_AC).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* ANÁLISE DA EFICÁCIA */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ANÁLISE DA EFICÁCIA</h2>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">As ações foram finalizadas?</label>
+              <select
+                name="acoes_finalizadas"
+                value={formData.acoes_finalizadas}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Selecione...</option>
+                {Object.entries(ACOES_FINALIZADAS_AC).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Situação final</label>
+              <select
+                name="situacao_final"
+                value={formData.situacao_final}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Selecione...</option>
+                {Object.entries(SITUACAO_FINAL_AC).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Evidências (Anexos)</label>
+            <input
+              ref={fileInputEvidenciasRef}
+              type="file"
+              accept="image/*,video/*,.pdf,.doc,.docx"
+              multiple
+              onChange={handleFileUploadEvidencias}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            {uploadingEvidencias && <p className="text-sm text-gray-500 mt-1">Enviando arquivos...</p>}
+            {evidenciasAnexos.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {evidenciasAnexos.map((anexo, index) => (
+                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <span className="text-sm text-gray-700 truncate">{anexo.filename}</span>
+                    <button type="button" onClick={() => removeAnexoEvidencias(index)} className="text-red-600 hover:text-red-800 ml-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela análise</label>
+              <input
+                type="text"
+                name="responsavel_analise"
+                value={formData.responsavel_analise}
+                onChange={handleChange}
+                placeholder="Nome do responsável"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Data da análise</label>
+              <input
+                type="date"
+                name="data_analise"
+                value={formData.data_analise}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -287,8 +499,8 @@ export default function NovaAcaoCorretivaPage() {
               </svg>
             </Link>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nova Ação Corretiva</h1>
-              <p className="text-sm text-gray-600">Registrar uma nova RAC</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">REGISTRO DE AÇÃO CORRETIVA</h1>
+              <p className="text-sm text-gray-600">Nº 57-3 - REV. 01</p>
             </div>
           </div>
         </div>

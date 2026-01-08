@@ -115,12 +115,12 @@ export default function DetalhesNCPage() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const formatDateTime = (dateString: string | null) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('pt-BR');
   };
@@ -329,7 +329,7 @@ export default function DetalhesNCPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Origem</p>
-                  <p className="font-medium">{nc.origem ? ORIGENS_NAO_CONFORMIDADE[nc.origem] : '-'}</p>
+                  <p className="font-medium">{nc.origem ? ORIGENS_NAO_CONFORMIDADE[nc.origem as keyof typeof ORIGENS_NAO_CONFORMIDADE] || nc.origem : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Gravidade</p>

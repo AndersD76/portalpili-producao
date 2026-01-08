@@ -23,28 +23,97 @@ interface NotificationData {
  */
 export async function enviarNotificacaoPush(data: NotificationData): Promise<{ enviados: number; falhas: number }> {
   try {
-    // Usar URL absoluta para chamadas internas
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Importar webpush diretamente para evitar problemas com fetch interno
+    const webpush = (await import('web-push')).default;
+    const { Pool } = await import('pg');
 
-    const response = await fetch(`${baseUrl}/api/send-notification`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : false
     });
 
-    const result = await response.json();
+    const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+    const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+    const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@portalpili.com.br';
 
-    if (!result.success) {
-      console.error('Erro ao enviar notificação:', result.error);
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.error('VAPID keys não configuradas');
       return { enviados: 0, falhas: 0 };
     }
 
-    return {
-      enviados: result.enviados || 0,
-      falhas: result.falhas || 0
-    };
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+    // Buscar todas as subscriptions ativas
+    const result = await pool.query(
+      'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE active = true'
+    );
+
+    if (result.rowCount === 0) {
+      await pool.end();
+      return { enviados: 0, falhas: 0 };
+    }
+
+    const payload = JSON.stringify({
+      title: data.titulo,
+      body: data.mensagem,
+      url: data.url || '/',
+      tag: `sig-${data.tipo.toLowerCase()}-${Date.now()}`,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png'
+    });
+
+    let enviados = 0;
+    let falhas = 0;
+    const subscriptionsParaRemover: number[] = [];
+
+    // Enviar para cada subscription
+    const promises = result.rows.map(async (sub) => {
+      const pushSubscription = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth
+        }
+      };
+
+      try {
+        await webpush.sendNotification(pushSubscription, payload);
+        enviados++;
+      } catch (error: any) {
+        console.error(`Erro ao enviar para ${sub.endpoint}:`, error.message);
+        falhas++;
+
+        if (error.statusCode === 404 || error.statusCode === 410) {
+          subscriptionsParaRemover.push(sub.id);
+        }
+      }
+    });
+
+    await Promise.all(promises);
+
+    // Remover subscriptions inválidas
+    if (subscriptionsParaRemover.length > 0) {
+      await pool.query(
+        'UPDATE push_subscriptions SET active = false WHERE id = ANY($1)',
+        [subscriptionsParaRemover]
+      );
+    }
+
+    // Registrar log
+    try {
+      await pool.query(
+        `INSERT INTO notification_logs (tipo, referencia, titulo, mensagem, enviado_por, total_enviados, total_falhas)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [data.tipo, data.referencia || null, data.titulo, data.mensagem, data.enviado_por || 'Sistema', enviados, falhas]
+      );
+    } catch (logError) {
+      console.warn('Erro ao registrar log de notificação:', logError);
+    }
+
+    await pool.end();
+
+    console.log(`Notificação enviada: ${enviados} sucessos, ${falhas} falhas`);
+    return { enviados, falhas };
   } catch (error) {
     console.error('Erro ao enviar notificação:', error);
     return { enviados: 0, falhas: 0 };

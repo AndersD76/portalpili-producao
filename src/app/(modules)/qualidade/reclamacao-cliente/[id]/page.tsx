@@ -127,12 +127,12 @@ export default function DetalhesReclamacaoPage() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const formatDateTime = (dateString: string | null) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('pt-BR');
   };
@@ -422,11 +422,11 @@ export default function DetalhesReclamacaoPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Tipo</p>
-                  <p className="font-medium">{reclamacao.tipo_reclamacao ? TIPOS_RECLAMACAO[reclamacao.tipo_reclamacao] : '-'}</p>
+                  <p className="font-medium">{reclamacao.tipo_reclamacao ? TIPOS_RECLAMACAO[reclamacao.tipo_reclamacao as keyof typeof TIPOS_RECLAMACAO] || reclamacao.tipo_reclamacao : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Impacto</p>
-                  <p className="font-medium">{reclamacao.impacto ? IMPACTOS_RECLAMACAO[reclamacao.impacto] : '-'}</p>
+                  <p className="font-medium">{reclamacao.impacto ? IMPACTOS_RECLAMACAO[reclamacao.impacto as keyof typeof IMPACTOS_RECLAMACAO] || reclamacao.impacto : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">OPD Relacionada</p>

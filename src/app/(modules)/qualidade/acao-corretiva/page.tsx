@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AcaoCorretiva, STATUS_ACAO_CORRETIVA, ORIGENS_ACAO_CORRETIVA } from '@/types/qualidade';
+import { AcaoCorretiva, STATUS_ACAO_CORRETIVA, STATUS_ACOES_AC, SITUACAO_FINAL_AC } from '@/types/qualidade';
 
 export default function AcaoCorretivaPage() {
   const [acoes, setAcoes] = useState<AcaoCorretiva[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('todos');
-  const [filterOrigem, setFilterOrigem] = useState<string>('todos');
+  const [filterStatusAcoes, setFilterStatusAcoes] = useState<string>('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
@@ -38,9 +38,14 @@ export default function AcaoCorretivaPage() {
 
   const filteredAcoes = acoes.filter(acao => {
     if (filterStatus !== 'todos' && acao.status !== filterStatus) return false;
-    if (filterOrigem !== 'todos' && acao.origem_tipo !== filterOrigem) return false;
-    if (searchTerm && !acao.numero.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !acao.descricao_problema.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (filterStatusAcoes !== 'todos' && acao.status_acoes !== filterStatusAcoes) return false;
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchNumero = acao.numero?.toLowerCase().includes(search);
+      const matchFalha = acao.falha?.toLowerCase().includes(search);
+      const matchEmitente = acao.emitente?.toLowerCase().includes(search);
+      if (!matchNumero && !matchFalha && !matchEmitente) return false;
+    }
     return true;
   });
 
@@ -58,11 +63,26 @@ export default function AcaoCorretivaPage() {
     );
   };
 
-  const formatDate = (dateString: string) => {
+  const getSituacaoFinalBadge = (situacao: string | null) => {
+    if (!situacao) return null;
+    const colors: Record<string, string> = {
+      'EFICAZ': 'bg-green-100 text-green-800',
+      'PARCIALMENTE_EFICAZ': 'bg-yellow-100 text-yellow-800',
+      'NAO_EFICAZ': 'bg-red-100 text-red-800'
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[situacao] || 'bg-gray-100'}`}>
+        {SITUACAO_FINAL_AC[situacao as keyof typeof SITUACAO_FINAL_AC] || situacao}
+      </span>
+    );
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const isPrazoVencido = (prazo: string | null) => {
+  const isPrazoVencido = (prazo: string | null | undefined) => {
     if (!prazo) return false;
     return new Date(prazo) < new Date();
   };
@@ -91,7 +111,7 @@ export default function AcaoCorretivaPage() {
               </Link>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Ações Corretivas</h1>
-                <p className="text-sm text-gray-600">Gestão de RACs</p>
+                <p className="text-sm text-gray-600">Nº 57-3 - REV. 01</p>
               </div>
             </div>
             <Link
@@ -109,7 +129,7 @@ export default function AcaoCorretivaPage() {
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               type="text"
-              placeholder="Buscar por número ou descrição..."
+              placeholder="Buscar por número, falha ou emitente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
@@ -125,12 +145,12 @@ export default function AcaoCorretivaPage() {
               ))}
             </select>
             <select
-              value={filterOrigem}
-              onChange={(e) => setFilterOrigem(e.target.value)}
+              value={filterStatusAcoes}
+              onChange={(e) => setFilterStatusAcoes(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
-              <option value="todos">Todas as Origens</option>
-              {Object.entries(ORIGENS_ACAO_CORRETIVA).map(([key, label]) => (
+              <option value="todos">Todas as Condições</option>
+              {Object.entries(STATUS_ACOES_AC).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
@@ -153,60 +173,90 @@ export default function AcaoCorretivaPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Número</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Origem</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Descrição</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Responsável</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Prazo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredAcoes.map(acao => (
-                    <tr key={acao.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <Link href={`/qualidade/acao-corretiva/${acao.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
-                          {acao.numero}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(acao.data_abertura)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {ORIGENS_ACAO_CORRETIVA[acao.origem_tipo as keyof typeof ORIGENS_ACAO_CORRETIVA] || acao.origem_tipo}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{acao.descricao_problema}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{acao.responsavel_principal || '-'}</td>
-                      <td className="px-4 py-3 text-sm">
-                        {acao.prazo_conclusao ? (
-                          <span className={isPrazoVencido(acao.prazo_conclusao) && acao.status !== 'FECHADA' ? 'text-red-600 font-medium' : 'text-gray-600'}>
-                            {formatDate(acao.prazo_conclusao)}
-                            {isPrazoVencido(acao.prazo_conclusao) && acao.status !== 'FECHADA' && (
-                              <span className="ml-1 text-red-600">!</span>
-                            )}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="px-4 py-3">{getStatusBadge(acao.status)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Link
-                          href={`/qualidade/acao-corretiva/${acao.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          Ver Detalhes
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Versão Mobile - Cards */}
+            <div className="block sm:hidden space-y-3">
+              {filteredAcoes.map(acao => (
+                <Link
+                  key={acao.id}
+                  href={`/qualidade/acao-corretiva/${acao.id}`}
+                  className="block bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-blue-600 font-bold">{acao.numero}</span>
+                    {getSituacaoFinalBadge(acao.situacao_final)}
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500">{formatDate(acao.data_emissao)}</span>
+                    {getStatusBadge(acao.status)}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{acao.falha || '-'}</p>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Emitente: {acao.emitente || '-'}</span>
+                    {acao.prazo && (
+                      <span className={isPrazoVencido(acao.prazo) && acao.status !== 'FECHADA' ? 'text-red-600 font-medium' : ''}>
+                        Prazo: {formatDate(acao.prazo)}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
             </div>
-          </div>
+
+            {/* Versão Desktop - Tabela */}
+            <div className="hidden sm:block bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Número</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Emitente</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Falha</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Responsáveis</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Prazo</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredAcoes.map(acao => (
+                      <tr key={acao.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <Link href={`/qualidade/acao-corretiva/${acao.id}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                            {acao.numero}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(acao.data_emissao)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{acao.emitente || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{acao.falha || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{acao.responsaveis || '-'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {acao.prazo ? (
+                            <span className={isPrazoVencido(acao.prazo) && acao.status !== 'FECHADA' ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                              {formatDate(acao.prazo)}
+                              {isPrazoVencido(acao.prazo) && acao.status !== 'FECHADA' && (
+                                <span className="ml-1 text-red-600">!</span>
+                              )}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="px-4 py-3">{getStatusBadge(acao.status)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Link
+                            href={`/qualidade/acao-corretiva/${acao.id}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            Ver Detalhes
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
 
         <div className="mt-4 text-sm text-gray-600">

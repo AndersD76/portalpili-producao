@@ -72,7 +72,8 @@ export default function NaoConformidadePage() {
     );
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
@@ -162,49 +163,76 @@ export default function NaoConformidadePage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Número</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Gravidade</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Descrição</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredNCs.map(nc => (
-                    <tr key={nc.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <Link href={`/qualidade/nao-conformidade/${nc.id}`} className="text-red-600 hover:text-red-800 font-medium">
-                          {nc.numero}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(nc.data_ocorrencia)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {TIPOS_NAO_CONFORMIDADE[nc.tipo as keyof typeof TIPOS_NAO_CONFORMIDADE] || nc.tipo}
-                      </td>
-                      <td className="px-4 py-3">{getGravidadeBadge(nc.gravidade)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{nc.descricao}</td>
-                      <td className="px-4 py-3">{getStatusBadge(nc.status)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Link
-                          href={`/qualidade/nao-conformidade/${nc.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          Ver Detalhes
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Versão Mobile - Cards */}
+            <div className="block sm:hidden space-y-3">
+              {filteredNCs.map(nc => (
+                <Link
+                  key={nc.id}
+                  href={`/qualidade/nao-conformidade/${nc.id}`}
+                  className="block bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-red-600 font-bold">{nc.numero}</span>
+                    {getGravidadeBadge(nc.gravidade)}
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500">{formatDate(nc.data_ocorrencia)}</span>
+                    {getStatusBadge(nc.status)}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{nc.descricao}</p>
+                  <div className="text-xs text-gray-500">
+                    {TIPOS_NAO_CONFORMIDADE[nc.tipo as keyof typeof TIPOS_NAO_CONFORMIDADE] || nc.tipo}
+                  </div>
+                </Link>
+              ))}
             </div>
-          </div>
+
+            {/* Versão Desktop - Tabela */}
+            <div className="hidden sm:block bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Número</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Tipo</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Gravidade</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Descrição</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredNCs.map(nc => (
+                      <tr key={nc.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <Link href={`/qualidade/nao-conformidade/${nc.id}`} className="text-red-600 hover:text-red-800 font-medium">
+                            {nc.numero}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(nc.data_ocorrencia)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {TIPOS_NAO_CONFORMIDADE[nc.tipo as keyof typeof TIPOS_NAO_CONFORMIDADE] || nc.tipo}
+                        </td>
+                        <td className="px-4 py-3">{getGravidadeBadge(nc.gravidade)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{nc.descricao}</td>
+                        <td className="px-4 py-3">{getStatusBadge(nc.status)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Link
+                            href={`/qualidade/nao-conformidade/${nc.id}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            Ver Detalhes
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
 
         <div className="mt-4 text-sm text-gray-600">

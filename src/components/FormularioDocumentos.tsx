@@ -110,7 +110,7 @@ export default function FormularioDocumentos({
         novosDocumentos[index].arquivo = {
           filename: result.filename,
           url: result.url,
-          size: file.size,
+          size: result.size || file.size,
         };
         // Se o nome estiver vazio, usar o nome do arquivo
         if (!novosDocumentos[index].nome) {

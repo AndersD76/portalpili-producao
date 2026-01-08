@@ -1,16 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   AcaoCorretiva,
+  Anexo,
   STATUS_ACAO_CORRETIVA,
-  ORIGENS_ACAO_CORRETIVA,
-  METODOS_ANALISE,
-  STATUS_ITEM_ACAO,
+  PROCESSOS_ORIGEM,
+  STATUS_ACOES_AC,
+  ACOES_FINALIZADAS_AC,
+  SITUACAO_FINAL_AC,
   StatusAcaoCorretiva,
-  ItemAcao
+  ProcessoOrigem,
+  StatusAcoesAC,
+  AcoesFinalizadasAC,
+  SituacaoFinalAC
 } from '@/types/qualidade';
 
 export default function DetalhesAcaoCorretivaPage() {
@@ -21,12 +26,8 @@ export default function DetalhesAcaoCorretivaPage() {
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<AcaoCorretiva>>({});
-  const [showAddAcao, setShowAddAcao] = useState(false);
-  const [novaAcaoItem, setNovaAcaoItem] = useState({
-    descricao: '',
-    responsavel: '',
-    prazo: ''
-  });
+  const [uploadingEvidencias, setUploadingEvidencias] = useState(false);
+  const fileInputEvidenciasRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const authenticated = localStorage.getItem('authenticated');
@@ -42,13 +43,16 @@ export default function DetalhesAcaoCorretivaPage() {
       const response = await fetch(`/api/qualidade/acao-corretiva/${params.id}`);
       const data = await response.json();
       if (data.success) {
-        // Parse acoes JSON if it's a string
         const acaoData = data.data;
-        if (typeof acaoData.acoes === 'string') {
-          acaoData.acoes = JSON.parse(acaoData.acoes);
+        // Parse JSON fields if they're strings
+        if (typeof acaoData.processos_envolvidos === 'string') {
+          acaoData.processos_envolvidos = JSON.parse(acaoData.processos_envolvidos);
         }
-        if (typeof acaoData.equipe === 'string') {
-          acaoData.equipe = JSON.parse(acaoData.equipe);
+        if (typeof acaoData.registro_nc_anexos === 'string') {
+          acaoData.registro_nc_anexos = JSON.parse(acaoData.registro_nc_anexos);
+        }
+        if (typeof acaoData.evidencias_anexos === 'string') {
+          acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
         }
         setAcao(acaoData);
         setEditData(acaoData);
@@ -62,6 +66,40 @@ export default function DetalhesAcaoCorretivaPage() {
     }
   };
 
+  const handleFileUploadEvidencias = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingEvidencias(true);
+    try {
+      const uploadedFiles: Anexo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('tipo', 'acao_corretiva_evidencias');
+
+        const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+        const result = await response.json();
+        if (result.success) {
+          uploadedFiles.push({ filename: result.filename, url: result.url, size: file.size });
+        }
+      }
+      const currentEvidencias = editData.evidencias_anexos || [];
+      setEditData({ ...editData, evidencias_anexos: [...currentEvidencias, ...uploadedFiles] });
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+    } finally {
+      setUploadingEvidencias(false);
+      if (fileInputEvidenciasRef.current) fileInputEvidenciasRef.current.value = '';
+    }
+  };
+
+  const removeEvidencia = (index: number) => {
+    const currentEvidencias = editData.evidencias_anexos || [];
+    setEditData({ ...editData, evidencias_anexos: currentEvidencias.filter((_, i) => i !== index) });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -73,13 +111,15 @@ export default function DetalhesAcaoCorretivaPage() {
 
       const result = await response.json();
       if (result.success) {
-        // Parse acoes if string
         const acaoData = result.data;
-        if (typeof acaoData.acoes === 'string') {
-          acaoData.acoes = JSON.parse(acaoData.acoes);
+        if (typeof acaoData.processos_envolvidos === 'string') {
+          acaoData.processos_envolvidos = JSON.parse(acaoData.processos_envolvidos);
         }
-        if (typeof acaoData.equipe === 'string') {
-          acaoData.equipe = JSON.parse(acaoData.equipe);
+        if (typeof acaoData.registro_nc_anexos === 'string') {
+          acaoData.registro_nc_anexos = JSON.parse(acaoData.registro_nc_anexos);
+        }
+        if (typeof acaoData.evidencias_anexos === 'string') {
+          acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
         }
         setAcao(acaoData);
         setEditMode(false);
@@ -94,115 +134,28 @@ export default function DetalhesAcaoCorretivaPage() {
   const handleStatusChange = async (newStatus: StatusAcaoCorretiva) => {
     setSaving(true);
     try {
-      const updateData: any = { status: newStatus };
-      if (newStatus === 'FECHADA') {
-        updateData.data_conclusao = new Date().toISOString();
-      }
-
       const response = await fetch(`/api/qualidade/acao-corretiva/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify({ status: newStatus })
       });
 
       const result = await response.json();
       if (result.success) {
         const acaoData = result.data;
-        if (typeof acaoData.acoes === 'string') {
-          acaoData.acoes = JSON.parse(acaoData.acoes);
+        if (typeof acaoData.processos_envolvidos === 'string') {
+          acaoData.processos_envolvidos = JSON.parse(acaoData.processos_envolvidos);
         }
-        if (typeof acaoData.equipe === 'string') {
-          acaoData.equipe = JSON.parse(acaoData.equipe);
+        if (typeof acaoData.registro_nc_anexos === 'string') {
+          acaoData.registro_nc_anexos = JSON.parse(acaoData.registro_nc_anexos);
+        }
+        if (typeof acaoData.evidencias_anexos === 'string') {
+          acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
         }
         setAcao(acaoData);
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleAddAcaoItem = async () => {
-    if (!novaAcaoItem.descricao || !novaAcaoItem.responsavel) return;
-
-    const newItem: ItemAcao = {
-      id: Date.now().toString(),
-      descricao: novaAcaoItem.descricao,
-      responsavel: novaAcaoItem.responsavel,
-      prazo: novaAcaoItem.prazo,
-      status: 'PENDENTE',
-      data_conclusao: null,
-      evidencia: null,
-      observacoes: null
-    };
-
-    const currentAcoes = acao?.acoes || [];
-    const updatedAcoes = [...currentAcoes, newItem];
-
-    setSaving(true);
-    try {
-      const response = await fetch(`/api/qualidade/acao-corretiva/${params.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acoes: updatedAcoes })
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        const acaoData = result.data;
-        if (typeof acaoData.acoes === 'string') {
-          acaoData.acoes = JSON.parse(acaoData.acoes);
-        }
-        if (typeof acaoData.equipe === 'string') {
-          acaoData.equipe = JSON.parse(acaoData.equipe);
-        }
-        setAcao(acaoData);
-        setNovaAcaoItem({ descricao: '', responsavel: '', prazo: '' });
-        setShowAddAcao(false);
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar ação:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUpdateAcaoItemStatus = async (itemId: string, newStatus: string) => {
-    if (!acao?.acoes) return;
-
-    const updatedAcoes = acao.acoes.map(item => {
-      if (item.id === itemId) {
-        return {
-          ...item,
-          status: newStatus,
-          data_conclusao: newStatus === 'CONCLUIDA' ? new Date().toISOString() : null
-        };
-      }
-      return item;
-    });
-
-    setSaving(true);
-    try {
-      const response = await fetch(`/api/qualidade/acao-corretiva/${params.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ acoes: updatedAcoes })
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        const acaoData = result.data;
-        if (typeof acaoData.acoes === 'string') {
-          acaoData.acoes = JSON.parse(acaoData.acoes);
-        }
-        if (typeof acaoData.equipe === 'string') {
-          acaoData.equipe = JSON.parse(acaoData.equipe);
-        }
-        setAcao(acaoData);
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar ação:', error);
     } finally {
       setSaving(false);
     }
@@ -225,12 +178,20 @@ export default function DetalhesAcaoCorretivaPage() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
+  const handleProcessoChange = (processo: ProcessoOrigem) => {
+    const processos = editData.processos_envolvidos || [];
+    const newProcessos = processos.includes(processo)
+      ? processos.filter(p => p !== processo)
+      : [...processos, processo];
+    setEditData({ ...editData, processos_envolvidos: newProcessos });
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const formatDateTime = (dateString: string | null) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString('pt-BR');
   };
@@ -249,16 +210,29 @@ export default function DetalhesAcaoCorretivaPage() {
     );
   };
 
-  const getItemStatusBadge = (status: string) => {
+  const getStatusAcoesBadge = (status: string | null | undefined) => {
+    if (!status) return null;
     const colors: Record<string, string> = {
-      'PENDENTE': 'bg-gray-100 text-gray-800',
       'EM_ANDAMENTO': 'bg-blue-100 text-blue-800',
-      'CONCLUIDA': 'bg-green-100 text-green-800',
-      'CANCELADA': 'bg-red-100 text-red-800'
+      'FINALIZADAS': 'bg-green-100 text-green-800'
     };
     return (
-      <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] || 'bg-gray-100'}`}>
-        {STATUS_ITEM_ACAO[status as keyof typeof STATUS_ITEM_ACAO] || status}
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[status] || 'bg-gray-100'}`}>
+        {STATUS_ACOES_AC[status as keyof typeof STATUS_ACOES_AC] || status}
+      </span>
+    );
+  };
+
+  const getSituacaoFinalBadge = (situacao: string | null | undefined) => {
+    if (!situacao) return null;
+    const colors: Record<string, string> = {
+      'EFICAZ': 'bg-green-100 text-green-800',
+      'PARCIALMENTE_EFICAZ': 'bg-yellow-100 text-yellow-800',
+      'NAO_EFICAZ': 'bg-red-100 text-red-800'
+    };
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[situacao] || 'bg-gray-100'}`}>
+        {SITUACAO_FINAL_AC[situacao as keyof typeof SITUACAO_FINAL_AC] || situacao}
       </span>
     );
   };
@@ -295,7 +269,7 @@ export default function DetalhesAcaoCorretivaPage() {
               </Link>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{acao.numero}</h1>
-                <p className="text-sm text-gray-600">Ação Corretiva</p>
+                <p className="text-sm text-gray-600">Nº 57-3 - REV. 01</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -353,79 +327,327 @@ export default function DetalhesAcaoCorretivaPage() {
           </div>
         </div>
 
-        {/* Informações Gerais */}
+        {/* IDENTIFICAÇÃO */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Informações Gerais</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
+          {editMode ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <input
+                  type="email"
+                  value={editData.email || ''}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Data de Emissão</label>
+                <input
+                  type="date"
+                  value={editData.data_emissao?.split('T')[0] || ''}
+                  onChange={(e) => setEditData({ ...editData, data_emissao: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Emitente</label>
+                <input
+                  type="text"
+                  value={editData.emitente || ''}
+                  onChange={(e) => setEditData({ ...editData, emitente: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número NC Relacionada</label>
+                <input
+                  type="text"
+                  value={editData.numero_nc_relacionada || ''}
+                  onChange={(e) => setEditData({ ...editData, numero_nc_relacionada: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">E-mail</p>
+                <p className="font-medium">{acao.email || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Data de Emissão</p>
+                <p className="font-medium">{formatDate(acao.data_emissao)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Emitente</p>
+                <p className="font-medium">{acao.emitente || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">NC Relacionada</p>
+                <p className="font-medium">{acao.numero_nc_relacionada || '-'}</p>
+              </div>
+              {acao.registro_nc_anexos && acao.registro_nc_anexos.length > 0 && (
+                <div className="sm:col-span-2">
+                  <p className="text-sm text-gray-500 mb-2">Anexos da NC</p>
+                  <div className="flex flex-wrap gap-2">
+                    {acao.registro_nc_anexos.map((anexo, index) => (
+                      <a
+                        key={index}
+                        href={anexo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100"
+                      >
+                        {anexo.filename}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ANÁLISE DAS CAUSAS */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ANÁLISE DAS CAUSAS</h2>
+          {editMode ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Processos Envolvidos</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {Object.entries(PROCESSOS_ORIGEM).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(editData.processos_envolvidos || []).includes(key as ProcessoOrigem)}
+                        onChange={() => handleProcessoChange(key as ProcessoOrigem)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Falha</label>
+                <textarea
+                  value={editData.falha || ''}
+                  onChange={(e) => setEditData({ ...editData, falha: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Causas</label>
+                <textarea
+                  value={editData.causas || ''}
+                  onChange={(e) => setEditData({ ...editData, causas: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subcausas</label>
+                <textarea
+                  value={editData.subcausas || ''}
+                  onChange={(e) => setEditData({ ...editData, subcausas: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {acao.processos_envolvidos && acao.processos_envolvidos.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Processos Envolvidos</p>
+                  <div className="flex flex-wrap gap-2">
+                    {acao.processos_envolvidos.map((processo) => (
+                      <span key={processo} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                        {PROCESSOS_ORIGEM[processo] || processo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Falha</p>
+                <p className="bg-red-50 p-3 rounded-lg">{acao.falha || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Causas</p>
+                <p className="bg-yellow-50 p-3 rounded-lg">{acao.causas || '-'}</p>
+              </div>
+              {acao.subcausas && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Subcausas</p>
+                  <p className="bg-orange-50 p-3 rounded-lg">{acao.subcausas}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* AÇÕES PARA ELIMINAR AS CAUSAS */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">AÇÕES PARA ELIMINAR AS CAUSAS</h2>
+          {editMode ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ações</label>
+                <textarea
+                  value={editData.acoes || ''}
+                  onChange={(e) => setEditData({ ...editData, acoes: e.target.value })}
+                  rows={4}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsáveis</label>
+                  <input
+                    type="text"
+                    value={editData.responsaveis || ''}
+                    onChange={(e) => setEditData({ ...editData, responsaveis: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo</label>
+                  <input
+                    type="date"
+                    value={editData.prazo?.split('T')[0] || ''}
+                    onChange={(e) => setEditData({ ...editData, prazo: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Ações</p>
+                <p className="bg-blue-50 p-3 rounded-lg whitespace-pre-wrap">{acao.acoes || '-'}</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Responsáveis</p>
+                  <p className="font-medium">{acao.responsaveis || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Prazo</p>
+                  <p className="font-medium">{formatDate(acao.prazo)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* CONDIÇÕES DAS AÇÕES */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CONDIÇÕES DAS AÇÕES</h2>
+          {editMode ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status das Ações</label>
+              <select
+                value={editData.status_acoes || ''}
+                onChange={(e) => setEditData({ ...editData, status_acoes: e.target.value as StatusAcoesAC })}
+                className="w-full px-3 py-2 border rounded-lg"
+              >
+                <option value="">Selecione...</option>
+                {Object.entries(STATUS_ACOES_AC).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-gray-500">Status das Ações</p>
+              <div className="mt-1">{getStatusAcoesBadge(acao.status_acoes) || <span className="text-gray-400">-</span>}</div>
+            </div>
+          )}
+        </div>
+
+        {/* ANÁLISE DA EFICÁCIA */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ANÁLISE DA EFICÁCIA</h2>
           {editMode ? (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data de Abertura</label>
-                  <input
-                    type="date"
-                    value={editData.data_abertura?.split('T')[0] || ''}
-                    onChange={(e) => setEditData({ ...editData, data_abertura: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Conclusão</label>
-                  <input
-                    type="date"
-                    value={editData.prazo_conclusao?.split('T')[0] || ''}
-                    onChange={(e) => setEditData({ ...editData, prazo_conclusao: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsável Principal</label>
-                  <input
-                    type="text"
-                    value={editData.responsavel_principal || ''}
-                    onChange={(e) => setEditData({ ...editData, responsavel_principal: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Método de Análise</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ações Finalizadas?</label>
                   <select
-                    value={editData.metodo_analise || ''}
-                    onChange={(e) => setEditData({ ...editData, metodo_analise: e.target.value as any })}
+                    value={editData.acoes_finalizadas || ''}
+                    onChange={(e) => setEditData({ ...editData, acoes_finalizadas: e.target.value as AcoesFinalizadasAC })}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
                     <option value="">Selecione...</option>
-                    {Object.entries(METODOS_ANALISE).map(([key, label]) => (
+                    {Object.entries(ACOES_FINALIZADAS_AC).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Situação Final</label>
+                  <select
+                    value={editData.situacao_final || ''}
+                    onChange={(e) => setEditData({ ...editData, situacao_final: e.target.value as SituacaoFinalAC })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="">Selecione...</option>
+                    {Object.entries(SITUACAO_FINAL_AC).map(([key, label]) => (
                       <option key={key} value={key}>{label}</option>
                     ))}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição do Problema</label>
-                <textarea
-                  value={editData.descricao_problema || ''}
-                  onChange={(e) => setEditData({ ...editData, descricao_problema: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-lg"
+                <label className="block text-sm font-medium text-gray-700 mb-1">Evidências (Anexos)</label>
+                <input
+                  ref={fileInputEvidenciasRef}
+                  type="file"
+                  accept="image/*,video/*,.pdf,.doc,.docx"
+                  multiple
+                  onChange={handleFileUploadEvidencias}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
+                {uploadingEvidencias && <p className="text-sm text-gray-500 mt-1">Enviando...</p>}
+                {editData.evidencias_anexos && editData.evidencias_anexos.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {editData.evidencias_anexos.map((anexo, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <span className="text-sm truncate">{anexo.filename}</span>
+                        <button type="button" onClick={() => removeEvidencia(index)} className="text-red-600 ml-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Análise de Causa Raiz</label>
-                <textarea
-                  value={editData.analise_causa_raiz || ''}
-                  onChange={(e) => setEditData({ ...editData, analise_causa_raiz: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Causa Raiz Identificada</label>
-                <textarea
-                  value={editData.causa_raiz_identificada || ''}
-                  onChange={(e) => setEditData({ ...editData, causa_raiz_identificada: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela Análise</label>
+                  <input
+                    type="text"
+                    value={editData.responsavel_analise || ''}
+                    onChange={(e) => setEditData({ ...editData, responsavel_analise: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data da Análise</label>
+                  <input
+                    type="date"
+                    value={editData.data_analise?.split('T')[0] || ''}
+                    onChange={(e) => setEditData({ ...editData, data_analise: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
+                </div>
               </div>
               <button
                 onClick={handleSave}
@@ -439,234 +661,51 @@ export default function DetalhesAcaoCorretivaPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Data de Abertura</p>
-                  <p className="font-medium">{formatDate(acao.data_abertura)}</p>
+                  <p className="text-sm text-gray-500">Ações Finalizadas?</p>
+                  <p className="font-medium">{acao.acoes_finalizadas ? ACOES_FINALIZADAS_AC[acao.acoes_finalizadas] : '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Prazo de Conclusão</p>
-                  <p className="font-medium">{formatDate(acao.prazo_conclusao)}</p>
+                  <p className="text-sm text-gray-500">Situação Final</p>
+                  <div className="mt-1">{getSituacaoFinalBadge(acao.situacao_final) || <span className="text-gray-400">-</span>}</div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Origem</p>
-                  <p className="font-medium">{ORIGENS_ACAO_CORRETIVA[acao.origem_tipo] || acao.origem_tipo}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Responsável Principal</p>
-                  <p className="font-medium">{acao.responsavel_principal || '-'}</p>
-                </div>
-                {acao.metodo_analise && (
-                  <div>
-                    <p className="text-sm text-gray-500">Método de Análise</p>
-                    <p className="font-medium">{METODOS_ANALISE[acao.metodo_analise]}</p>
-                  </div>
-                )}
-                {acao.equipe && acao.equipe.length > 0 && (
-                  <div>
-                    <p className="text-sm text-gray-500">Equipe</p>
-                    <p className="font-medium">{acao.equipe.join(', ')}</p>
-                  </div>
-                )}
               </div>
-
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Descrição do Problema</p>
-                <p className="bg-gray-50 p-3 rounded-lg">{acao.descricao_problema}</p>
-              </div>
-
-              {acao.analise_causa_raiz && (
+              {acao.evidencias_anexos && acao.evidencias_anexos.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Análise de Causa Raiz</p>
-                  <p className="bg-yellow-50 p-3 rounded-lg">{acao.analise_causa_raiz}</p>
+                  <p className="text-sm text-gray-500 mb-2">Evidências</p>
+                  <div className="flex flex-wrap gap-2">
+                    {acao.evidencias_anexos.map((anexo, index) => (
+                      <a
+                        key={index}
+                        href={anexo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 bg-green-50 text-green-600 rounded-lg text-sm hover:bg-green-100"
+                      >
+                        {anexo.filename}
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {acao.causa_raiz_identificada && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Causa Raiz Identificada</p>
-                  <p className="bg-red-50 p-3 rounded-lg font-medium">{acao.causa_raiz_identificada}</p>
+                  <p className="text-sm text-gray-500">Responsável pela Análise</p>
+                  <p className="font-medium">{acao.responsavel_analise || '-'}</p>
                 </div>
-              )}
+                <div>
+                  <p className="text-sm text-gray-500">Data da Análise</p>
+                  <p className="font-medium">{formatDate(acao.data_analise)}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Ações Corretivas */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4 pb-2 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">Plano de Ações</h2>
-            {acao.status !== 'FECHADA' && (
-              <button
-                onClick={() => setShowAddAcao(!showAddAcao)}
-                className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
-              >
-                + Adicionar Ação
-              </button>
-            )}
-          </div>
-
-          {showAddAcao && (
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Ação *</label>
-                <input
-                  type="text"
-                  value={novaAcaoItem.descricao}
-                  onChange={(e) => setNovaAcaoItem({ ...novaAcaoItem, descricao: e.target.value })}
-                  placeholder="O que precisa ser feito?"
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsável *</label>
-                  <input
-                    type="text"
-                    value={novaAcaoItem.responsavel}
-                    onChange={(e) => setNovaAcaoItem({ ...novaAcaoItem, responsavel: e.target.value })}
-                    placeholder="Quem vai fazer?"
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo</label>
-                  <input
-                    type="date"
-                    value={novaAcaoItem.prazo}
-                    onChange={(e) => setNovaAcaoItem({ ...novaAcaoItem, prazo: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleAddAcaoItem}
-                  disabled={saving || !novaAcaoItem.descricao || !novaAcaoItem.responsavel}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
-                >
-                  Adicionar
-                </button>
-                <button
-                  onClick={() => setShowAddAcao(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-sm"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
-
-          {acao.acoes && acao.acoes.length > 0 ? (
-            <div className="space-y-3">
-              {acao.acoes.map((item, index) => (
-                <div key={item.id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <p className="font-medium">{index + 1}. {item.descricao}</p>
-                      <div className="mt-1 text-sm text-gray-600 flex flex-wrap gap-x-4">
-                        <span>Responsável: {item.responsavel}</span>
-                        {item.prazo && <span>Prazo: {formatDate(item.prazo)}</span>}
-                        {item.data_conclusao && <span>Concluída em: {formatDate(item.data_conclusao)}</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getItemStatusBadge(item.status)}
-                      {acao.status !== 'FECHADA' && item.status !== 'CONCLUIDA' && (
-                        <select
-                          value={item.status}
-                          onChange={(e) => handleUpdateAcaoItemStatus(item.id, e.target.value)}
-                          className="text-sm border rounded px-2 py-1"
-                        >
-                          <option value="PENDENTE">Pendente</option>
-                          <option value="EM_ANDAMENTO">Em Andamento</option>
-                          <option value="CONCLUIDA">Concluída</option>
-                          <option value="CANCELADA">Cancelada</option>
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4">Nenhuma ação cadastrada ainda</p>
-          )}
-        </div>
-
-        {/* Verificação de Eficácia */}
-        {(acao.status === 'AGUARDANDO_VERIFICACAO' || acao.status === 'FECHADA') && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Verificação de Eficácia</h2>
-            {editMode ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Verificação de Eficácia</label>
-                  <textarea
-                    value={editData.verificacao_eficacia || ''}
-                    onChange={(e) => setEditData({ ...editData, verificacao_eficacia: e.target.value })}
-                    rows={3}
-                    placeholder="Descreva como foi verificada a eficácia das ações..."
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data da Verificação</label>
-                    <input
-                      type="date"
-                      value={editData.data_verificacao?.split('T')[0] || ''}
-                      onChange={(e) => setEditData({ ...editData, data_verificacao: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ação foi Eficaz?</label>
-                    <select
-                      value={editData.acao_eficaz === null ? '' : editData.acao_eficaz ? 'sim' : 'nao'}
-                      onChange={(e) => setEditData({ ...editData, acao_eficaz: e.target.value === '' ? null : e.target.value === 'sim' })}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="sim">Sim</option>
-                      <option value="nao">Não</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {acao.verificacao_eficacia ? (
-                  <>
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Verificação</p>
-                      <p className="bg-gray-50 p-3 rounded-lg">{acao.verificacao_eficacia}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Data da Verificação</p>
-                        <p className="font-medium">{formatDate(acao.data_verificacao)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Ação Eficaz?</p>
-                        <p className={`font-medium ${acao.acao_eficaz ? 'text-green-600' : acao.acao_eficaz === false ? 'text-red-600' : ''}`}>
-                          {acao.acao_eficaz === null ? '-' : acao.acao_eficaz ? 'Sim' : 'Não'}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">Aguardando verificação de eficácia</p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Informações do Sistema */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="pt-4 border-t text-sm text-gray-500">
             <p>Criado em: {formatDateTime(acao.created)}</p>
             <p>Atualizado em: {formatDateTime(acao.updated)}</p>
-            {acao.data_conclusao && <p>Concluído em: {formatDateTime(acao.data_conclusao)}</p>}
           </div>
         </div>
       </main>

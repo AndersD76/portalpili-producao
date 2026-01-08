@@ -1,44 +1,96 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  TIPOS_NAO_CONFORMIDADE,
-  ORIGENS_NAO_CONFORMIDADE,
+  TURNOS_TRABALHO,
+  UNIDADES_FABRICACAO,
+  PROCESSOS_ORIGEM,
+  TAREFAS_ORIGEM,
   GRAVIDADES_NAO_CONFORMIDADE,
+  TIPOS_NAO_CONFORMIDADE,
   DISPOSICOES_NAO_CONFORMIDADE,
-  TipoNaoConformidade,
-  OrigemNaoConformidade,
+  TurnoTrabalho,
+  UnidadeFabricacao,
+  ProcessoOrigem,
+  TarefaOrigem,
   GravidadeNaoConformidade,
-  DisposicaoNaoConformidade
+  TipoNaoConformidade,
+  DisposicaoNaoConformidade,
+  Anexo
 } from '@/types/qualidade';
 
 export default function NovaNaoConformidadePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    data_ocorrencia: new Date().toISOString().split('T')[0],
-    local_ocorrencia: '',
-    setor_responsavel: '',
-    tipo: '' as TipoNaoConformidade | '',
-    origem: '' as OrigemNaoConformidade | '',
-    gravidade: '' as GravidadeNaoConformidade | '',
+    // Identificação
+    email: '',
+    data_emissao: new Date().toISOString().split('T')[0],
+    responsavel_emissao: '',
+    turno_trabalho: '' as TurnoTrabalho | '',
+    unidade_fabricacao: '' as UnidadeFabricacao | '',
+    processo_origem: '' as ProcessoOrigem | '',
+    // Origem
+    tarefa_origem: '' as TarefaOrigem | '',
+    numero_opd: '',
+    codigo_peca: '',
+    // Descrição
     descricao: '',
-    produtos_afetados: '',
-    quantidade_afetada: '',
-    detectado_por: '',
+    quantidade_itens: '',
+    evidencia_objetiva: '',
+    acao_imediata: '',
+    responsaveis_acoes: '',
+    prazo_acoes: '',
+    // Classificação
+    gravidade: '' as GravidadeNaoConformidade | '',
+    tipo: '' as TipoNaoConformidade | '',
+    // Disposição
     disposicao: '' as DisposicaoNaoConformidade | '',
-    disposicao_descricao: '',
-    acao_contencao: '',
-    responsavel_contencao: ''
+    responsavel_liberacao: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadedFiles: Anexo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('tipo', 'nao_conformidade');
+
+        const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+        const result = await response.json();
+        if (result.success) {
+          uploadedFiles.push({ filename: result.filename, url: result.url, size: file.size });
+        }
+      }
+      setAnexos(prev => [...prev, ...uploadedFiles]);
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAnexo = (index: number) => {
+    setAnexos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +107,8 @@ export default function NovaNaoConformidadePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          quantidade_afetada: formData.quantidade_afetada ? parseInt(formData.quantidade_afetada) : null,
+          quantidade_itens: formData.quantidade_itens ? parseInt(formData.quantidade_itens) : 0,
+          anexos: anexos.length > 0 ? anexos : null,
           created_by: user?.id || null
         })
       });
@@ -88,8 +141,8 @@ export default function NovaNaoConformidadePage() {
               </svg>
             </Link>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nova Não Conformidade</h1>
-              <p className="text-sm text-gray-600">Registrar uma nova NC</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">REGISTRO DE NÃO CONFORMIDADES</h1>
+              <p className="text-sm text-gray-600">Nº 57-1 - REV 01</p>
             </div>
           </div>
         </div>
@@ -103,63 +156,265 @@ export default function NovaNaoConformidadePage() {
             </div>
           )}
 
-          {/* Identificação */}
+          {/* IDENTIFICAÇÃO */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Identificação</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data da Ocorrência *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
                 <input
-                  type="date"
-                  name="data_ocorrencia"
-                  value={formData.data_ocorrencia}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Local da Ocorrência</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Data da emissão *</label>
                 <input
-                  type="text"
-                  name="local_ocorrencia"
-                  value={formData.local_ocorrencia}
+                  type="date"
+                  name="data_emissao"
+                  value={formData.data_emissao}
                   onChange={handleChange}
-                  placeholder="Ex: Linha de produção 1"
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Setor Responsável</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela emissão *</label>
                 <input
                   type="text"
-                  name="setor_responsavel"
-                  value={formData.setor_responsavel}
+                  name="responsavel_emissao"
+                  value={formData.responsavel_emissao}
                   onChange={handleChange}
-                  placeholder="Ex: Produção"
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Detectado Por</label>
-                <input
-                  type="text"
-                  name="detectado_por"
-                  value={formData.detectado_por}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Turno de trabalho *</label>
+                <select
+                  name="turno_trabalho"
+                  value={formData.turno_trabalho}
                   onChange={handleChange}
-                  placeholder="Nome do colaborador"
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
+                >
+                  <option value="">Selecione...</option>
+                  {Object.entries(TURNOS_TRABALHO).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unidade de fabricação *</label>
+                <select
+                  name="unidade_fabricacao"
+                  value={formData.unidade_fabricacao}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="">Selecione...</option>
+                  {Object.entries(UNIDADES_FABRICACAO).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Processo de origem *</label>
+                <select
+                  name="processo_origem"
+                  value={formData.processo_origem}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="">Selecione...</option>
+                  {Object.entries(PROCESSOS_ORIGEM).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
 
-          {/* Classificação */}
+          {/* ORIGEM */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Classificação</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ORIGEM</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tarefa de origem *</label>
+                <select
+                  name="tarefa_origem"
+                  value={formData.tarefa_origem}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="">Selecione...</option>
+                  {Object.entries(TAREFAS_ORIGEM).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">OPD (Ordem de Produção) *</label>
+                <input
+                  type="text"
+                  name="numero_opd"
+                  value={formData.numero_opd}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código da peça, sub conjunto ou conjunto *</label>
+                <input
+                  type="text"
+                  name="codigo_peca"
+                  value={formData.codigo_peca}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Anexe alguma imagem ou documento</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+                {uploading && <p className="text-sm text-gray-500 mt-1">Enviando arquivos...</p>}
+                {anexos.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {anexos.map((anexo, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <span className="text-sm text-gray-700">{anexo.filename}</span>
+                        <button type="button" onClick={() => removeAnexo(index)} className="text-red-600 hover:text-red-800">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* DESCRIÇÃO */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">DESCRIÇÃO</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da não conformidade *</label>
+                <textarea
+                  name="descricao"
+                  value={formData.descricao}
+                  onChange={handleChange}
+                  required
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade de itens não conformes *</label>
+                  <input
+                    type="number"
+                    name="quantidade_itens"
+                    value={formData.quantidade_itens}
+                    onChange={handleChange}
+                    required
+                    min="1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Evidência objetiva *</label>
+                <textarea
+                  name="evidencia_objetiva"
+                  value={formData.evidencia_objetiva}
+                  onChange={handleChange}
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ação imediata *</label>
+                <textarea
+                  name="acao_imediata"
+                  value={formData.acao_imediata}
+                  onChange={handleChange}
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsáveis pelas ações imediatas *</label>
+                  <input
+                    type="text"
+                    name="responsaveis_acoes"
+                    value={formData.responsaveis_acoes}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo para concluir as ações imediatas *</label>
+                  <input
+                    type="date"
+                    name="prazo_acoes"
+                    value={formData.prazo_acoes}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CLASSIFICAÇÃO */}
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CLASSIFICAÇÃO</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gravidade da não conformidade *</label>
+                <select
+                  name="gravidade"
+                  value={formData.gravidade}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="">Selecione...</option>
+                  {Object.entries(GRAVIDADES_NAO_CONFORMIDADE).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <p><strong>Alta:</strong> Falhas críticas estruturais; Defeitos repetidos em lote; Desvios que afetam funcionalidade; Problemas de acabamento significativos</p>
+                  <p><strong>Média:</strong> Variações que não comprometem segurança, mas precisam de ajuste</p>
+                  <p><strong>Baixa:</strong> Ajustes simples e pontuais; Erros administrativos sem impacto no produto</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de não conformidade *</label>
                 <select
                   name="tipo"
                   value={formData.tipo}
@@ -173,134 +428,40 @@ export default function NovaNaoConformidadePage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Origem</label>
-                <select
-                  name="origem"
-                  value={formData.origem}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option value="">Selecione...</option>
-                  {Object.entries(ORIGENS_NAO_CONFORMIDADE).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gravidade</label>
-                <select
-                  name="gravidade"
-                  value={formData.gravidade}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option value="">Selecione...</option>
-                  {Object.entries(GRAVIDADES_NAO_CONFORMIDADE).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
 
-          {/* Descrição */}
+          {/* DISPOSIÇÃO */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Descrição da Não Conformidade</h2>
-            <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">DISPOSIÇÃO</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada *</label>
-                <textarea
-                  name="descricao"
-                  value={formData.descricao}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Disposição da não conformidade *</label>
+                <select
+                  name="disposicao"
+                  value={formData.disposicao}
                   onChange={handleChange}
                   required
-                  rows={4}
-                  placeholder="Descreva detalhadamente a não conformidade encontrada..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
+                >
+                  <option value="">Selecione...</option>
+                  {Object.entries(DISPOSICOES_NAO_CONFORMIDADE).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {formData.disposicao === 'ACEITE_CONDICIONAL' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Produtos Afetados</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela liberação</label>
                   <input
                     type="text"
-                    name="produtos_afetados"
-                    value={formData.produtos_afetados}
+                    name="responsavel_liberacao"
+                    value={formData.responsavel_liberacao}
                     onChange={handleChange}
-                    placeholder="Ex: Peça XYZ, Componente ABC"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade Afetada</label>
-                  <input
-                    type="number"
-                    name="quantidade_afetada"
-                    value={formData.quantidade_afetada}
-                    onChange={handleChange}
-                    min="0"
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Disposição */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Disposição Imediata</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Disposição</label>
-                  <select
-                    name="disposicao"
-                    value={formData.disposicao}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    {Object.entries(DISPOSICOES_NAO_CONFORMIDADE).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela Contenção</label>
-                  <input
-                    type="text"
-                    name="responsavel_contencao"
-                    value={formData.responsavel_contencao}
-                    onChange={handleChange}
-                    placeholder="Nome do responsável"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Disposição</label>
-                <textarea
-                  name="disposicao_descricao"
-                  value={formData.disposicao_descricao}
-                  onChange={handleChange}
-                  rows={2}
-                  placeholder="Descreva as ações de disposição tomadas..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ação de Contenção</label>
-                <textarea
-                  name="acao_contencao"
-                  value={formData.acao_contencao}
-                  onChange={handleChange}
-                  rows={2}
-                  placeholder="Descreva as ações de contenção imediatas..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
+              )}
             </div>
           </div>
 

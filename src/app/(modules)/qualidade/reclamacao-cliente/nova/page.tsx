@@ -1,38 +1,68 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  TIPOS_RECLAMACAO,
-  IMPACTOS_RECLAMACAO,
-  TipoReclamacao,
-  ImpactoReclamacao
-} from '@/types/qualidade';
+import { Anexo } from '@/types/qualidade';
 
 export default function NovaReclamacaoPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    data_reclamacao: new Date().toISOString().split('T')[0],
-    cliente_nome: '',
-    cliente_contato: '',
-    cliente_email: '',
-    cliente_telefone: '',
+    // Identificação
+    email: '',
+    data_emissao: new Date().toISOString().split('T')[0],
+    nome_emitente: '',
+    // Reclamação de Cliente
+    nome_cliente: '',
     numero_opd: '',
-    numero_serie: '',
-    tipo_reclamacao: '' as TipoReclamacao | '',
+    numero_nf: '',
+    codigo_equipamento: '',
+    local_instalado: '',
     descricao: '',
-    impacto: '' as ImpactoReclamacao | '',
-    acao_imediata: '',
-    responsavel_analise: ''
+    acao_imediata: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadedFiles: Anexo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('tipo', 'reclamacao_cliente');
+
+        const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+        const result = await response.json();
+        if (result.success) {
+          uploadedFiles.push({ filename: result.filename, url: result.url, size: file.size });
+        }
+      }
+      setAnexos(prev => [...prev, ...uploadedFiles]);
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAnexo = (index: number) => {
+    setAnexos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +79,7 @@ export default function NovaReclamacaoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          anexos: anexos.length > 0 ? anexos : null,
           created_by: user?.id || null
         })
       });
@@ -81,8 +112,8 @@ export default function NovaReclamacaoPage() {
               </svg>
             </Link>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nova Reclamação de Cliente</h1>
-              <p className="text-sm text-gray-600">Registrar uma nova reclamação</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">REGISTRO DE RECLAMAÇÃO DE CLIENTE</h1>
+              <p className="text-sm text-gray-600">Nº 57-2 - REV. 01</p>
             </div>
           </div>
         </div>
@@ -96,61 +127,38 @@ export default function NovaReclamacaoPage() {
             </div>
           )}
 
-          {/* Informações do Cliente */}
+          {/* IDENTIFICAÇÃO */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Informações do Cliente</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente *</label>
-                <input
-                  type="text"
-                  name="cliente_nome"
-                  value={formData.cliente_nome}
-                  onChange={handleChange}
-                  required
-                  placeholder="Nome completo ou razão social"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contato</label>
-                <input
-                  type="text"
-                  name="cliente_contato"
-                  value={formData.cliente_contato}
-                  onChange={handleChange}
-                  placeholder="Nome do contato"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
                 <input
                   type="email"
-                  name="cliente_email"
-                  value={formData.cliente_email}
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  placeholder="email@exemplo.com"
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                <input
-                  type="tel"
-                  name="cliente_telefone"
-                  value={formData.cliente_telefone}
-                  onChange={handleChange}
-                  placeholder="(00) 00000-0000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data da Reclamação *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Data da emissão *</label>
                 <input
                   type="date"
-                  name="data_reclamacao"
-                  value={formData.data_reclamacao}
+                  name="data_emissao"
+                  value={formData.data_emissao}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do emitente *</label>
+                <input
+                  type="text"
+                  name="nome_emitente"
+                  value={formData.nome_emitente}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -159,105 +167,109 @@ export default function NovaReclamacaoPage() {
             </div>
           </div>
 
-          {/* Referência do Produto */}
+          {/* RECLAMAÇÃO DE CLIENTE */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Referência do Produto</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">RECLAMAÇÃO DE CLIENTE</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do cliente *</label>
+                <input
+                  type="text"
+                  name="nome_cliente"
+                  value={formData.nome_cliente}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número da OPD</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número da OPD *</label>
                 <input
                   type="text"
                   name="numero_opd"
                   value={formData.numero_opd}
                   onChange={handleChange}
-                  placeholder="Ex: OPD-2024-001"
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número de Série</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número da NF</label>
                 <input
                   type="text"
-                  name="numero_serie"
-                  value={formData.numero_serie}
+                  name="numero_nf"
+                  value={formData.numero_nf}
                   onChange={handleChange}
-                  placeholder="Número de série do equipamento"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Classificação */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Classificação</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Reclamação</label>
-                <select
-                  name="tipo_reclamacao"
-                  value={formData.tipo_reclamacao}
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código do equipamento</label>
+                <textarea
+                  name="codigo_equipamento"
+                  value={formData.codigo_equipamento}
                   onChange={handleChange}
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Selecione...</option>
-                  {Object.entries(TIPOS_RECLAMACAO).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Impacto</label>
-                <select
-                  name="impacto"
-                  value={formData.impacto}
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Local onde foi instalado (cidade/estado) *</label>
+                <input
+                  type="text"
+                  name="local_instalado"
+                  value={formData.local_instalado}
                   onChange={handleChange}
+                  required
+                  placeholder="Ex: São Paulo - SP"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Selecione...</option>
-                  {Object.entries(IMPACTOS_RECLAMACAO).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
+                />
               </div>
-            </div>
-          </div>
-
-          {/* Descrição da Reclamação */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Descrição da Reclamação</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Detalhada *</label>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição do problema/reclamação de cliente *</label>
                 <textarea
                   name="descricao"
                   value={formData.descricao}
                   onChange={handleChange}
                   required
                   rows={5}
-                  placeholder="Descreva detalhadamente a reclamação do cliente..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ação Imediata Tomada</label>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Adicione um imagem ou vídeo</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*,.pdf,.doc,.docx"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+                {uploading && <p className="text-sm text-gray-500 mt-1">Enviando arquivos...</p>}
+                {anexos.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {anexos.map((anexo, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <span className="text-sm text-gray-700">{anexo.filename}</span>
+                        <button type="button" onClick={() => removeAnexo(index)} className="text-red-600 hover:text-red-800">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ação imediata para resolver o ocorrido *</label>
                 <textarea
                   name="acao_imediata"
                   value={formData.acao_imediata}
                   onChange={handleChange}
-                  rows={2}
-                  placeholder="Descreva qualquer ação imediata já tomada..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela Análise</label>
-                <input
-                  type="text"
-                  name="responsavel_analise"
-                  value={formData.responsavel_analise}
-                  onChange={handleChange}
-                  placeholder="Nome do responsável"
+                  required
+                  rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>

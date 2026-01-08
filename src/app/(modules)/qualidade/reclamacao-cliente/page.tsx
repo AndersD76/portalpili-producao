@@ -3,13 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ReclamacaoCliente, STATUS_RECLAMACAO, TIPOS_RECLAMACAO, IMPACTOS_RECLAMACAO } from '@/types/qualidade';
+import { ReclamacaoCliente, STATUS_RECLAMACAO } from '@/types/qualidade';
 
 export default function ReclamacaoClientePage() {
   const [reclamacoes, setReclamacoes] = useState<ReclamacaoCliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('todos');
-  const [filterTipo, setFilterTipo] = useState<string>('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
@@ -38,10 +37,14 @@ export default function ReclamacaoClientePage() {
 
   const filteredReclamacoes = reclamacoes.filter(rec => {
     if (filterStatus !== 'todos' && rec.status !== filterStatus) return false;
-    if (filterTipo !== 'todos' && rec.tipo_reclamacao !== filterTipo) return false;
-    if (searchTerm && !rec.numero.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !rec.cliente_nome.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !rec.descricao.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchNumero = rec.numero?.toLowerCase().includes(search);
+      const matchCliente = rec.nome_cliente?.toLowerCase().includes(search);
+      const matchDescricao = rec.descricao?.toLowerCase().includes(search);
+      const matchLocal = rec.local_instalado?.toLowerCase().includes(search);
+      if (!matchNumero && !matchCliente && !matchDescricao && !matchLocal) return false;
+    }
     return true;
   });
 
@@ -59,21 +62,8 @@ export default function ReclamacaoClientePage() {
     );
   };
 
-  const getImpactoBadge = (impacto: string | null) => {
-    if (!impacto) return null;
-    const colors: Record<string, string> = {
-      'ALTO': 'bg-red-600 text-white',
-      'MEDIO': 'bg-orange-500 text-white',
-      'BAIXO': 'bg-yellow-500 text-white'
-    };
-    return (
-      <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[impacto] || 'bg-gray-100'}`}>
-        {IMPACTOS_RECLAMACAO[impacto as keyof typeof IMPACTOS_RECLAMACAO] || impacto}
-      </span>
-    );
-  };
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
@@ -101,7 +91,7 @@ export default function ReclamacaoClientePage() {
               </Link>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reclamações de Clientes</h1>
-                <p className="text-sm text-gray-600">Gestão de reclamações</p>
+                <p className="text-sm text-gray-600">Nº 57-2 - REV. 01</p>
               </div>
             </div>
             <Link
@@ -116,10 +106,10 @@ export default function ReclamacaoClientePage() {
           </div>
 
           {/* Filtros */}
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
-              placeholder="Buscar por número, cliente ou descrição..."
+              placeholder="Buscar por número, cliente, descrição ou local..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
@@ -131,16 +121,6 @@ export default function ReclamacaoClientePage() {
             >
               <option value="todos">Todos os Status</option>
               {Object.entries(STATUS_RECLAMACAO).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-            <select
-              value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-            >
-              <option value="todos">Todos os Tipos</option>
-              {Object.entries(TIPOS_RECLAMACAO).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
@@ -163,51 +143,76 @@ export default function ReclamacaoClientePage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Número</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Cliente</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Impacto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Descrição</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredReclamacoes.map(rec => (
-                    <tr key={rec.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <Link href={`/qualidade/reclamacao-cliente/${rec.id}`} className="text-orange-600 hover:text-orange-800 font-medium">
-                          {rec.numero}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(rec.data_reclamacao)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">{rec.cliente_nome}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {rec.tipo_reclamacao ? TIPOS_RECLAMACAO[rec.tipo_reclamacao as keyof typeof TIPOS_RECLAMACAO] || rec.tipo_reclamacao : '-'}
-                      </td>
-                      <td className="px-4 py-3">{getImpactoBadge(rec.impacto)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{rec.descricao}</td>
-                      <td className="px-4 py-3">{getStatusBadge(rec.status)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Link
-                          href={`/qualidade/reclamacao-cliente/${rec.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          Ver Detalhes
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* Versão Mobile - Cards */}
+            <div className="block sm:hidden space-y-3">
+              {filteredReclamacoes.map(rec => (
+                <Link
+                  key={rec.id}
+                  href={`/qualidade/reclamacao-cliente/${rec.id}`}
+                  className="block bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-orange-600 font-bold">{rec.numero}</span>
+                    {getStatusBadge(rec.status)}
+                  </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500">{formatDate(rec.data_emissao)}</span>
+                    <span className="text-sm font-medium text-gray-900">{rec.nome_cliente}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{rec.descricao}</p>
+                  <div className="text-xs text-gray-500">
+                    {rec.local_instalado && <span>Local: {rec.local_instalado}</span>}
+                  </div>
+                </Link>
+              ))}
             </div>
-          </div>
+
+            {/* Versão Desktop - Tabela */}
+            <div className="hidden sm:block bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Número</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Cliente</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">OPD</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Local</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Descrição</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredReclamacoes.map(rec => (
+                      <tr key={rec.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <Link href={`/qualidade/reclamacao-cliente/${rec.id}`} className="text-orange-600 hover:text-orange-800 font-medium">
+                            {rec.numero}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDate(rec.data_emissao)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{rec.nome_cliente}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{rec.numero_opd || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{rec.local_instalado || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{rec.descricao}</td>
+                        <td className="px-4 py-3">{getStatusBadge(rec.status)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Link
+                            href={`/qualidade/reclamacao-cliente/${rec.id}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            Ver Detalhes
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
 
         <div className="mt-4 text-sm text-gray-600">
