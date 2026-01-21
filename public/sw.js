@@ -1,5 +1,6 @@
 // Service Worker para Push Notifications - SIG Portal Pili
-const CACHE_NAME = 'sig-cache-v1';
+// Versão: 2.0 - Atualizado em 21/01/2026
+const CACHE_NAME = 'sig-cache-v2';
 
 // Arquivos para cachear (opcional para PWA básico)
 const urlsToCache = [
@@ -46,7 +47,8 @@ self.addEventListener('activate', (event) => {
 
 // Recebimento de Push Notification
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push recebido:', event);
+  console.log('[SW] Push recebido');
+  console.log('[SW] event.data existe?', !!event.data);
 
   let data = {
     title: 'SIG - Nova Notificação',
@@ -59,12 +61,18 @@ self.addEventListener('push', (event) => {
 
   if (event.data) {
     try {
-      data = { ...data, ...event.data.json() };
+      const payload = event.data.json();
+      console.log('[SW] Payload recebido:', JSON.stringify(payload));
+      data = { ...data, ...payload };
     } catch (e) {
-      console.log('[SW] Erro ao parsear dados:', e);
-      data.body = event.data.text();
+      console.log('[SW] Erro ao parsear JSON, tentando texto:', e);
+      const text = event.data.text();
+      console.log('[SW] Texto recebido:', text);
+      data.body = text;
     }
   }
+
+  console.log('[SW] Dados finais da notificação:', JSON.stringify(data));
 
   const options = {
     body: data.body,
