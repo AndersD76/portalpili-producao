@@ -1,6 +1,23 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 
+// POST para limpar todas subscriptions
+export async function POST() {
+  try {
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : false
+    });
+
+    await pool.query('UPDATE push_subscriptions SET active = false');
+    await pool.end();
+
+    return NextResponse.json({ success: true, message: 'Todas subscriptions desativadas' });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function GET() {
   try {
     const pool = new Pool({
