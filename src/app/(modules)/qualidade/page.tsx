@@ -1,5 +1,6 @@
 'use client';
 
+// v2.1 - Atualização de Qualidade com Dashboard e Filtros
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
