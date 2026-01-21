@@ -14,9 +14,9 @@ export async function GET() {
 
     // Buscar subscriptions
     const result = await pool.query(`
-      SELECT id, endpoint, user_id, user_nome, active, created_at
+      SELECT id, endpoint, user_id, user_nome, active
       FROM push_subscriptions
-      ORDER BY created_at DESC
+      ORDER BY id DESC
       LIMIT 10
     `);
 
@@ -31,8 +31,7 @@ export async function GET() {
         id: row.id,
         endpoint: row.endpoint?.substring(0, 50) + '...',
         user: row.user_nome || row.user_id,
-        active: row.active,
-        created: row.created_at
+        active: row.active
       })),
       total: result.rowCount
     });
