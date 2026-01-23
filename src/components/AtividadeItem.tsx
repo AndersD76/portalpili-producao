@@ -392,6 +392,16 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       );
     }
 
+    // Formulários de Controle de Qualidade que precisam de cliente
+    if (tipoFormulario?.startsWith('CONTROLE_QUALIDADE')) {
+      return (
+        <FormComponent
+          {...commonProps}
+          cliente={(atividade as any).cliente || ''}
+        />
+      );
+    }
+
     return <FormComponent {...commonProps} />;
   };
 
