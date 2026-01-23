@@ -58,6 +58,16 @@ export async function PUT(
       );
     }
 
+    const existingNC = existingResult.rows[0];
+
+    // Validar se pode fechar NC com gravidade ALTA sem AC vinculada
+    if (body.status === 'FECHADA' && existingNC.gravidade === 'ALTA' && !existingNC.acao_corretiva_id) {
+      return NextResponse.json(
+        { success: false, error: 'Não é possível fechar uma NC com gravidade ALTA sem uma Ação Corretiva vinculada. Crie uma RAC antes de fechar esta NC.' },
+        { status: 400 }
+      );
+    }
+
     const fields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;

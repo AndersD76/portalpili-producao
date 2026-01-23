@@ -74,6 +74,12 @@ export default function DetalhesNCPage() {
   };
 
   const handleStatusChange = async (newStatus: StatusNaoConformidade) => {
+    // Validar se pode fechar NC com gravidade ALTA sem AC vinculada
+    if (newStatus === 'FECHADA' && nc?.gravidade === 'ALTA' && !nc?.acao_corretiva_id) {
+      alert('Não é possível fechar uma NC com gravidade ALTA sem uma Ação Corretiva vinculada.\n\nCrie uma RAC antes de fechar esta NC.');
+      return;
+    }
+
     setSaving(true);
     try {
       const userData = localStorage.getItem('user_data');
@@ -94,6 +100,8 @@ export default function DetalhesNCPage() {
       const result = await response.json();
       if (result.success) {
         setNc(result.data);
+      } else if (result.error) {
+        alert(result.error);
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
@@ -670,7 +678,7 @@ export default function DetalhesNCPage() {
                 </div>
               )}
 
-              {nc.acao_corretiva_id && (
+              {nc.acao_corretiva_id ? (
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <p className="text-sm text-purple-800 font-medium">
                     RAC vinculada:
@@ -678,6 +686,21 @@ export default function DetalhesNCPage() {
                       Ver Ação Corretiva
                     </Link>
                   </p>
+                </div>
+              ) : nc.gravidade === 'ALTA' && nc.status !== 'FECHADA' && (
+                <div className="p-4 bg-red-50 rounded-lg border border-red-300">
+                  <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    AÇÃO CORRETIVA OBRIGATÓRIA: Esta NC tem gravidade ALTA e requer uma RAC vinculada antes de ser fechada.
+                  </p>
+                  <Link
+                    href={`/qualidade/acao-corretiva/nova?origem_tipo=NAO_CONFORMIDADE&origem_id=${nc.id}&origem_descricao=${encodeURIComponent(nc.numero + ' - ' + nc.descricao.substring(0, 50))}`}
+                    className="inline-block mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                  >
+                    Criar RAC Agora
+                  </Link>
                 </div>
               )}
 

@@ -135,7 +135,7 @@ export async function POST(request: Request) {
       const ncCriada = result.rows[0];
       const opdReferencia = produtos_afetados || origem || 'N/A';
       const usuario = detectado_por || created_by || 'Sistema';
-      await enviarNotificacaoPush(notificacoes.ncCriada(ncCriada.numero, opdReferencia, usuario));
+      await enviarNotificacaoPush(notificacoes.ncCriada(ncCriada.id, ncCriada.numero, opdReferencia, usuario));
     } catch (notifError) {
       console.error('Erro ao enviar notificação:', notifError);
       // Não falha a criação da NC se falhar a notificação

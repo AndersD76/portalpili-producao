@@ -160,20 +160,20 @@ export const notificacoes = {
     enviado_por: usuario
   }),
 
-  ncCriada: (numero: string, opd: string, usuario: string) => ({
+  ncCriada: (id: number, numero: string, opd: string, usuario: string) => ({
     tipo: 'NC_CRIADA' as NotificationType,
     titulo: 'Nova Não Conformidade',
     mensagem: `NC ${numero} registrada${opd ? ` na OPD ${opd}` : ''}`,
-    url: `/qualidade/nao-conformidade/${numero}`,
+    url: `/qualidade/nao-conformidade/${id}`,
     referencia: numero,
     enviado_por: usuario
   }),
 
-  acCriada: (numero: string, usuario: string) => ({
+  acCriada: (id: number, numero: string, usuario: string) => ({
     tipo: 'AC_CRIADA' as NotificationType,
     titulo: 'Nova Ação Corretiva',
     mensagem: `Ação Corretiva ${numero} registrada`,
-    url: `/qualidade/acao-corretiva/${numero}`,
+    url: `/qualidade/acao-corretiva/${id}`,
     referencia: numero,
     enviado_por: usuario
   })

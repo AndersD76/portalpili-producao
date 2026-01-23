@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     try {
       const acCriada = result.rows[0];
       const usuario = responsavel_principal || created_by || 'Sistema';
-      await enviarNotificacaoPush(notificacoes.acCriada(acCriada.numero, usuario));
+      await enviarNotificacaoPush(notificacoes.acCriada(acCriada.id, acCriada.numero, usuario));
     } catch (notifError) {
       console.error('Erro ao enviar notificação:', notifError);
       // Não falha a criação da AC se falhar a notificação
