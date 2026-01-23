@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { ReclamacaoCliente, STATUS_RECLAMACAO } from '@/types/qualidade';
 
 export default function ReclamacaoClientePage() {
@@ -10,6 +11,7 @@ export default function ReclamacaoClientePage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleting, setDeleting] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,6 +34,32 @@ export default function ReclamacaoClientePage() {
       console.error('Erro ao buscar reclamações:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (rec: ReclamacaoCliente) => {
+    if (!confirm(`Tem certeza que deseja excluir a Reclamação ${rec.numero}?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    setDeleting(rec.id);
+    try {
+      const response = await fetch(`/api/qualidade/reclamacao-cliente/${rec.id}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Reclamação excluída com sucesso');
+        setReclamacoes(prev => prev.filter(r => r.id !== rec.id));
+      } else {
+        toast.error(result.error || 'Erro ao excluir reclamação');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir reclamação:', error);
+      toast.error('Erro ao excluir reclamação');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -147,24 +175,39 @@ export default function ReclamacaoClientePage() {
             {/* Versão Mobile - Cards */}
             <div className="block sm:hidden space-y-3">
               {filteredReclamacoes.map(rec => (
-                <Link
+                <div
                   key={rec.id}
-                  href={`/qualidade/reclamacao-cliente/${rec.id}`}
-                  className="block bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
+                  className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-orange-600 font-bold">{rec.numero}</span>
-                    {getStatusBadge(rec.status)}
+                    <Link href={`/qualidade/reclamacao-cliente/${rec.id}`} className="text-orange-600 font-bold hover:underline">
+                      {rec.numero}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(rec.status)}
+                      <button
+                        onClick={() => handleDelete(rec)}
+                        disabled={deleting === rec.id}
+                        className="text-red-600 hover:text-red-800 p-1 disabled:opacity-50"
+                        title="Excluir"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500">{formatDate(rec.data_emissao)}</span>
-                    <span className="text-sm font-medium text-gray-900">{rec.nome_cliente}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{rec.descricao}</p>
-                  <div className="text-xs text-gray-500">
-                    {rec.local_instalado && <span>Local: {rec.local_instalado}</span>}
-                  </div>
-                </Link>
+                  <Link href={`/qualidade/reclamacao-cliente/${rec.id}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">{formatDate(rec.data_emissao)}</span>
+                      <span className="text-sm font-medium text-gray-900">{rec.nome_cliente}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{rec.descricao}</p>
+                    <div className="text-xs text-gray-500">
+                      {rec.local_instalado && <span>Local: {rec.local_instalado}</span>}
+                    </div>
+                  </Link>
+                </div>
               ))}
             </div>
 
@@ -199,12 +242,34 @@ export default function ReclamacaoClientePage() {
                         <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{rec.descricao}</td>
                         <td className="px-4 py-3">{getStatusBadge(rec.status)}</td>
                         <td className="px-4 py-3 text-center">
-                          <Link
-                            href={`/qualidade/reclamacao-cliente/${rec.id}`}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            Ver Detalhes
-                          </Link>
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={`/qualidade/reclamacao-cliente/${rec.id}`}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                            >
+                              Ver Detalhes
+                            </Link>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete(rec);
+                              }}
+                              disabled={deleting === rec.id}
+                              className="text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
+                              title="Excluir"
+                            >
+                              {deleting === rec.id ? (
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

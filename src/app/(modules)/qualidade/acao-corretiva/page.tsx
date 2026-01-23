@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { AcaoCorretiva, STATUS_ACAO_CORRETIVA, STATUS_ACOES_AC, SITUACAO_FINAL_AC } from '@/types/qualidade';
 
 export default function AcaoCorretivaPage() {
@@ -11,6 +12,7 @@ export default function AcaoCorretivaPage() {
   const [filterStatus, setFilterStatus] = useState<string>('todos');
   const [filterStatusAcoes, setFilterStatusAcoes] = useState<string>('todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleting, setDeleting] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,6 +35,32 @@ export default function AcaoCorretivaPage() {
       console.error('Erro ao buscar ações corretivas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (acao: AcaoCorretiva) => {
+    if (!confirm(`Tem certeza que deseja excluir a RAC ${acao.numero}?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    setDeleting(acao.id);
+    try {
+      const response = await fetch(`/api/qualidade/acao-corretiva/${acao.id}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('RAC excluída com sucesso');
+        setAcoes(prev => prev.filter(a => a.id !== acao.id));
+      } else {
+        toast.error(result.error || 'Erro ao excluir RAC');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir RAC:', error);
+      toast.error('Erro ao excluir RAC');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -177,29 +205,44 @@ export default function AcaoCorretivaPage() {
             {/* Versão Mobile - Cards */}
             <div className="block sm:hidden space-y-3">
               {filteredAcoes.map(acao => (
-                <Link
+                <div
                   key={acao.id}
-                  href={`/qualidade/acao-corretiva/${acao.id}`}
-                  className="block bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
+                  className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-blue-600 font-bold">{acao.numero}</span>
-                    {getSituacaoFinalBadge(acao.situacao_final)}
+                    <Link href={`/qualidade/acao-corretiva/${acao.id}`} className="text-blue-600 font-bold hover:underline">
+                      {acao.numero}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      {getSituacaoFinalBadge(acao.situacao_final)}
+                      <button
+                        onClick={() => handleDelete(acao)}
+                        disabled={deleting === acao.id}
+                        className="text-red-600 hover:text-red-800 p-1 disabled:opacity-50"
+                        title="Excluir"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500">{formatDate(acao.data_emissao)}</span>
-                    {getStatusBadge(acao.status)}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{acao.falha || '-'}</p>
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Emitente: {acao.emitente || '-'}</span>
-                    {acao.prazo && (
-                      <span className={isPrazoVencido(acao.prazo) && acao.status !== 'FECHADA' ? 'text-red-600 font-medium' : ''}>
-                        Prazo: {formatDate(acao.prazo)}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                  <Link href={`/qualidade/acao-corretiva/${acao.id}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">{formatDate(acao.data_emissao)}</span>
+                      {getStatusBadge(acao.status)}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{acao.falha || '-'}</p>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Emitente: {acao.emitente || '-'}</span>
+                      {acao.prazo && (
+                        <span className={isPrazoVencido(acao.prazo) && acao.status !== 'FECHADA' ? 'text-red-600 font-medium' : ''}>
+                          Prazo: {formatDate(acao.prazo)}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </div>
               ))}
             </div>
 
@@ -243,12 +286,34 @@ export default function AcaoCorretivaPage() {
                         </td>
                         <td className="px-4 py-3">{getStatusBadge(acao.status)}</td>
                         <td className="px-4 py-3 text-center">
-                          <Link
-                            href={`/qualidade/acao-corretiva/${acao.id}`}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            Ver Detalhes
-                          </Link>
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={`/qualidade/acao-corretiva/${acao.id}`}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                            >
+                              Ver Detalhes
+                            </Link>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDelete(acao);
+                              }}
+                              disabled={deleting === acao.id}
+                              className="text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
+                              title="Excluir"
+                            >
+                              {deleting === acao.id ? (
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
