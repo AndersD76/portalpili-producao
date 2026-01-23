@@ -14,7 +14,15 @@ import {
   UNIDADES_FABRICACAO,
   PROCESSOS_ORIGEM,
   TAREFAS_ORIGEM,
-  StatusNaoConformidade
+  StatusNaoConformidade,
+  TurnoTrabalho,
+  UnidadeFabricacao,
+  ProcessoOrigem,
+  TarefaOrigem,
+  GravidadeNaoConformidade,
+  TipoNaoConformidade,
+  DisposicaoNaoConformidade,
+  Anexo
 } from '@/types/qualidade';
 
 export default function DetalhesNCPage() {
@@ -127,6 +135,30 @@ export default function DetalhesNCPage() {
     }
   };
 
+  // Helper para processar anexos
+  const getAnexos = (): Anexo[] => {
+    if (!nc) return [];
+    try {
+      const anexos = nc.anexos || nc.evidencias;
+      if (!anexos) return [];
+      if (typeof anexos === 'string') return JSON.parse(anexos);
+      return anexos;
+    } catch {
+      return [];
+    }
+  };
+
+  // Helper para URL de imagem
+  const getImageUrl = (anexo: Anexo): string => {
+    if (anexo.url?.startsWith('http')) return anexo.url;
+    return `${window.location.origin}${anexo.url}`;
+  };
+
+  // Verificar se é imagem
+  const isImage = (anexo: Anexo): boolean => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+  };
+
   const handlePrint = () => {
     if (!nc) return;
 
@@ -134,38 +166,32 @@ export default function DetalhesNCPage() {
 
     // Processar anexos para exibição
     let anexosHtml = '';
-    if (nc.anexos) {
-      try {
-        const anexos = typeof nc.anexos === 'string' ? JSON.parse(nc.anexos) : nc.anexos;
-        if (Array.isArray(anexos) && anexos.length > 0) {
-          anexosHtml = `
-            <div class="section">
-              <div class="section-header">ANEXOS / EVIDÊNCIAS</div>
-              <div class="section-content">
-                <div class="anexos-grid">
-                  ${anexos.map((anexo: any, idx: number) => {
-                    const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
-                    return isImage ? `
-                      <div class="anexo-item">
-                        <img src="${url}" alt="Anexo ${idx + 1}" crossorigin="anonymous" />
-                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
-                      </div>
-                    ` : `
-                      <div class="anexo-item anexo-file">
-                        <div class="file-icon">📎</div>
-                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
+    const anexos = getAnexos();
+    if (anexos.length > 0) {
+      anexosHtml = `
+        <div class="section">
+          <div class="section-header">ANEXOS / EVIDÊNCIAS</div>
+          <div class="section-content">
+            <div class="anexos-grid">
+              ${anexos.map((anexo: Anexo, idx: number) => {
+                const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
+                const isImg = isImage(anexo);
+                return isImg ? `
+                  <div class="anexo-item">
+                    <img src="${url}" alt="Anexo ${idx + 1}" crossorigin="anonymous" />
+                    <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                  </div>
+                ` : `
+                  <div class="anexo-item anexo-file">
+                    <div class="file-icon">📎</div>
+                    <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                  </div>
+                `;
+              }).join('')}
             </div>
-          `;
-        }
-      } catch (e) {
-        console.log('Erro ao processar anexos:', e);
-      }
+          </div>
+        </div>
+      `;
     }
 
     // Gerar nome do arquivo: rnc_ano_numero
@@ -463,6 +489,20 @@ export default function DetalhesNCPage() {
     );
   };
 
+  const getGravidadeBadge = (gravidade: string) => {
+    const colors: Record<string, string> = {
+      'ALTA': 'bg-red-100 text-red-800',
+      'MEDIA': 'bg-orange-100 text-orange-800',
+      'BAIXA': 'bg-yellow-100 text-yellow-800',
+      'NA': 'bg-gray-100 text-gray-800'
+    };
+    return (
+      <span className={`px-3 py-1 rounded-full text-sm font-medium ${colors[gravidade] || 'bg-gray-100'}`}>
+        {GRAVIDADES_NAO_CONFORMIDADE[gravidade as GravidadeNaoConformidade] || gravidade}
+      </span>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -478,6 +518,8 @@ export default function DetalhesNCPage() {
       </div>
     );
   }
+
+  const anexos = getAnexos();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -500,6 +542,7 @@ export default function DetalhesNCPage() {
             </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(nc.status)}
+              {nc.gravidade && getGravidadeBadge(nc.gravidade)}
             </div>
           </div>
         </div>
@@ -573,140 +616,407 @@ export default function DetalhesNCPage() {
         {/* Detalhes */}
         <div className="bg-white rounded-lg shadow-md p-6">
           {editMode ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data da Ocorrência</label>
-                  <input
-                    type="date"
-                    value={editData.data_ocorrencia?.split('T')[0] || ''}
-                    onChange={(e) => setEditData({ ...editData, data_ocorrencia: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Local</label>
-                  <input
-                    type="text"
-                    value={editData.local_ocorrencia || ''}
-                    onChange={(e) => setEditData({ ...editData, local_ocorrencia: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                  <select
-                    value={editData.tipo || ''}
-                    onChange={(e) => setEditData({ ...editData, tipo: e.target.value as any })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    {Object.entries(TIPOS_NAO_CONFORMIDADE).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Gravidade</label>
-                  <select
-                    value={editData.gravidade || ''}
-                    onChange={(e) => setEditData({ ...editData, gravidade: e.target.value as any })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="">Selecione...</option>
-                    {Object.entries(GRAVIDADES_NAO_CONFORMIDADE).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            // ========== MODO EDIÇÃO ==========
+            <div className="space-y-8">
+              {/* IDENTIFICAÇÃO */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                <textarea
-                  value={editData.descricao || ''}
-                  onChange={(e) => setEditData({ ...editData, descricao: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Emissão</label>
+                    <input
+                      type="date"
+                      value={(editData.data_emissao || editData.data_ocorrencia || '').split('T')[0]}
+                      onChange={(e) => setEditData({ ...editData, data_emissao: e.target.value, data_ocorrencia: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Responsável Emissão</label>
+                    <input
+                      type="text"
+                      value={editData.responsavel_emissao || editData.detectado_por || ''}
+                      onChange={(e) => setEditData({ ...editData, responsavel_emissao: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Turno de Trabalho</label>
+                    <select
+                      value={editData.turno_trabalho || ''}
+                      onChange={(e) => setEditData({ ...editData, turno_trabalho: e.target.value as TurnoTrabalho })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(TURNOS_TRABALHO).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Unidade de Fabricação</label>
+                    <select
+                      value={editData.unidade_fabricacao || ''}
+                      onChange={(e) => setEditData({ ...editData, unidade_fabricacao: e.target.value as UnidadeFabricacao })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(UNIDADES_FABRICACAO).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Processo de Origem</label>
+                    <select
+                      value={editData.processo_origem || ''}
+                      onChange={(e) => setEditData({ ...editData, processo_origem: e.target.value as ProcessoOrigem })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(PROCESSOS_ORIGEM).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Setor Responsável</label>
+                    <input
+                      type="text"
+                      value={editData.setor_responsavel || ''}
+                      onChange={(e) => setEditData({ ...editData, setor_responsavel: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* ORIGEM */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ação de Contenção</label>
-                <textarea
-                  value={editData.acao_contencao || ''}
-                  onChange={(e) => setEditData({ ...editData, acao_contencao: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ORIGEM</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tarefa de Origem</label>
+                    <select
+                      value={editData.tarefa_origem || ''}
+                      onChange={(e) => setEditData({ ...editData, tarefa_origem: e.target.value as TarefaOrigem })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(TAREFAS_ORIGEM).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Número OPD</label>
+                    <input
+                      type="text"
+                      value={editData.numero_opd || ''}
+                      onChange={(e) => setEditData({ ...editData, numero_opd: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Código da Peça</label>
+                    <input
+                      type="text"
+                      value={editData.codigo_peca || editData.produtos_afetados || ''}
+                      onChange={(e) => setEditData({ ...editData, codigo_peca: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade de Itens</label>
+                    <input
+                      type="number"
+                      value={editData.quantidade_itens || editData.quantidade_afetada || ''}
+                      onChange={(e) => setEditData({ ...editData, quantidade_itens: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* DESCRIÇÃO */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">DESCRIÇÃO DA NÃO CONFORMIDADE</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea
+                      value={editData.descricao || ''}
+                      onChange={(e) => setEditData({ ...editData, descricao: e.target.value })}
+                      rows={4}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Evidência Objetiva</label>
+                    <textarea
+                      value={editData.evidencia_objetiva || ''}
+                      onChange={(e) => setEditData({ ...editData, evidencia_objetiva: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ação Imediata</label>
+                    <textarea
+                      value={editData.acao_imediata || editData.acao_contencao || ''}
+                      onChange={(e) => setEditData({ ...editData, acao_imediata: e.target.value, acao_contencao: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Responsáveis pelas Ações</label>
+                      <input
+                        type="text"
+                        value={editData.responsaveis_acoes || editData.responsavel_contencao || ''}
+                        onChange={(e) => setEditData({ ...editData, responsaveis_acoes: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Prazo das Ações</label>
+                      <input
+                        type="date"
+                        value={(editData.prazo_acoes || editData.data_contencao || '').split('T')[0]}
+                        onChange={(e) => setEditData({ ...editData, prazo_acoes: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CLASSIFICAÇÃO E DISPOSIÇÃO */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CLASSIFICAÇÃO E DISPOSIÇÃO</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gravidade</label>
+                    <select
+                      value={editData.gravidade || ''}
+                      onChange={(e) => setEditData({ ...editData, gravidade: e.target.value as GravidadeNaoConformidade })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(GRAVIDADES_NAO_CONFORMIDADE).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <select
+                      value={editData.tipo || ''}
+                      onChange={(e) => setEditData({ ...editData, tipo: e.target.value as TipoNaoConformidade })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(TIPOS_NAO_CONFORMIDADE).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Disposição</label>
+                    <select
+                      value={editData.disposicao || ''}
+                      onChange={(e) => setEditData({ ...editData, disposicao: e.target.value as DisposicaoNaoConformidade })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    >
+                      <option value="">Selecione...</option>
+                      {Object.entries(DISPOSICOES_NAO_CONFORMIDADE).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Responsável Liberação</label>
+                    <input
+                      type="text"
+                      value={editData.responsavel_liberacao || ''}
+                      onChange={(e) => setEditData({ ...editData, responsavel_liberacao: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
+                {(editData.disposicao === 'ACEITE_CONDICIONAL' || editData.disposicao === 'RETRABALHO') && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descrição da Disposição</label>
+                    <textarea
+                      value={editData.disposicao_descricao || ''}
+                      onChange={(e) => setEditData({ ...editData, disposicao_descricao: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg"
+                      placeholder="Descreva os detalhes da disposição..."
+                    />
+                  </div>
+                )}
+              </div>
+
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
               >
                 {saving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Data da Ocorrência</p>
-                  <p className="font-medium">{formatDate(nc.data_ocorrencia)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Local</p>
-                  <p className="font-medium">{nc.local_ocorrencia || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tipo</p>
-                  <p className="font-medium">{TIPOS_NAO_CONFORMIDADE[nc.tipo] || nc.tipo}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Origem</p>
-                  <p className="font-medium">{nc.origem ? ORIGENS_NAO_CONFORMIDADE[nc.origem as keyof typeof ORIGENS_NAO_CONFORMIDADE] || nc.origem : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Gravidade</p>
-                  <p className="font-medium">{nc.gravidade ? GRAVIDADES_NAO_CONFORMIDADE[nc.gravidade] : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Setor Responsável</p>
-                  <p className="font-medium">{nc.setor_responsavel || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Detectado Por</p>
-                  <p className="font-medium">{nc.detectado_por || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Produtos Afetados</p>
-                  <p className="font-medium">{nc.produtos_afetados || '-'}</p>
-                </div>
-              </div>
-
+            // ========== MODO VISUALIZAÇÃO ==========
+            <div className="space-y-8">
+              {/* IDENTIFICAÇÃO */}
               <div>
-                <p className="text-sm text-gray-500 mb-1">Descrição</p>
-                <p className="bg-gray-50 p-3 rounded-lg">{nc.descricao}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Data de Emissão</p>
+                    <p className="font-medium">{formatDate(nc.data_emissao || nc.data_ocorrencia)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Responsável Emissão</p>
+                    <p className="font-medium">{nc.responsavel_emissao || nc.detectado_por || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Turno de Trabalho</p>
+                    <p className="font-medium">{nc.turno_trabalho ? TURNOS_TRABALHO[nc.turno_trabalho] || nc.turno_trabalho : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Unidade de Fabricação</p>
+                    <p className="font-medium">{nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao] || nc.unidade_fabricacao : nc.local_ocorrencia || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Processo de Origem</p>
+                    <p className="font-medium">{nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem] || nc.processo_origem : nc.origem || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Setor Responsável</p>
+                    <p className="font-medium">{nc.setor_responsavel || '-'}</p>
+                  </div>
+                </div>
               </div>
 
-              {nc.disposicao && (
+              {/* ORIGEM */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ORIGEM</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">Disposição</p>
-                    <p className="font-medium">{DISPOSICOES_NAO_CONFORMIDADE[nc.disposicao]}</p>
+                    <p className="text-sm text-gray-500">Tarefa de Origem</p>
+                    <p className="font-medium">{nc.tarefa_origem ? TAREFAS_ORIGEM[nc.tarefa_origem] || nc.tarefa_origem : '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Responsável Contenção</p>
-                    <p className="font-medium">{nc.responsavel_contencao || '-'}</p>
+                    <p className="text-sm text-gray-500">Número OPD</p>
+                    <p className="font-medium">{nc.numero_opd || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Código da Peça</p>
+                    <p className="font-medium">{nc.codigo_peca || nc.produtos_afetados || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Quantidade de Itens</p>
+                    <p className="font-medium">{nc.quantidade_itens || nc.quantidade_afetada || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* DESCRIÇÃO */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">DESCRIÇÃO DA NÃO CONFORMIDADE</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Descrição</p>
+                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{nc.descricao || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Evidência Objetiva</p>
+                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{nc.evidencia_objetiva || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Ação Imediata</p>
+                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{nc.acao_imediata || nc.acao_contencao || '-'}</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Responsáveis pelas Ações</p>
+                      <p className="font-medium">{nc.responsaveis_acoes || nc.responsavel_contencao || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Prazo das Ações</p>
+                      <p className="font-medium">{formatDate(nc.prazo_acoes) || formatDate(nc.data_contencao) || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CLASSIFICAÇÃO E DISPOSIÇÃO */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CLASSIFICAÇÃO E DISPOSIÇÃO</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Gravidade</p>
+                    <p className="font-medium">{nc.gravidade ? GRAVIDADES_NAO_CONFORMIDADE[nc.gravidade] : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Tipo</p>
+                    <p className="font-medium">{TIPOS_NAO_CONFORMIDADE[nc.tipo] || nc.tipo || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Disposição</p>
+                    <p className="font-medium">{nc.disposicao ? DISPOSICOES_NAO_CONFORMIDADE[nc.disposicao] : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Responsável Liberação</p>
+                    <p className="font-medium">{nc.responsavel_liberacao || '-'}</p>
+                  </div>
+                </div>
+                {nc.disposicao_descricao && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-1">Descrição da Disposição</p>
+                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{nc.disposicao_descricao}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* ANEXOS / EVIDÊNCIAS */}
+              {anexos.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ANEXOS / EVIDÊNCIAS</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {anexos.map((anexo, idx) => (
+                      <div key={idx} className="border rounded-lg overflow-hidden bg-gray-50">
+                        {isImage(anexo) ? (
+                          <a href={getImageUrl(anexo)} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={getImageUrl(anexo)}
+                              alt={anexo.filename || `Anexo ${idx + 1}`}
+                              className="w-full h-32 object-cover hover:opacity-80 transition"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            href={getImageUrl(anexo)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center h-32 bg-gray-100 hover:bg-gray-200 transition"
+                          >
+                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </a>
+                        )}
+                        <p className="text-xs text-gray-600 p-2 truncate">{anexo.filename || `Anexo ${idx + 1}`}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {nc.acao_contencao && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Ação de Contenção</p>
-                  <p className="bg-gray-50 p-3 rounded-lg">{nc.acao_contencao}</p>
-                </div>
-              )}
-
+              {/* RAC VINCULADA */}
               {nc.acao_corretiva_id ? (
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <p className="text-sm text-purple-800 font-medium">
@@ -733,6 +1043,7 @@ export default function DetalhesNCPage() {
                 </div>
               )}
 
+              {/* TIMESTAMPS */}
               <div className="pt-4 border-t text-sm text-gray-500">
                 <p>Criado em: {formatDateTime(nc.created)}</p>
                 <p>Atualizado em: {formatDateTime(nc.updated)}</p>

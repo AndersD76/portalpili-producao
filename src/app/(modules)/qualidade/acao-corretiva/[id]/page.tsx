@@ -349,12 +349,14 @@ export default function DetalhesAcaoCorretivaPage() {
                 <div class="field-value">${acao.emitente || '-'}</div>
               </div>
             </div>
+            ${acao.origem_descricao ? `
             <div class="field-row">
-              <div class="field">
-                <div class="field-label">NC Relacionada</div>
-                <div class="field-value">${acao.numero_nc_relacionada || '-'}</div>
+              <div class="field" style="flex: 1; padding-right: 0;">
+                <div class="field-label">Origem</div>
+                <div class="field-value">${acao.origem_descricao}</div>
               </div>
             </div>
+            ` : ''}
           </div>
         </div>
 
@@ -370,7 +372,7 @@ export default function DetalhesAcaoCorretivaPage() {
             <div class="field-row">
               <div class="field" style="flex: 1; padding-right: 0;">
                 <div class="field-label">Falha</div>
-                <div class="text-block falha">${acao.falha || '-'}</div>
+                <div class="text-block falha">${acao.falha || acao.descricao_problema || '-'}</div>
               </div>
             </div>
             <div class="field-row">
@@ -664,15 +666,6 @@ export default function DetalhesAcaoCorretivaPage() {
           {editMode ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                <input
-                  type="email"
-                  value={editData.email || ''}
-                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data de Emissão</label>
                 <input
                   type="date"
@@ -681,7 +674,7 @@ export default function DetalhesAcaoCorretivaPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Emitente</label>
                 <input
                   type="text"
@@ -690,22 +683,9 @@ export default function DetalhesAcaoCorretivaPage() {
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Número NC Relacionada</label>
-                <input
-                  type="text"
-                  value={editData.numero_nc_relacionada || ''}
-                  onChange={(e) => setEditData({ ...editData, numero_nc_relacionada: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">E-mail</p>
-                <p className="font-medium">{acao.email || '-'}</p>
-              </div>
               <div>
                 <p className="text-sm text-gray-500">Data de Emissão</p>
                 <p className="font-medium">{formatDate(acao.data_emissao)}</p>
@@ -714,27 +694,23 @@ export default function DetalhesAcaoCorretivaPage() {
                 <p className="text-sm text-gray-500">Emitente</p>
                 <p className="font-medium">{acao.emitente || '-'}</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">NC Relacionada</p>
-                <p className="font-medium">{acao.numero_nc_relacionada || '-'}</p>
-              </div>
-              {acao.registro_nc_anexos && acao.registro_nc_anexos.length > 0 && (
-                <div className="sm:col-span-2">
-                  <p className="text-sm text-gray-500 mb-2">Anexos da NC</p>
-                  <div className="flex flex-wrap gap-2">
-                    {acao.registro_nc_anexos.map((anexo, index) => (
-                      <a
-                        key={index}
-                        href={anexo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100"
-                      >
-                        {anexo.filename}
-                      </a>
-                    ))}
-                  </div>
-                </div>
+            </div>
+          )}
+          {/* Origem (NC ou Reclamação vinculada) */}
+          {acao.origem_descricao && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Origem:</strong> {acao.origem_descricao}
+              </p>
+              {acao.origem_id && acao.origem_tipo === 'NAO_CONFORMIDADE' && (
+                <Link href={`/qualidade/nao-conformidade/${acao.origem_id}`} className="text-sm text-blue-600 underline mt-1 inline-block">
+                  Ver NC vinculada
+                </Link>
+              )}
+              {acao.origem_id && acao.origem_tipo === 'RECLAMACAO' && (
+                <Link href={`/qualidade/reclamacao-cliente/${acao.origem_id}`} className="text-sm text-blue-600 underline mt-1 inline-block">
+                  Ver Reclamação vinculada
+                </Link>
               )}
             </div>
           )}
@@ -764,8 +740,8 @@ export default function DetalhesAcaoCorretivaPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Falha</label>
                 <textarea
-                  value={editData.falha || ''}
-                  onChange={(e) => setEditData({ ...editData, falha: e.target.value })}
+                  value={editData.falha || editData.descricao_problema || ''}
+                  onChange={(e) => setEditData({ ...editData, falha: e.target.value, descricao_problema: e.target.value })}
                   rows={3}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
@@ -805,16 +781,16 @@ export default function DetalhesAcaoCorretivaPage() {
               )}
               <div>
                 <p className="text-sm text-gray-500 mb-1">Falha</p>
-                <p className="bg-red-50 p-3 rounded-lg">{acao.falha || '-'}</p>
+                <p className="bg-red-50 p-3 rounded-lg whitespace-pre-wrap">{acao.falha || acao.descricao_problema || '-'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Causas</p>
-                <p className="bg-yellow-50 p-3 rounded-lg">{acao.causas || '-'}</p>
+                <p className="bg-yellow-50 p-3 rounded-lg whitespace-pre-wrap">{acao.causas || '-'}</p>
               </div>
               {acao.subcausas && (
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Subcausas</p>
-                  <p className="bg-orange-50 p-3 rounded-lg">{acao.subcausas}</p>
+                  <p className="bg-orange-50 p-3 rounded-lg whitespace-pre-wrap">{acao.subcausas}</p>
                 </div>
               )}
             </div>
@@ -1003,18 +979,36 @@ export default function DetalhesAcaoCorretivaPage() {
               {acao.evidencias_anexos && acao.evidencias_anexos.length > 0 && (
                 <div>
                   <p className="text-sm text-gray-500 mb-2">Evidências</p>
-                  <div className="flex flex-wrap gap-2">
-                    {acao.evidencias_anexos.map((anexo, index) => (
-                      <a
-                        key={index}
-                        href={anexo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 bg-green-50 text-green-600 rounded-lg text-sm hover:bg-green-100"
-                      >
-                        {anexo.filename}
-                      </a>
-                    ))}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {acao.evidencias_anexos.map((anexo, index) => {
+                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+                      const url = anexo.url?.startsWith('http') ? anexo.url : `${window.location.origin}${anexo.url}`;
+                      return (
+                        <div key={index} className="border rounded-lg overflow-hidden bg-gray-50">
+                          {isImage ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={url}
+                                alt={anexo.filename || `Evidência ${index + 1}`}
+                                className="w-full h-32 object-cover hover:opacity-80 transition"
+                              />
+                            </a>
+                          ) : (
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center h-32 bg-gray-100 hover:bg-gray-200 transition"
+                            >
+                              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </a>
+                          )}
+                          <p className="text-xs text-gray-600 p-2 truncate">{anexo.filename || `Evidência ${index + 1}`}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

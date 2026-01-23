@@ -8,7 +8,8 @@ import {
   STATUS_RECLAMACAO,
   TIPOS_RECLAMACAO,
   IMPACTOS_RECLAMACAO,
-  StatusReclamacao
+  StatusReclamacao,
+  Anexo
 } from '@/types/qualidade';
 
 export default function DetalhesReclamacaoPage() {
@@ -127,6 +128,30 @@ export default function DetalhesReclamacaoPage() {
     }
   };
 
+  // Helper para processar anexos
+  const getAnexos = (): Anexo[] => {
+    if (!reclamacao) return [];
+    try {
+      const anexos = reclamacao.anexos || reclamacao.evidencias;
+      if (!anexos) return [];
+      if (typeof anexos === 'string') return JSON.parse(anexos);
+      return anexos;
+    } catch {
+      return [];
+    }
+  };
+
+  // Helper para URL de imagem
+  const getImageUrl = (anexo: Anexo): string => {
+    if (anexo.url?.startsWith('http')) return anexo.url;
+    return `${window.location.origin}${anexo.url}`;
+  };
+
+  // Verificar se é imagem
+  const isImage = (anexo: Anexo): boolean => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+  };
+
   const handlePrint = () => {
     if (!reclamacao) return;
 
@@ -143,39 +168,32 @@ export default function DetalhesReclamacaoPage() {
 
     // Processar anexos para exibição
     let anexosHtml = '';
-    const anexos = reclamacao.anexos || reclamacao.evidencias;
-    if (anexos) {
-      try {
-        const anexosList = typeof anexos === 'string' ? JSON.parse(anexos) : anexos;
-        if (Array.isArray(anexosList) && anexosList.length > 0) {
-          anexosHtml = `
-            <div class="section">
-              <div class="section-title">ANEXOS / EVIDÊNCIAS</div>
-              <div class="section-content">
-                <div class="anexos-grid">
-                  ${anexosList.map((anexo: any, idx: number) => {
-                    const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
-                    return isImage ? `
-                      <div class="anexo-item">
-                        <img src="${url}" alt="Anexo ${idx + 1}" crossorigin="anonymous" />
-                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
-                      </div>
-                    ` : `
-                      <div class="anexo-item anexo-file">
-                        <div class="file-icon">📎</div>
-                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
+    const anexos = getAnexos();
+    if (anexos.length > 0) {
+      anexosHtml = `
+        <div class="section">
+          <div class="section-title">ANEXOS / EVIDÊNCIAS</div>
+          <div class="section-content">
+            <div class="anexos-grid">
+              ${anexos.map((anexo: Anexo, idx: number) => {
+                const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
+                const isImg = isImage(anexo);
+                return isImg ? `
+                  <div class="anexo-item">
+                    <img src="${url}" alt="Anexo ${idx + 1}" crossorigin="anonymous" />
+                    <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                  </div>
+                ` : `
+                  <div class="anexo-item anexo-file">
+                    <div class="file-icon">📎</div>
+                    <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                  </div>
+                `;
+              }).join('')}
             </div>
-          `;
-        }
-      } catch (e) {
-        console.log('Erro ao processar anexos:', e);
-      }
+          </div>
+        </div>
+      `;
     }
 
     // Gerar nome do arquivo: RRC_ano_numero
@@ -396,6 +414,8 @@ export default function DetalhesReclamacaoPage() {
     );
   }
 
+  const anexos = getAnexos();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <header className="bg-white shadow-md sticky top-0 z-10">
@@ -477,7 +497,7 @@ export default function DetalhesReclamacaoPage() {
             )}
             {!reclamacao.acao_corretiva_id && reclamacao.procedencia === true && (
               <Link
-                href={`/qualidade/acao-corretiva/nova?origem_tipo=RECLAMACAO&origem_id=${reclamacao.id}&origem_descricao=${encodeURIComponent(reclamacao.numero + ' - ' + reclamacao.cliente_nome)}`}
+                href={`/qualidade/acao-corretiva/nova?origem_tipo=RECLAMACAO&origem_id=${reclamacao.id}&origem_descricao=${encodeURIComponent(reclamacao.numero + ' - ' + (reclamacao.nome_cliente || reclamacao.cliente_nome))}`}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
               >
                 Criar RAC
@@ -501,202 +521,307 @@ export default function DetalhesReclamacaoPage() {
           </div>
         </div>
 
-        {/* Informações do Cliente */}
+        {/* Conteúdo */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Informações do Cliente</h2>
           {editMode ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
-                <input
-                  type="text"
-                  value={editData.cliente_nome || ''}
-                  onChange={(e) => setEditData({ ...editData, cliente_nome: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
+            // ========== MODO EDIÇÃO ==========
+            <div className="space-y-8">
+              {/* IDENTIFICAÇÃO */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contato</label>
-                <input
-                  type="text"
-                  value={editData.cliente_contato || ''}
-                  onChange={(e) => setEditData({ ...editData, cliente_contato: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Emissão</label>
+                    <input
+                      type="date"
+                      value={(editData.data_emissao || editData.data_reclamacao || '').split('T')[0]}
+                      onChange={(e) => setEditData({ ...editData, data_emissao: e.target.value, data_reclamacao: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Emitente</label>
+                    <input
+                      type="text"
+                      value={editData.nome_emitente || ''}
+                      onChange={(e) => setEditData({ ...editData, nome_emitente: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                <input
-                  type="email"
-                  value={editData.cliente_email || ''}
-                  onChange={(e) => setEditData({ ...editData, cliente_email: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                <input
-                  type="text"
-                  value={editData.cliente_telefone || ''}
-                  onChange={(e) => setEditData({ ...editData, cliente_telefone: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <p className="text-sm text-gray-500">Nome</p>
-                <p className="font-medium text-lg">{reclamacao.cliente_nome}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Contato</p>
-                <p className="font-medium">{reclamacao.cliente_contato || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">E-mail</p>
-                <p className="font-medium">{reclamacao.cliente_email || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Telefone</p>
-                <p className="font-medium">{reclamacao.cliente_telefone || '-'}</p>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Detalhes da Reclamação */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Detalhes da Reclamação</h2>
-          {editMode ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                  <input
-                    type="date"
-                    value={editData.data_reclamacao?.split('T')[0] || ''}
-                    onChange={(e) => setEditData({ ...editData, data_reclamacao: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                  <select
-                    value={editData.tipo_reclamacao || ''}
-                    onChange={(e) => setEditData({ ...editData, tipo_reclamacao: e.target.value as any })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="">Selecione...</option>
-                    {Object.entries(TIPOS_RECLAMACAO).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Impacto</label>
-                  <select
-                    value={editData.impacto || ''}
-                    onChange={(e) => setEditData({ ...editData, impacto: e.target.value as any })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="">Selecione...</option>
-                    {Object.entries(IMPACTOS_RECLAMACAO).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">OPD Relacionada</label>
-                  <input
-                    type="text"
-                    value={editData.numero_opd || ''}
-                    onChange={(e) => setEditData({ ...editData, numero_opd: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
+              {/* RECLAMAÇÃO DE CLIENTE */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                <textarea
-                  value={editData.descricao || ''}
-                  onChange={(e) => setEditData({ ...editData, descricao: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">RECLAMAÇÃO DE CLIENTE</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
+                    <input
+                      type="text"
+                      value={editData.nome_cliente || editData.cliente_nome || ''}
+                      onChange={(e) => setEditData({ ...editData, nome_cliente: e.target.value, cliente_nome: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Número da OPD</label>
+                      <input
+                        type="text"
+                        value={editData.numero_opd || ''}
+                        onChange={(e) => setEditData({ ...editData, numero_opd: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Número da NF</label>
+                      <input
+                        type="text"
+                        value={editData.numero_nf || ''}
+                        onChange={(e) => setEditData({ ...editData, numero_nf: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Código do Equipamento</label>
+                      <input
+                        type="text"
+                        value={editData.codigo_equipamento || editData.numero_serie || ''}
+                        onChange={(e) => setEditData({ ...editData, codigo_equipamento: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Local Instalado</label>
+                      <input
+                        type="text"
+                        value={editData.local_instalado || ''}
+                        onChange={(e) => setEditData({ ...editData, local_instalado: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg"
+                        placeholder="Cidade/Estado"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descrição do Problema</label>
+                    <textarea
+                      value={editData.descricao || ''}
+                      onChange={(e) => setEditData({ ...editData, descricao: e.target.value })}
+                      rows={4}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ação Imediata</label>
+                    <textarea
+                      value={editData.acao_imediata || ''}
+                      onChange={(e) => setEditData({ ...editData, acao_imediata: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Resposta ao Cliente</label>
+                    <textarea
+                      value={editData.resposta_cliente || ''}
+                      onChange={(e) => setEditData({ ...editData, resposta_cliente: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ação Tomada</label>
+                    <textarea
+                      value={editData.acao_tomada || ''}
+                      onChange={(e) => setEditData({ ...editData, acao_tomada: e.target.value })}
+                      rows={2}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Justificativa de Procedência</label>
+                    <textarea
+                      value={editData.justificativa_procedencia || ''}
+                      onChange={(e) => setEditData({ ...editData, justificativa_procedencia: e.target.value })}
+                      rows={2}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* DADOS DO CLIENTE (Legado) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Resposta ao Cliente</label>
-                <textarea
-                  value={editData.resposta_cliente || ''}
-                  onChange={(e) => setEditData({ ...editData, resposta_cliente: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CONTATO DO CLIENTE</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contato</label>
+                    <input
+                      type="text"
+                      value={editData.cliente_contato || ''}
+                      onChange={(e) => setEditData({ ...editData, cliente_contato: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                    <input
+                      type="email"
+                      value={editData.cliente_email || ''}
+                      onChange={(e) => setEditData({ ...editData, cliente_email: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <input
+                      type="text"
+                      value={editData.cliente_telefone || ''}
+                      onChange={(e) => setEditData({ ...editData, cliente_telefone: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ação Tomada</label>
-                <textarea
-                  value={editData.acao_tomada || ''}
-                  onChange={(e) => setEditData({ ...editData, acao_tomada: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
+
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+                className="w-full px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 font-medium"
               >
                 {saving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Data da Reclamação</p>
-                  <p className="font-medium">{formatDate(reclamacao.data_reclamacao)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Tipo</p>
-                  <p className="font-medium">{reclamacao.tipo_reclamacao ? TIPOS_RECLAMACAO[reclamacao.tipo_reclamacao as keyof typeof TIPOS_RECLAMACAO] || reclamacao.tipo_reclamacao : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Impacto</p>
-                  <p className="font-medium">{reclamacao.impacto ? IMPACTOS_RECLAMACAO[reclamacao.impacto as keyof typeof IMPACTOS_RECLAMACAO] || reclamacao.impacto : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">OPD Relacionada</p>
-                  <p className="font-medium">{reclamacao.numero_opd || '-'}</p>
-                </div>
-                {reclamacao.numero_serie && (
-                  <div>
-                    <p className="text-sm text-gray-500">Número de Série</p>
-                    <p className="font-medium">{reclamacao.numero_serie}</p>
-                  </div>
-                )}
-              </div>
-
+            // ========== MODO VISUALIZAÇÃO ==========
+            <div className="space-y-8">
+              {/* IDENTIFICAÇÃO */}
               <div>
-                <p className="text-sm text-gray-500 mb-1">Descrição</p>
-                <p className="bg-gray-50 p-3 rounded-lg">{reclamacao.descricao}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Data de Emissão</p>
+                    <p className="font-medium">{formatDate(reclamacao.data_emissao || reclamacao.data_reclamacao)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Nome do Emitente</p>
+                    <p className="font-medium">{reclamacao.nome_emitente || '-'}</p>
+                  </div>
+                </div>
               </div>
 
-              {reclamacao.resposta_cliente && (
+              {/* RECLAMAÇÃO DE CLIENTE */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">RECLAMAÇÃO DE CLIENTE</h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Nome do Cliente</p>
+                    <p className="font-medium text-lg">{reclamacao.nome_cliente || reclamacao.cliente_nome || '-'}</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Número da OPD</p>
+                      <p className="font-medium">{reclamacao.numero_opd || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Número da NF</p>
+                      <p className="font-medium">{reclamacao.numero_nf || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Código do Equipamento</p>
+                      <p className="font-medium">{reclamacao.codigo_equipamento || reclamacao.numero_serie || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Local Instalado</p>
+                      <p className="font-medium">{reclamacao.local_instalado || '-'}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Descrição do Problema</p>
+                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{reclamacao.descricao || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Ação Imediata</p>
+                    <p className="bg-green-50 p-3 rounded-lg whitespace-pre-wrap">{reclamacao.acao_imediata || '-'}</p>
+                  </div>
+                  {reclamacao.resposta_cliente && (
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Resposta ao Cliente</p>
+                      <p className="bg-blue-50 p-3 rounded-lg whitespace-pre-wrap">{reclamacao.resposta_cliente}</p>
+                    </div>
+                  )}
+                  {reclamacao.acao_tomada && (
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Ação Tomada</p>
+                      <p className="bg-green-50 p-3 rounded-lg whitespace-pre-wrap">{reclamacao.acao_tomada}</p>
+                    </div>
+                  )}
+                  {reclamacao.justificativa_procedencia && (
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Justificativa de Procedência</p>
+                      <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{reclamacao.justificativa_procedencia}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* CONTATO DO CLIENTE */}
+              {(reclamacao.cliente_contato || reclamacao.cliente_email || reclamacao.cliente_telefone) && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Resposta ao Cliente</p>
-                  <p className="bg-blue-50 p-3 rounded-lg">{reclamacao.resposta_cliente}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CONTATO DO CLIENTE</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Contato</p>
+                      <p className="font-medium">{reclamacao.cliente_contato || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">E-mail</p>
+                      <p className="font-medium">{reclamacao.cliente_email || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Telefone</p>
+                      <p className="font-medium">{reclamacao.cliente_telefone || '-'}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {reclamacao.acao_tomada && (
+              {/* ANEXOS / EVIDÊNCIAS */}
+              {anexos.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Ação Tomada</p>
-                  <p className="bg-green-50 p-3 rounded-lg">{reclamacao.acao_tomada}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">ANEXOS / EVIDÊNCIAS</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {anexos.map((anexo, idx) => (
+                      <div key={idx} className="border rounded-lg overflow-hidden bg-gray-50">
+                        {isImage(anexo) ? (
+                          <a href={getImageUrl(anexo)} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={getImageUrl(anexo)}
+                              alt={anexo.filename || `Anexo ${idx + 1}`}
+                              className="w-full h-32 object-cover hover:opacity-80 transition"
+                            />
+                          </a>
+                        ) : (
+                          <a
+                            href={getImageUrl(anexo)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center h-32 bg-gray-100 hover:bg-gray-200 transition"
+                          >
+                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </a>
+                        )}
+                        <p className="text-xs text-gray-600 p-2 truncate">{anexo.filename || `Anexo ${idx + 1}`}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
+              {/* RAC VINCULADA */}
               {reclamacao.acao_corretiva_id && (
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <p className="text-sm text-purple-800 font-medium">
@@ -708,6 +833,19 @@ export default function DetalhesReclamacaoPage() {
                 </div>
               )}
 
+              {/* NC VINCULADA */}
+              {reclamacao.nao_conformidade_id && (
+                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                  <p className="text-sm text-red-800 font-medium">
+                    NC vinculada:
+                    <Link href={`/qualidade/nao-conformidade/${reclamacao.nao_conformidade_id}`} className="ml-2 underline">
+                      Ver Não Conformidade
+                    </Link>
+                  </p>
+                </div>
+              )}
+
+              {/* TIMESTAMPS */}
               <div className="pt-4 border-t text-sm text-gray-500">
                 <p>Criado em: {formatDateTime(reclamacao.created)}</p>
                 <p>Atualizado em: {formatDateTime(reclamacao.updated)}</p>
