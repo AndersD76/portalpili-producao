@@ -907,14 +907,58 @@ export default function ModalVisualizarFormulario({
               Outros Dados
             </h4>
             <div className="grid grid-cols-1 gap-3 text-sm">
-              {outrosCampos.map(({ key, value }, idx) => (
-                <div key={idx} className="border-b border-gray-200 pb-2">
-                  <span className="font-semibold text-gray-700">{formatarNomeCampo(key)}:</span>
-                  <p className="text-gray-900 mt-1">
-                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                  </p>
-                </div>
-              ))}
+              {outrosCampos.map(({ key, value }, idx) => {
+                // Verifica se é um array de anexos (objetos com url)
+                const isAnexoArray = Array.isArray(value) && value.length > 0 && value[0] && typeof value[0] === 'object' && 'url' in value[0];
+                // Verifica se é um único anexo (objeto com url)
+                const isAnexoSingle = !Array.isArray(value) && typeof value === 'object' && value !== null && 'url' in value;
+
+                return (
+                  <div key={idx} className="border-b border-gray-200 pb-2">
+                    <span className="font-semibold text-gray-700">{formatarNomeCampo(key)}:</span>
+                    {isAnexoArray ? (
+                      <div className="mt-2 space-y-1">
+                        {(value as any[]).map((anexo: any, anexoIdx: number) => (
+                          <a
+                            key={anexoIdx}
+                            href={anexo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-200 hover:bg-blue-100 transition group"
+                          >
+                            <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            <span className="text-blue-700 group-hover:text-blue-900 truncate">{anexo.filename || 'Arquivo'}</span>
+                            <svg className="w-4 h-4 text-blue-400 group-hover:text-blue-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        ))}
+                      </div>
+                    ) : isAnexoSingle ? (
+                      <a
+                        href={(value as any).url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-2 mt-2 bg-blue-50 rounded border border-blue-200 hover:bg-blue-100 transition group"
+                      >
+                        <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        <span className="text-blue-700 group-hover:text-blue-900 truncate">{(value as any).filename || 'Arquivo'}</span>
+                        <svg className="w-4 h-4 text-blue-400 group-hover:text-blue-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    ) : (
+                      <p className="text-gray-900 mt-1">
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
