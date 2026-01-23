@@ -40,8 +40,8 @@ export async function verificarNaoConformidade(
       continue;
     }
 
-    // Verificar campos de status (cq1a_status, cq2b_status, etc)
-    if (key.includes('status') || key.includes('conforme') || key.includes('verificacao') || key.includes('resultado')) {
+    // Verificar campos de status (cq1a_status, cq2b_status, etc) e campos de critérios
+    if (key.includes('status') || key.includes('conforme') || key.includes('verificacao') || key.includes('resultado') || key.includes('atendido') || key.includes('criterio')) {
       const valorNormalizado = normalizar(value);
 
       // Verificar valores exatos que indicam NC

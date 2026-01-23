@@ -258,14 +258,14 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('tipo', 'controle_qualidade');
-        formData.append('numero_opd', opd);
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        uploadFormData.append('tipo', 'controle_qualidade');
+        uploadFormData.append('numero_opd', opd);
 
         const response = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          body: uploadFormData,
         });
 
         const result = await response.json();
@@ -280,13 +280,26 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
         }
       }
 
-      setFormData(prev => ({ ...prev, [fieldName]: uploadedFiles }));
+      // Adicionar aos arquivos existentes
+      const existingFiles = (formData as any)[fieldName] || [];
+      setFormData(prev => ({ ...prev, [fieldName]: [...existingFiles, ...uploadedFiles] }));
+      toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
       toast.error('Erro ao fazer upload de arquivos');
     } finally {
       setUploadingImages(prev => ({ ...prev, [fieldName]: false }));
+      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRefs.current[fieldName]) {
+        fileInputRefs.current[fieldName]!.value = '';
+      }
     }
+  };
+
+  const handleRemoveFile = (fieldName: string, index: number) => {
+    const currentFiles = (formData as any)[fieldName] || [];
+    const newFiles = currentFiles.filter((_: any, i: number) => i !== index);
+    setFormData(prev => ({ ...prev, [fieldName]: newFiles.length > 0 ? newFiles : null }));
   };
 
   const getUsuario = () => {
@@ -430,15 +443,54 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span className="text-sm text-gray-600">
-                    {(formData as any)[`${fieldName}_imagem`] && (formData as any)[`${fieldName}_imagem`].length > 0
-                      ? `${(formData as any)[`${fieldName}_imagem`].length} arquivo(s) selecionado(s)`
-                      : 'Clique para selecionar imagens'}
+                    Clique para adicionar imagens
                   </span>
                   <span className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (múltiplos arquivos)</span>
                 </>
               )}
             </button>
           </div>
+          {/* Preview de arquivos anexados */}
+          {(formData as any)[`${fieldName}_imagem`] && (formData as any)[`${fieldName}_imagem`].length > 0 && (
+            <div className="mt-3 space-y-2">
+              {(formData as any)[`${fieldName}_imagem`].map((file: { filename: string; url: string; size: number }, index: number) => {
+                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename || file.url);
+                return (
+                  <div key={index} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      {isImage ? (
+                        <img
+                          src={file.url}
+                          alt={file.filename}
+                          className="w-12 h-12 object-cover rounded border"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                          <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-green-800 truncate">{file.filename}</p>
+                        <p className="text-xs text-green-600">{(file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(`${fieldName}_imagem`, index)}
+                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition ml-2"
+                      title="Remover arquivo"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
