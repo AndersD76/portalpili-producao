@@ -139,6 +139,33 @@ export default function DetalhesReclamacaoPage() {
     const status = STATUS_RECLAMACAO[reclamacao.status as keyof typeof STATUS_RECLAMACAO] || reclamacao.status;
     const procedencia = reclamacao.procedencia === null ? 'Não definida' : (reclamacao.procedencia ? 'Procedente' : 'Improcedente');
 
+    // Processar evidências para exibição
+    let evidenciasHtml = '';
+    if (reclamacao.evidencias) {
+      try {
+        const evidencias = typeof reclamacao.evidencias === 'string' ? JSON.parse(reclamacao.evidencias) : reclamacao.evidencias;
+        if (Array.isArray(evidencias) && evidencias.length > 0) {
+          evidenciasHtml = `
+            <div class="section">
+              <div class="section-title">EVIDENCIAS / FOTOS</div>
+              <div class="section-content">
+                <div class="evidencias-grid">
+                  ${evidencias.map((ev: any, idx: number) => `
+                    <div class="evidencia-item">
+                      <img src="${ev.url || ev}" alt="Evidencia ${idx + 1}" />
+                      ${ev.descricao ? `<p class="evidencia-desc">${ev.descricao}</p>` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.log('Erro ao processar evidencias:', e);
+      }
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -254,6 +281,26 @@ export default function DetalhesReclamacaoPage() {
             background: #ecfdf5;
             border-color: #a7f3d0;
           }
+          .evidencias-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 10px 0;
+          }
+          .evidencia-item {
+            text-align: center;
+          }
+          .evidencia-item img {
+            max-width: 100%;
+            max-height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+          }
+          .evidencia-desc {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+          }
           .footer {
             margin-top: 30px;
             padding-top: 15px;
@@ -360,6 +407,8 @@ export default function DetalhesReclamacaoPage() {
             ` : ''}
           </div>
         </div>
+
+        ${evidenciasHtml}
 
         <div class="footer">
           <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili - Gestao da Qualidade</p>

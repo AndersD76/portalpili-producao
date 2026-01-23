@@ -15,7 +15,6 @@ export default function NovaReclamacaoPage() {
 
   const [formData, setFormData] = useState({
     // Identificação
-    email: '',
     data_emissao: new Date().toISOString().split('T')[0],
     nome_emitente: '',
     // Reclamação de Cliente
@@ -132,17 +131,6 @@ export default function NovaReclamacaoPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data da emissão *</label>
                 <input
                   type="date"
@@ -153,7 +141,7 @@ export default function NovaReclamacaoPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome do emitente *</label>
                 <input
                   type="text"

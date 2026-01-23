@@ -118,28 +118,58 @@ export default function DetalhesNCPage() {
   const handlePrint = () => {
     if (!nc) return;
 
+    // Processar evidências para exibição
+    let evidenciasHtml = '';
+    if (nc.evidencias) {
+      try {
+        const evidencias = typeof nc.evidencias === 'string' ? JSON.parse(nc.evidencias) : nc.evidencias;
+        if (Array.isArray(evidencias) && evidencias.length > 0) {
+          evidenciasHtml = `
+            <h2>Evidências / Fotos</h2>
+            <div class="evidencias-grid">
+              ${evidencias.map((ev: any, idx: number) => `
+                <div class="evidencia-item">
+                  <img src="${ev.url || ev}" alt="Evidência ${idx + 1}" />
+                  ${ev.descricao ? `<p class="evidencia-desc">${ev.descricao}</p>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.log('Erro ao processar evidências:', e);
+      }
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <title>Registro de Não Conformidade - ${nc.numero}</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-          h1 { color: #333; border-bottom: 2px solid #dc2626; padding-bottom: 10px; }
-          h2 { color: #555; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
-          .info-item { margin-bottom: 10px; }
-          .label { font-weight: bold; color: #666; font-size: 12px; text-transform: uppercase; }
-          .value { font-size: 14px; color: #333; margin-top: 3px; }
-          .description { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0; }
-          .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; font-size: 12px; }
+          h1 { color: #333; border-bottom: 2px solid #dc2626; padding-bottom: 10px; font-size: 18px; }
+          h2 { color: #555; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px; font-size: 14px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+          .info-item { margin-bottom: 8px; }
+          .label { font-weight: bold; color: #666; font-size: 10px; text-transform: uppercase; }
+          .value { font-size: 12px; color: #333; margin-top: 2px; }
+          .description { background: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0; white-space: pre-wrap; }
+          .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
           .status-ABERTA { background: #fee2e2; color: #991b1b; }
           .status-EM_ANALISE { background: #fef3c7; color: #92400e; }
           .status-PENDENTE_ACAO { background: #ffedd5; color: #9a3412; }
           .status-FECHADA { background: #dcfce7; color: #166534; }
-          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
-          @media print { body { padding: 0; } }
+          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 10px; color: #666; text-align: center; }
+          .evidencias-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0; }
+          .evidencia-item { text-align: center; }
+          .evidencia-item img { max-width: 100%; max-height: 200px; border: 1px solid #ddd; border-radius: 5px; }
+          .evidencia-desc { font-size: 10px; color: #666; margin-top: 5px; }
+          @media print {
+            body { padding: 10px; }
+            .evidencias-grid { page-break-inside: avoid; }
+          }
         </style>
       </head>
       <body>
@@ -186,10 +216,16 @@ export default function DetalhesNCPage() {
             <div class="label">Produtos Afetados</div>
             <div class="value">${nc.produtos_afetados || '-'}</div>
           </div>
+          <div class="info-item">
+            <div class="label">Quantidade Afetada</div>
+            <div class="value">${nc.quantidade_afetada || '-'}</div>
+          </div>
         </div>
 
         <h2>Descrição da Não Conformidade</h2>
         <div class="description">${nc.descricao}</div>
+
+        ${evidenciasHtml}
 
         ${nc.disposicao ? `
         <h2>Disposição</h2>
@@ -198,9 +234,19 @@ export default function DetalhesNCPage() {
             <div class="label">Disposição</div>
             <div class="value">${DISPOSICOES_NAO_CONFORMIDADE[nc.disposicao]}</div>
           </div>
+          ${nc.disposicao_descricao ? `
+          <div class="info-item">
+            <div class="label">Descrição da Disposição</div>
+            <div class="value">${nc.disposicao_descricao}</div>
+          </div>
+          ` : ''}
           <div class="info-item">
             <div class="label">Responsável Contenção</div>
             <div class="value">${nc.responsavel_contencao || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Data Contenção</div>
+            <div class="value">${formatDate(nc.data_contencao)}</div>
           </div>
         </div>
         ` : ''}
@@ -210,8 +256,15 @@ export default function DetalhesNCPage() {
         <div class="description">${nc.acao_contencao}</div>
         ` : ''}
 
+        ${nc.acao_corretiva_id ? `
+        <h2>Ação Corretiva Vinculada</h2>
+        <div class="info-item">
+          <div class="value">RAC ID: ${nc.acao_corretiva_id}</div>
+        </div>
+        ` : ''}
+
         <div class="footer">
-          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili</p>
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili - SIG</p>
           <p>Criado em: ${formatDateTime(nc.created)} | Atualizado em: ${formatDateTime(nc.updated)}${nc.closed_at ? ` | Fechado em: ${formatDateTime(nc.closed_at)}` : ''}</p>
         </div>
       </body>
@@ -223,7 +276,7 @@ export default function DetalhesNCPage() {
       printWindow.document.write(printContent);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => printWindow.print(), 250);
+      setTimeout(() => printWindow.print(), 500);
     }
   };
 
