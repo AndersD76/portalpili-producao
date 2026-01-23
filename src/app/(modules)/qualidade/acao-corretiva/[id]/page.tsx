@@ -181,9 +181,16 @@ export default function DetalhesAcaoCorretivaPage() {
   const handlePrint = () => {
     if (!acao) return;
 
+    const baseUrl = window.location.origin;
+
     const formatDatePrint = (dateString: string | null | undefined) => {
       if (!dateString) return '-';
       return new Date(dateString).toLocaleDateString('pt-BR');
+    };
+
+    const formatDateTimePrint = (dateString: string | null | undefined) => {
+      if (!dateString) return '-';
+      return new Date(dateString).toLocaleString('pt-BR');
     };
 
     const getStatusLabel = (status: string) => {
@@ -212,121 +219,91 @@ export default function DetalhesAcaoCorretivaPage() {
       return SITUACAO_FINAL_AC[acao.situacao_final as keyof typeof SITUACAO_FINAL_AC] || acao.situacao_final;
     };
 
+    // Processar evidências para exibição
+    let evidenciasHtml = '';
+    if (acao.evidencias_anexos) {
+      try {
+        const evidencias = typeof acao.evidencias_anexos === 'string' ? JSON.parse(acao.evidencias_anexos) : acao.evidencias_anexos;
+        if (Array.isArray(evidencias) && evidencias.length > 0) {
+          evidenciasHtml = `
+            <div class="section">
+              <div class="section-header">EVIDÊNCIAS</div>
+              <div class="section-content">
+                <div class="anexos-grid">
+                  ${evidencias.map((anexo: any, idx: number) => {
+                    const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+                    return isImage ? `
+                      <div class="anexo-item">
+                        <img src="${url}" alt="Evidência ${idx + 1}" crossorigin="anonymous" />
+                        <p class="anexo-name">${anexo.filename || `Evidência ${idx + 1}`}</p>
+                      </div>
+                    ` : `
+                      <div class="anexo-item anexo-file">
+                        <div class="file-icon">📎</div>
+                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.log('Erro ao processar evidências:', e);
+      }
+    }
+
+    // Gerar nome do arquivo: RAC_ano_numero
+    const numeroPartes = acao.numero.split('-');
+    const ano = numeroPartes[1] || new Date().getFullYear();
+    const num = numeroPartes[2] || acao.id;
+    const nomeArquivo = `RAC_${ano}_${num}`;
+
     const printContent = `
       <!DOCTYPE html>
       <html lang="pt-BR">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>RAC - ${acao.numero}</title>
+        <title>${nomeArquivo}</title>
         <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
-            padding: 20px;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #1e40af;
-          }
-          .header h1 {
-            color: #1e40af;
-            font-size: 22px;
-            margin-bottom: 5px;
-          }
-          .header .subtitle {
-            color: #64748b;
-            font-size: 11px;
-          }
-          .header .rac-number {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1e3a8a;
-            margin-top: 8px;
-          }
-          .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-top: 8px;
-          }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; color: #333; padding: 15px; max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #1e40af; }
+          .header h1 { color: #1e40af; font-size: 18px; margin-bottom: 3px; }
+          .header .subtitle { color: #64748b; font-size: 10px; }
+          .header .rac-number { font-size: 14px; font-weight: bold; color: #1e3a8a; margin-top: 5px; }
+          .status-badge { display: inline-block; padding: 4px 12px; border-radius: 15px; font-size: 10px; font-weight: bold; margin-top: 5px; }
           .status-ABERTA { background-color: #fee2e2; color: #991b1b; }
           .status-EM_ANDAMENTO { background-color: #dbeafe; color: #1e40af; }
           .status-AGUARDANDO_VERIFICACAO { background-color: #fef3c7; color: #92400e; }
           .status-FECHADA { background-color: #dcfce7; color: #166534; }
-          .section {
-            margin-bottom: 18px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            overflow: hidden;
-          }
-          .section-header {
-            background-color: #1e40af;
-            color: white;
-            padding: 8px 15px;
-            font-weight: bold;
-            font-size: 13px;
-          }
-          .section-content {
-            padding: 15px;
-            background-color: #f8fafc;
-          }
-          .field-row {
-            display: flex;
-            margin-bottom: 10px;
-          }
-          .field-row:last-child {
-            margin-bottom: 0;
-          }
-          .field {
-            flex: 1;
-            padding-right: 15px;
-          }
-          .field-label {
-            font-size: 10px;
-            color: #64748b;
-            text-transform: uppercase;
-            margin-bottom: 3px;
-            font-weight: bold;
-          }
-          .field-value {
-            font-size: 12px;
-            color: #1e293b;
-          }
-          .text-block {
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #e2e8f0;
-            white-space: pre-wrap;
-          }
-          .text-block.falha { border-left: 4px solid #ef4444; }
-          .text-block.causas { border-left: 4px solid #f59e0b; }
-          .text-block.subcausas { border-left: 4px solid #f97316; }
-          .text-block.acoes { border-left: 4px solid #3b82f6; }
-          .processos-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-          }
-          .processo-tag {
-            background-color: #e2e8f0;
-            color: #475569;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-          }
+          .section { margin-bottom: 12px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+          .section-header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 6px 12px; font-weight: bold; font-size: 12px; }
+          .section-content { padding: 10px; background-color: #f8fafc; }
+          .field-row { display: flex; margin-bottom: 8px; }
+          .field-row:last-child { margin-bottom: 0; }
+          .field { flex: 1; padding-right: 10px; }
+          .field-label { font-size: 9px; color: #64748b; text-transform: uppercase; margin-bottom: 2px; font-weight: bold; }
+          .field-value { font-size: 11px; color: #1e293b; }
+          .text-block { background-color: white; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: pre-wrap; min-height: 25px; }
+          .text-block.falha { border-left: 3px solid #ef4444; }
+          .text-block.causas { border-left: 3px solid #f59e0b; }
+          .text-block.subcausas { border-left: 3px solid #f97316; }
+          .text-block.acoes { border-left: 3px solid #3b82f6; }
+          .eficacia-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+          .eficacia-EFICAZ { background-color: #dcfce7; color: #166534; }
+          .eficacia-PARCIALMENTE_EFICAZ { background-color: #fef3c7; color: #92400e; }
+          .eficacia-NAO_EFICAZ { background-color: #fee2e2; color: #991b1b; }
+          .anexos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+          .anexo-item { text-align: center; }
+          .anexo-item img { max-width: 100%; max-height: 150px; border: 1px solid #ddd; border-radius: 4px; }
+          .anexo-name { font-size: 9px; color: #666; margin-top: 3px; word-break: break-all; }
+          .anexo-file { background: #f3f4f6; padding: 15px; border-radius: 4px; }
+          .file-icon { font-size: 24px; }
+          .footer { margin-top: 15px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #64748b; text-align: center; }
+          @media print { body { padding: 10px; } .section { break-inside: avoid; } .anexos-grid { break-inside: avoid; } }
           .eficacia-badge {
             display: inline-block;
             padding: 3px 10px;
@@ -360,23 +337,19 @@ export default function DetalhesAcaoCorretivaPage() {
         </div>
 
         <div class="section">
-          <div class="section-header">IDENTIFICACAO</div>
+          <div class="section-header">IDENTIFICAÇÃO</div>
           <div class="section-content">
             <div class="field-row">
               <div class="field">
-                <div class="field-label">E-mail</div>
-                <div class="field-value">${acao.email || '-'}</div>
-              </div>
-              <div class="field">
-                <div class="field-label">Data de Emissao</div>
+                <div class="field-label">Data de Emissão</div>
                 <div class="field-value">${formatDatePrint(acao.data_emissao)}</div>
               </div>
-            </div>
-            <div class="field-row">
               <div class="field">
                 <div class="field-label">Emitente</div>
                 <div class="field-value">${acao.emitente || '-'}</div>
               </div>
+            </div>
+            <div class="field-row">
               <div class="field">
                 <div class="field-label">NC Relacionada</div>
                 <div class="field-value">${acao.numero_nc_relacionada || '-'}</div>
@@ -479,8 +452,11 @@ export default function DetalhesAcaoCorretivaPage() {
           </div>
         </div>
 
+        ${evidenciasHtml}
+
         <div class="footer">
-          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} | Portal Pili - Sistema de Gestao da Qualidade</p>
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili - Sistema Integrado de Gestão</p>
+          <p>Criado em: ${formatDateTimePrint(acao.created)} | Atualizado em: ${formatDateTimePrint(acao.updated)}</p>
         </div>
       </body>
       </html>

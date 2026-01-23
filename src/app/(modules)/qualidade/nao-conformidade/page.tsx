@@ -89,9 +89,9 @@ export default function NaoConformidadePage() {
   const getGravidadeBadge = (gravidade: string | null) => {
     if (!gravidade) return null;
     const colors: Record<string, string> = {
-      'CRITICA': 'bg-red-600 text-white',
-      'MAIOR': 'bg-orange-500 text-white',
-      'MENOR': 'bg-yellow-500 text-white'
+      'ALTA': 'bg-red-600 text-white',
+      'MEDIA': 'bg-orange-500 text-white',
+      'BAIXA': 'bg-yellow-500 text-gray-900'
     };
     return (
       <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[gravidade] || 'bg-gray-100'}`}>

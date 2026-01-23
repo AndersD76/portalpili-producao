@@ -10,6 +10,10 @@ import {
   ORIGENS_NAO_CONFORMIDADE,
   GRAVIDADES_NAO_CONFORMIDADE,
   DISPOSICOES_NAO_CONFORMIDADE,
+  TURNOS_TRABALHO,
+  UNIDADES_FABRICACAO,
+  PROCESSOS_ORIGEM,
+  TAREFAS_ORIGEM,
   StatusNaoConformidade
 } from '@/types/qualidade';
 
@@ -118,153 +122,271 @@ export default function DetalhesNCPage() {
   const handlePrint = () => {
     if (!nc) return;
 
-    // Processar evidências para exibição
-    let evidenciasHtml = '';
-    if (nc.evidencias) {
+    const baseUrl = window.location.origin;
+
+    // Processar anexos para exibição
+    let anexosHtml = '';
+    if (nc.anexos) {
       try {
-        const evidencias = typeof nc.evidencias === 'string' ? JSON.parse(nc.evidencias) : nc.evidencias;
-        if (Array.isArray(evidencias) && evidencias.length > 0) {
-          evidenciasHtml = `
-            <h2>Evidências / Fotos</h2>
-            <div class="evidencias-grid">
-              ${evidencias.map((ev: any, idx: number) => `
-                <div class="evidencia-item">
-                  <img src="${ev.url || ev}" alt="Evidência ${idx + 1}" />
-                  ${ev.descricao ? `<p class="evidencia-desc">${ev.descricao}</p>` : ''}
+        const anexos = typeof nc.anexos === 'string' ? JSON.parse(nc.anexos) : nc.anexos;
+        if (Array.isArray(anexos) && anexos.length > 0) {
+          anexosHtml = `
+            <div class="section">
+              <div class="section-header">ANEXOS / EVIDÊNCIAS</div>
+              <div class="section-content">
+                <div class="anexos-grid">
+                  ${anexos.map((anexo: any, idx: number) => {
+                    const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
+                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+                    return isImage ? `
+                      <div class="anexo-item">
+                        <img src="${url}" alt="Anexo ${idx + 1}" crossorigin="anonymous" />
+                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                      </div>
+                    ` : `
+                      <div class="anexo-item anexo-file">
+                        <div class="file-icon">📎</div>
+                        <p class="anexo-name">${anexo.filename || `Anexo ${idx + 1}`}</p>
+                      </div>
+                    `;
+                  }).join('')}
                 </div>
-              `).join('')}
+              </div>
             </div>
           `;
         }
       } catch (e) {
-        console.log('Erro ao processar evidências:', e);
+        console.log('Erro ao processar anexos:', e);
       }
     }
 
+    // Gerar nome do arquivo: rnc_ano_numero
+    const numeroPartes = nc.numero.split('-');
+    const ano = numeroPartes[1] || new Date().getFullYear();
+    const num = numeroPartes[2] || nc.id;
+    const nomeArquivo = `RNC_${ano}_${num}`;
+
     const printContent = `
       <!DOCTYPE html>
-      <html>
+      <html lang="pt-BR">
       <head>
-        <title>Registro de Não Conformidade - ${nc.numero}</title>
+        <meta charset="UTF-8">
+        <title>${nomeArquivo}</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; font-size: 12px; }
-          h1 { color: #333; border-bottom: 2px solid #dc2626; padding-bottom: 10px; font-size: 18px; }
-          h2 { color: #555; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px; font-size: 14px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
-          .info-item { margin-bottom: 8px; }
-          .label { font-weight: bold; color: #666; font-size: 10px; text-transform: uppercase; }
-          .value { font-size: 12px; color: #333; margin-top: 2px; }
-          .description { background: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0; white-space: pre-wrap; }
-          .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; color: #333; padding: 15px; max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 3px solid #dc2626; }
+          .header h1 { color: #dc2626; font-size: 20px; margin-bottom: 3px; }
+          .header .numero { font-size: 16px; font-weight: bold; color: #333; }
+          .header .subtitle { font-size: 10px; color: #666; }
+          .status-row { display: flex; justify-content: center; gap: 15px; margin-top: 8px; }
+          .status-badge { padding: 4px 12px; border-radius: 15px; font-weight: bold; font-size: 10px; }
           .status-ABERTA { background: #fee2e2; color: #991b1b; }
           .status-EM_ANALISE { background: #fef3c7; color: #92400e; }
           .status-PENDENTE_ACAO { background: #ffedd5; color: #9a3412; }
           .status-FECHADA { background: #dcfce7; color: #166534; }
-          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 10px; color: #666; text-align: center; }
-          .evidencias-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0; }
-          .evidencia-item { text-align: center; }
-          .evidencia-item img { max-width: 100%; max-height: 200px; border: 1px solid #ddd; border-radius: 5px; }
-          .evidencia-desc { font-size: 10px; color: #666; margin-top: 5px; }
+          .gravidade-ALTA { background: #fee2e2; color: #991b1b; }
+          .gravidade-MEDIA { background: #ffedd5; color: #9a3412; }
+          .gravidade-BAIXA { background: #fef9c3; color: #854d0e; }
+          .section { margin-bottom: 12px; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+          .section-header { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 6px 12px; font-size: 12px; font-weight: bold; }
+          .section-content { padding: 10px; background: #fafafa; }
+          .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+          .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+          .grid-full { grid-column: span 2; }
+          .field { margin-bottom: 6px; }
+          .field-label { font-size: 9px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1px; font-weight: bold; }
+          .field-value { font-size: 11px; color: #111827; }
+          .text-box { background: white; border: 1px solid #e5e7eb; border-radius: 4px; padding: 8px; margin-top: 3px; white-space: pre-wrap; min-height: 30px; }
+          .anexos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+          .anexo-item { text-align: center; }
+          .anexo-item img { max-width: 100%; max-height: 150px; border: 1px solid #ddd; border-radius: 4px; }
+          .anexo-name { font-size: 9px; color: #666; margin-top: 3px; word-break: break-all; }
+          .anexo-file { background: #f3f4f6; padding: 15px; border-radius: 4px; }
+          .file-icon { font-size: 24px; }
+          .footer { margin-top: 15px; padding-top: 10px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 9px; color: #9ca3af; }
           @media print {
             body { padding: 10px; }
-            .evidencias-grid { page-break-inside: avoid; }
+            .section { break-inside: avoid; }
+            .anexos-grid { break-inside: avoid; }
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>Registro de Não Conformidade</h1>
-          <span class="status-badge status-${nc.status}">${STATUS_NAO_CONFORMIDADE[nc.status as keyof typeof STATUS_NAO_CONFORMIDADE] || nc.status}</span>
-        </div>
-
-        <h2>Identificação</h2>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="label">Número</div>
-            <div class="value">${nc.numero}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Data da Ocorrência</div>
-            <div class="value">${formatDate(nc.data_ocorrencia)}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Local</div>
-            <div class="value">${nc.local_ocorrencia || '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Tipo</div>
-            <div class="value">${TIPOS_NAO_CONFORMIDADE[nc.tipo] || nc.tipo}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Origem</div>
-            <div class="value">${nc.origem ? ORIGENS_NAO_CONFORMIDADE[nc.origem as keyof typeof ORIGENS_NAO_CONFORMIDADE] || nc.origem : '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Gravidade</div>
-            <div class="value">${nc.gravidade ? GRAVIDADES_NAO_CONFORMIDADE[nc.gravidade] : '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Setor Responsável</div>
-            <div class="value">${nc.setor_responsavel || '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Detectado Por</div>
-            <div class="value">${nc.detectado_por || '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Produtos Afetados</div>
-            <div class="value">${nc.produtos_afetados || '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Quantidade Afetada</div>
-            <div class="value">${nc.quantidade_afetada || '-'}</div>
+          <h1>REGISTRO DE NÃO CONFORMIDADE</h1>
+          <div class="numero">${nc.numero}</div>
+          <div class="subtitle">Nº 57-1 - REV. 01</div>
+          <div class="status-row">
+            <span class="status-badge status-${nc.status}">${STATUS_NAO_CONFORMIDADE[nc.status as keyof typeof STATUS_NAO_CONFORMIDADE] || nc.status}</span>
+            ${nc.gravidade ? `<span class="status-badge gravidade-${nc.gravidade}">${GRAVIDADES_NAO_CONFORMIDADE[nc.gravidade]}</span>` : ''}
           </div>
         </div>
 
-        <h2>Descrição da Não Conformidade</h2>
-        <div class="description">${nc.descricao}</div>
-
-        ${evidenciasHtml}
-
-        ${nc.disposicao ? `
-        <h2>Disposição</h2>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="label">Disposição</div>
-            <div class="value">${DISPOSICOES_NAO_CONFORMIDADE[nc.disposicao]}</div>
-          </div>
-          ${nc.disposicao_descricao ? `
-          <div class="info-item">
-            <div class="label">Descrição da Disposição</div>
-            <div class="value">${nc.disposicao_descricao}</div>
-          </div>
-          ` : ''}
-          <div class="info-item">
-            <div class="label">Responsável Contenção</div>
-            <div class="value">${nc.responsavel_contencao || '-'}</div>
-          </div>
-          <div class="info-item">
-            <div class="label">Data Contenção</div>
-            <div class="value">${formatDate(nc.data_contencao)}</div>
+        <div class="section">
+          <div class="section-header">IDENTIFICAÇÃO</div>
+          <div class="section-content">
+            <div class="grid">
+              <div class="field">
+                <div class="field-label">Data de Emissão</div>
+                <div class="field-value">${formatDate(nc.data_emissao || nc.data_ocorrencia)}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Responsável Emissão</div>
+                <div class="field-value">${nc.responsavel_emissao || nc.detectado_por || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Turno de Trabalho</div>
+                <div class="field-value">${nc.turno_trabalho ? TURNOS_TRABALHO[nc.turno_trabalho as keyof typeof TURNOS_TRABALHO] || nc.turno_trabalho : '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Unidade de Fabricação</div>
+                <div class="field-value">${nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao as keyof typeof UNIDADES_FABRICACAO] || nc.unidade_fabricacao : nc.local_ocorrencia || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Processo de Origem</div>
+                <div class="field-value">${nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem as keyof typeof PROCESSOS_ORIGEM] || nc.processo_origem : nc.origem || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Setor Responsável</div>
+                <div class="field-value">${nc.setor_responsavel || '-'}</div>
+              </div>
+            </div>
           </div>
         </div>
-        ` : ''}
 
-        ${nc.acao_contencao ? `
-        <h2>Ação de Contenção</h2>
-        <div class="description">${nc.acao_contencao}</div>
-        ` : ''}
+        <div class="section">
+          <div class="section-header">ORIGEM</div>
+          <div class="section-content">
+            <div class="grid">
+              <div class="field">
+                <div class="field-label">Tarefa de Origem</div>
+                <div class="field-value">${nc.tarefa_origem ? TAREFAS_ORIGEM[nc.tarefa_origem as keyof typeof TAREFAS_ORIGEM] || nc.tarefa_origem : '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Número OPD</div>
+                <div class="field-value">${nc.numero_opd || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Código da Peça</div>
+                <div class="field-value">${nc.codigo_peca || nc.produtos_afetados || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Quantidade de Itens</div>
+                <div class="field-value">${nc.quantidade_itens || nc.quantidade_afetada || '-'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">DESCRIÇÃO DA NÃO CONFORMIDADE</div>
+          <div class="section-content">
+            <div class="field grid-full">
+              <div class="field-label">Descrição</div>
+              <div class="text-box">${nc.descricao || '-'}</div>
+            </div>
+            <div class="field grid-full" style="margin-top: 8px;">
+              <div class="field-label">Evidência Objetiva</div>
+              <div class="text-box">${nc.evidencia_objetiva || '-'}</div>
+            </div>
+            <div class="field grid-full" style="margin-top: 8px;">
+              <div class="field-label">Ação Imediata</div>
+              <div class="text-box">${nc.acao_imediata || nc.acao_contencao || '-'}</div>
+            </div>
+            <div class="grid" style="margin-top: 8px;">
+              <div class="field">
+                <div class="field-label">Responsáveis pelas Ações</div>
+                <div class="field-value">${nc.responsaveis_acoes || nc.responsavel_contencao || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Prazo das Ações</div>
+                <div class="field-value">${formatDate(nc.prazo_acoes) || formatDate(nc.data_contencao) || '-'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">CLASSIFICAÇÃO E DISPOSIÇÃO</div>
+          <div class="section-content">
+            <div class="grid">
+              <div class="field">
+                <div class="field-label">Gravidade</div>
+                <div class="field-value">${nc.gravidade ? GRAVIDADES_NAO_CONFORMIDADE[nc.gravidade] : '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Tipo</div>
+                <div class="field-value">${TIPOS_NAO_CONFORMIDADE[nc.tipo as keyof typeof TIPOS_NAO_CONFORMIDADE] || nc.tipo || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Disposição</div>
+                <div class="field-value">${nc.disposicao ? DISPOSICOES_NAO_CONFORMIDADE[nc.disposicao] : '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Responsável Liberação</div>
+                <div class="field-value">${nc.responsavel_liberacao || '-'}</div>
+              </div>
+            </div>
+            ${nc.disposicao_descricao ? `
+            <div class="field grid-full" style="margin-top: 8px;">
+              <div class="field-label">Descrição da Disposição</div>
+              <div class="text-box">${nc.disposicao_descricao}</div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
 
         ${nc.acao_corretiva_id ? `
-        <h2>Ação Corretiva Vinculada</h2>
-        <div class="info-item">
-          <div class="value">RAC ID: ${nc.acao_corretiva_id}</div>
+        <div class="section">
+          <div class="section-header">AÇÃO CORRETIVA VINCULADA</div>
+          <div class="section-content">
+            <div class="field">
+              <div class="field-label">RAC Vinculada</div>
+              <div class="field-value">RAC ID: ${nc.acao_corretiva_id}</div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${anexosHtml}
+
+        ${nc.disposicao === 'ACEITE_CONDICIONAL' ? `
+        <div class="section" style="margin-top: 20px;">
+          <div class="section-header" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">LIBERAÇÃO CONDICIONAL</div>
+          <div class="section-content">
+            <p style="font-size: 10px; color: #666; margin-bottom: 15px;">
+              O produto/material descrito nesta NC foi liberado condicionalmente conforme disposição indicada acima.
+              A assinatura abaixo confirma a ciência e responsabilidade pela liberação condicional.
+            </p>
+            <div class="grid">
+              <div class="field">
+                <div class="field-label">Responsável pela Liberação</div>
+                <div class="field-value">${nc.responsavel_liberacao || '___________________________'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Data da Liberação</div>
+                <div class="field-value">${formatDate(nc.updated) || '____/____/________'}</div>
+              </div>
+            </div>
+            <div style="margin-top: 30px; display: flex; justify-content: space-between;">
+              <div style="text-align: center; width: 45%;">
+                <div style="border-top: 1px solid #333; padding-top: 5px; margin-top: 40px;">
+                  <div class="field-label">Assinatura do Responsável Técnico</div>
+                </div>
+              </div>
+              <div style="text-align: center; width: 45%;">
+                <div style="border-top: 1px solid #333; padding-top: 5px; margin-top: 40px;">
+                  <div class="field-label">Assinatura do Responsável Qualidade</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         ` : ''}
 
         <div class="footer">
-          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili - SIG</p>
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili - Sistema Integrado de Gestão</p>
           <p>Criado em: ${formatDateTime(nc.created)} | Atualizado em: ${formatDateTime(nc.updated)}${nc.closed_at ? ` | Fechado em: ${formatDateTime(nc.closed_at)}` : ''}</p>
         </div>
       </body>
