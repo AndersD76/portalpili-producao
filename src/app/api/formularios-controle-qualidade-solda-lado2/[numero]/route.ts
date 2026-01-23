@@ -15,7 +15,8 @@ export async function POST(
     const {
       atividade_id,
       dados_formulario,
-      preenchido_por
+      preenchido_por,
+      is_rascunho = false
     } = body;
 
     // Validações
@@ -28,41 +29,75 @@ export async function POST(
 
     await client.query('BEGIN');
 
-    // Inserir formulário de controle de qualidade - Solda Lado 2
-    const formularioResult = await client.query(`
-      INSERT INTO formularios_preenchidos (
-        atividade_id,
-        numero_opd,
-        tipo_formulario,
-        dados_formulario,
-        anexos,
-        preenchido_por,
-        data_preenchimento,
-        created,
-        updated
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `, [
-      atividade_id || null,
-      numero,
-      'CONTROLE_QUALIDADE_SOLDA_LADO2',
-      JSON.stringify(dados_formulario),
-      null,
-      preenchido_por || 'Sistema',
-      new Date().toISOString(),
-      new Date().toISOString(),
-      new Date().toISOString()
-    ]);
+    // Verificar se já existe um formulário para esta atividade
+    const existingResult = await client.query(`
+      SELECT id FROM formularios_preenchidos
+      WHERE atividade_id = $1 AND tipo_formulario = 'CONTROLE_QUALIDADE_SOLDA_LADO2'
+      LIMIT 1
+    `, [atividade_id]);
 
-    if (atividade_id) { await verificarNaoConformidade(atividade_id, dados_formulario); }
+    let formularioResult;
+
+    if (existingResult.rows.length > 0) {
+      // Atualizar formulário existente
+      formularioResult = await client.query(`
+        UPDATE formularios_preenchidos
+        SET dados_formulario = $1,
+            preenchido_por = $2,
+            updated = $3,
+            data_preenchimento = CASE WHEN NOT $4 THEN $3 ELSE data_preenchimento END
+        WHERE id = $5
+        RETURNING *
+      `, [
+        JSON.stringify({ ...dados_formulario, _is_rascunho: is_rascunho }),
+        preenchido_por || 'Sistema',
+        new Date().toISOString(),
+        is_rascunho,
+        existingResult.rows[0].id
+      ]);
+    } else {
+      // Inserir novo formulário
+      formularioResult = await client.query(`
+        INSERT INTO formularios_preenchidos (
+          atividade_id,
+          numero_opd,
+          tipo_formulario,
+          dados_formulario,
+          anexos,
+          preenchido_por,
+          data_preenchimento,
+          created,
+          updated
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *
+      `, [
+        atividade_id || null,
+        numero,
+        'CONTROLE_QUALIDADE_SOLDA_LADO2',
+        JSON.stringify({ ...dados_formulario, _is_rascunho: is_rascunho }),
+        null,
+        preenchido_por || 'Sistema',
+        is_rascunho ? null : new Date().toISOString(),
+        new Date().toISOString(),
+        new Date().toISOString()
+      ]);
+    }
+
+    // Verificar e marcar não-conformidade apenas se não for rascunho
+    if (atividade_id && !is_rascunho) {
+      await verificarNaoConformidade(atividade_id, dados_formulario);
+    }
 
     await client.query('COMMIT');
 
     return NextResponse.json({
       success: true,
       data: formularioResult.rows[0],
-      message: 'Formulário de controle de qualidade - Solda Lado 2 salvo com sucesso'
-    }, { status: 201 });
+      is_rascunho,
+      message: is_rascunho
+        ? 'Rascunho salvo com sucesso'
+        : 'Formulário de controle de qualidade - Solda Lado 2 salvo com sucesso'
+    }, { status: existingResult.rows.length > 0 ? 200 : 201 });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Erro ao salvar formulário de controle de qualidade - Solda Lado 2:', error);

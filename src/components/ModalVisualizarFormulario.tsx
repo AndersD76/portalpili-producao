@@ -74,10 +74,12 @@ export default function ModalVisualizarFormulario({
     'COLETOR_PINTURA': 'formularios-coletor-pintura',
 
     // Controle de Qualidade (prefixo CONTROLE_QUALIDADE_)
+    'CONTROLE_QUALIDADE': 'formularios-controle-qualidade',
     'CONTROLE_QUALIDADE_CORTE': 'formularios-corte',
     'CONTROLE_QUALIDADE_MONTAGEM': 'formularios-montagem',
     'CONTROLE_QUALIDADE_CENTRAL': 'formularios-controle-qualidade-central',
     'CONTROLE_QUALIDADE_SOLDA': 'formularios-controle-qualidade-solda',
+    'CONTROLE_QUALIDADE_SOLDA_LADO2': 'formularios-controle-qualidade-solda-lado2',
     'CONTROLE_QUALIDADE_TRAVADOR_RODAS': 'formularios-travador-rodas',
     'CONTROLE_QUALIDADE_CAIXA_TRAVA_CHASSI': 'formularios-caixa-trava-chassi',
     'CONTROLE_QUALIDADE_TRAVA_CHASSI': 'formularios-trava-chassi',
@@ -772,6 +774,148 @@ export default function ModalVisualizarFormulario({
     );
   };
 
+  // Renderiza todos os campos do formulário de forma detalhada
+  const renderFormularioDetalhado = () => {
+    if (!formulario || !formulario.dados_formulario) return null;
+    const dados = typeof formulario.dados_formulario === 'string'
+      ? JSON.parse(formulario.dados_formulario)
+      : formulario.dados_formulario;
+
+    // Remove campos internos
+    const { _is_rascunho, ...dadosLimpos } = dados;
+
+    // Agrupa campos por tipo (status, imagem, observação, etc.)
+    const camposStatus: Array<{ key: string; value: string }> = [];
+    const camposImagem: Array<{ key: string; value: any[] }> = [];
+    const outrosCampos: Array<{ key: string; value: any }> = [];
+
+    Object.entries(dadosLimpos).forEach(([key, value]) => {
+      if (key.endsWith('_status')) {
+        camposStatus.push({ key, value: value as string });
+      } else if (key.endsWith('_imagem') && Array.isArray(value) && value.length > 0) {
+        camposImagem.push({ key, value: value as any[] });
+      } else if (value !== null && value !== undefined && value !== '') {
+        outrosCampos.push({ key, value });
+      }
+    });
+
+    // Função para formatar nome do campo
+    const formatarNomeCampo = (key: string) => {
+      return key
+        .replace(/_status$/, '')
+        .replace(/_imagem$/, '')
+        .replace(/_/g, ' ')
+        .toUpperCase();
+    };
+
+    // Função para determinar cor do status
+    const getCorStatus = (status: string) => {
+      const s = status?.toLowerCase() || '';
+      if (s.includes('conforme') && !s.includes('não')) return 'bg-green-100 text-green-800 border-green-300';
+      if (s.includes('não conforme') || s === 'não' || s === 'nao') return 'bg-red-100 text-red-800 border-red-300';
+      if (s.includes('não aplicável') || s.includes('n/a')) return 'bg-gray-100 text-gray-600 border-gray-300';
+      return 'bg-blue-100 text-blue-800 border-blue-300';
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Campos de Status */}
+        {camposStatus.length > 0 && (
+          <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
+            <h4 className="font-bold text-lg mb-4 text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Itens de Verificação
+            </h4>
+            <div className="space-y-2">
+              {camposStatus.map(({ key, value }, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 rounded-lg border ${getCorStatus(value)} flex justify-between items-center`}
+                >
+                  <span className="font-medium text-sm">{formatarNomeCampo(key)}</span>
+                  <span className="font-bold text-sm px-3 py-1 rounded-full bg-white/50">
+                    {value || 'N/A'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Imagens */}
+        {camposImagem.length > 0 && (
+          <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+            <h4 className="font-bold text-lg mb-4 text-blue-900 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Imagens Anexadas
+            </h4>
+            <div className="space-y-4">
+              {camposImagem.map(({ key, value }, idx) => (
+                <div key={idx}>
+                  <p className="text-sm font-semibold text-blue-800 mb-2">{formatarNomeCampo(key)}:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {value.map((img: any, imgIdx: number) => (
+                      <a
+                        key={imgIdx}
+                        href={img.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative group overflow-hidden rounded-lg border-2 border-blue-200 hover:border-blue-400 transition"
+                      >
+                        {img.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/) ? (
+                          <img
+                            src={img.url}
+                            alt={img.filename}
+                            className="w-full h-32 object-cover group-hover:scale-105 transition"
+                          />
+                        ) : (
+                          <div className="w-full h-32 bg-gray-200 flex items-center justify-center">
+                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 truncate">
+                          {img.filename}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Outros campos */}
+        {outrosCampos.length > 0 && (
+          <div className="border-2 border-gray-300 rounded-lg p-4 bg-white">
+            <h4 className="font-bold text-lg mb-4 text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Outros Dados
+            </h4>
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              {outrosCampos.map(({ key, value }, idx) => (
+                <div key={idx} className="border-b border-gray-200 pb-2">
+                  <span className="font-semibold text-gray-700">{formatarNomeCampo(key)}:</span>
+                  <p className="text-gray-900 mt-1">
+                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const isNovoCQ = () => {
     return tipoFormulario.startsWith('CONTROLE_QUALIDADE_') &&
            !['CONTROLE_QUALIDADE_CORTE', 'CONTROLE_QUALIDADE_MONTAGEM', 'CONTROLE_QUALIDADE_CENTRAL', 'CONTROLE_QUALIDADE_SOLDA'].includes(tipoFormulario);
@@ -1116,57 +1260,44 @@ export default function ModalVisualizarFormulario({
             {tipoFormulario === 'REUNIAO_START_2' && renderReuniaoStart()}
             {tipoFormulario === 'PREPARACAO' && renderPreparacao()}
             {tipoFormulario === 'LIBERACAO_EMBARQUE' && renderLiberacaoEmbarque()}
-            {tipoFormulario === 'CONTROLE_QUALIDADE_CORTE' && (
-              <div className="space-y-6">
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                  <p className="font-semibold">Controle de Qualidade - Corte</p>
-                  <p className="text-sm">Este formulário contém 3 checkpoints específicos de qualidade (CQ1-A a CQ3-A) para a etapa de Corte.</p>
-                </div>
-                <div className="bg-white p-4 rounded border border-gray-200">
-                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 3 checkpoints de corte, consulte o formulário original ou os anexos associados.</p>
-                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade corte preenchido com sucesso.</p>
-                </div>
-              </div>
-            )}
-            {tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM' && (
-              <div className="space-y-6">
-                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
-                  <p className="font-semibold">Controle de Qualidade - Montagem Superior e Esquadro</p>
-                  <p className="text-sm">Este formulário contém 43 checkpoints específicos de qualidade (CQ1-B a CQ43-B) para a etapa de Montagem Superior e Esquadro.</p>
-                </div>
-                <div className="bg-white p-4 rounded border border-gray-200">
-                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 43 checkpoints de montagem, consulte o formulário original ou os anexos associados.</p>
-                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade montagem preenchido com sucesso.</p>
-                </div>
-              </div>
-            )}
-            {tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL' && (
-              <div className="space-y-6">
-                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
-                  <p className="font-semibold">Controle de Qualidade - Central Hidráulica</p>
-                  <p className="text-sm">Este formulário contém 15 checkpoints específicos de qualidade (CQ1-C a CQ15-C) para Central Hidráulica.</p>
-                </div>
-                <div className="bg-white p-4 rounded border border-gray-200">
-                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 15 checkpoints, consulte o formulário original ou os anexos associados.</p>
-                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade central hidráulica preenchido com sucesso.</p>
-                </div>
-              </div>
-            )}
-            {tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA' && (
-              <div className="space-y-6">
-                <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
-                  <p className="font-semibold">Controle de Qualidade - Solda Lado 1</p>
-                  <p className="text-sm">Este formulário contém 17 checkpoints específicos de qualidade (CQ1-D a CQ17-D) para Solda Lado 1.</p>
-                </div>
-                <div className="bg-white p-4 rounded border border-gray-200">
-                  <p className="text-sm text-gray-600">Para visualizar os detalhes completos dos 17 checkpoints, consulte o formulário original ou os anexos associados.</p>
-                  <p className="text-sm text-gray-600 mt-2">Formulário de controle de qualidade solda lado 1 preenchido com sucesso.</p>
-                </div>
-              </div>
-            )}
-            {isNovoCQ() && renderGenericCQ()}
+            {/* Formulários de Controle de Qualidade - mostrar todos os campos detalhados */}
+            {(tipoFormulario === 'CONTROLE_QUALIDADE_CORTE' ||
+              tipoFormulario === 'CONTROLE_QUALIDADE_MONTAGEM' ||
+              tipoFormulario === 'CONTROLE_QUALIDADE_CENTRAL' ||
+              tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA' ||
+              tipoFormulario === 'CONTROLE_QUALIDADE_SOLDA_LADO2' ||
+              tipoFormulario === 'CONTROLE_QUALIDADE' ||
+              tipoFormulario.startsWith('CORTE') ||
+              tipoFormulario.startsWith('MONTAGEM') ||
+              tipoFormulario.startsWith('SOLDA') ||
+              tipoFormulario.startsWith('BRACOS') ||
+              tipoFormulario.startsWith('PEDESTAIS') ||
+              tipoFormulario.startsWith('CENTRAL') ||
+              tipoFormulario.startsWith('PAINEL') ||
+              tipoFormulario.startsWith('SOB_PLATAFORMA') ||
+              tipoFormulario.startsWith('TRAVADOR') ||
+              tipoFormulario.startsWith('CAIXA_TRAVA') ||
+              tipoFormulario.startsWith('TRAVA_CHASSI') ||
+              tipoFormulario.startsWith('CAVALETE') ||
+              tipoFormulario.startsWith('RAMPAS') ||
+              tipoFormulario.startsWith('PINTURA') ||
+              tipoFormulario.startsWith('EXPEDICAO') ||
+              tipoFormulario.startsWith('COLETOR')) && renderFormularioDetalhado()}
+            {isNovoCQ() && !tipoFormulario.startsWith('COLETOR') && renderGenericCQ()}
             {isDocumentos() && renderDocumentos()}
             {isRevisaoProjetos() && renderRevisaoProjetos()}
+            {/* Fallback para formulários não específicos - usar visualização detalhada */}
+            {!['REUNIAO_START', 'REUNIAO_START_2', 'PREPARACAO', 'LIBERACAO_EMBARQUE'].includes(tipoFormulario) &&
+             !isNovoCQ() && !isDocumentos() && !isRevisaoProjetos() &&
+             !tipoFormulario.includes('CORTE') && !tipoFormulario.includes('MONTAGEM') &&
+             !tipoFormulario.includes('SOLDA') && !tipoFormulario.includes('BRACOS') &&
+             !tipoFormulario.includes('PEDESTAIS') && !tipoFormulario.includes('CENTRAL') &&
+             !tipoFormulario.includes('PAINEL') && !tipoFormulario.includes('SOB_PLATAFORMA') &&
+             !tipoFormulario.includes('TRAVADOR') && !tipoFormulario.includes('CAIXA_TRAVA') &&
+             !tipoFormulario.includes('TRAVA_CHASSI') && !tipoFormulario.includes('CAVALETE') &&
+             !tipoFormulario.includes('RAMPAS') && !tipoFormulario.includes('PINTURA') &&
+             !tipoFormulario.includes('EXPEDICAO') && !tipoFormulario.includes('COLETOR') &&
+             renderFormularioDetalhado()}
           </>
         )}
       </div>

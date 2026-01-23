@@ -29,6 +29,8 @@ export async function verificarNaoConformidade(
     'defeituoso',
     'problema',
     'falha',
+    'nao',  // Resposta direta "Não"
+    'não',  // Resposta direta "Não"
   ];
 
   // Verificar todos os campos do formulário
@@ -42,8 +44,17 @@ export async function verificarNaoConformidade(
     if (key.includes('status') || key.includes('conforme') || key.includes('verificacao') || key.includes('resultado')) {
       const valorNormalizado = normalizar(value);
 
-      // Verificar se contém algum valor de NC
-      for (const nc of valoresNC) {
+      // Verificar valores exatos que indicam NC
+      const valoresExatosNC = ['nao', 'não', 'n'];
+      if (valoresExatosNC.includes(valorNormalizado)) {
+        temNC = true;
+        console.log(`🚨 NC detectada (resposta "Não") no campo ${key}: "${value}"`);
+        break;
+      }
+
+      // Verificar se contém algum valor de NC (exceto "nao" e "não" que já foram verificados)
+      const valoresNCParcial = valoresNC.filter(v => v !== 'nao' && v !== 'não');
+      for (const nc of valoresNCParcial) {
         if (valorNormalizado.includes(nc)) {
           temNC = true;
           console.log(`🚨 NC detectada no campo ${key}: "${value}"`);

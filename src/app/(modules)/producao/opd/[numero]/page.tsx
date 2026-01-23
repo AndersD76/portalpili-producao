@@ -61,6 +61,21 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
     }
   };
 
+  // Função de refresh inteligente: atualiza apenas a atividade específica se recebida
+  const handleRefresh = (atividadeAtualizada?: Atividade) => {
+    if (atividadeAtualizada) {
+      // Atualizar apenas a atividade específica no estado local (sem recarregar)
+      setAtividades(prevAtividades =>
+        prevAtividades.map(ativ =>
+          ativ.id === atividadeAtualizada.id ? atividadeAtualizada : ativ
+        )
+      );
+    } else {
+      // Fallback: recarregar tudo
+      fetchOPDAndAtividades();
+    }
+  };
+
   const updateAtividade = async (id: number, data: any) => {
     try {
       const response = await fetch(`/api/atividades/${numero}/${id}`, {
@@ -520,7 +535,7 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
                       atividade={atividade}
                       opdCliente={opd?.cliente || undefined}
                       onUpdate={updateAtividade}
-                      onRefresh={fetchOPDAndAtividades}
+                      onRefresh={handleRefresh}
                     />
                     {/* Subtarefas */}
                     {atividade.subtarefas && atividade.subtarefas.length > 0 && (
@@ -531,7 +546,7 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
                             atividade={subtarefa}
                             opdCliente={opd?.cliente || undefined}
                             onUpdate={updateAtividade}
-                            onRefresh={fetchOPDAndAtividades}
+                            onRefresh={handleRefresh}
                           />
                         ))}
                       </div>

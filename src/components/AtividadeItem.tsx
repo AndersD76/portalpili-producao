@@ -69,7 +69,7 @@ interface AtividadeItemProps {
   atividade: Atividade;
   opdCliente?: string;
   onUpdate: (id: number, data: any) => Promise<void>;
-  onRefresh: () => void | Promise<void>;
+  onRefresh: (atividadeAtualizada?: Atividade) => void | Promise<void>;
 }
 
 // Mapeamento de tipo_formulario para componente
@@ -305,7 +305,8 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
 
       const result = await response.json();
       if (result.success) {
-        onRefresh();
+        // Passa os dados atualizados para evitar recarregar toda a página
+        onRefresh(result.data);
       } else {
         toast.error(result.error || 'Erro ao executar acao');
       }
