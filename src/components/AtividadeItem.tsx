@@ -553,14 +553,23 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
               <span className="sm:hidden">{atividade.status === 'EM ANDAMENTO' ? 'ANDAMENTO' : atividade.status === 'A REALIZAR' ? 'REALIZAR' : atividade.status}</span>
             </div>
 
-            <svg
-              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              className="p-1 hover:bg-gray-100 rounded-full transition"
+              title={expanded ? 'Recolher' : 'Expandir'}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+              <svg
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
         </div>
 
