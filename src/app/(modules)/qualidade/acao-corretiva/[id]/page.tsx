@@ -466,9 +466,37 @@ export default function DetalhesAcaoCorretivaPage() {
     if (printWindow) {
       printWindow.document.write(printContent);
       printWindow.document.close();
-      printWindow.onload = () => {
-        printWindow.print();
-      };
+      printWindow.focus();
+
+      // Aguardar carregamento das imagens antes de imprimir
+      const images = printWindow.document.images;
+      if (images.length > 0) {
+        let loadedCount = 0;
+        const checkAllLoaded = () => {
+          loadedCount++;
+          if (loadedCount >= images.length) {
+            setTimeout(() => printWindow.print(), 300);
+          }
+        };
+
+        for (let i = 0; i < images.length; i++) {
+          if (images[i].complete) {
+            checkAllLoaded();
+          } else {
+            images[i].onload = checkAllLoaded;
+            images[i].onerror = checkAllLoaded;
+          }
+        }
+
+        // Fallback: imprimir após 5 segundos se imagens não carregarem
+        setTimeout(() => {
+          if (loadedCount < images.length) {
+            printWindow.print();
+          }
+        }, 5000);
+      } else {
+        setTimeout(() => printWindow.print(), 500);
+      }
     }
   };
 
