@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface FormularioMontagemEletricaHidraulicaProps {
   opd: string;
@@ -56,7 +57,7 @@ export default function FormularioMontagemEletricaHidraulica({
 
       for (const field of requiredFields) {
         if (!formData[field as keyof typeof formData]) {
-          alert(`Por favor, preencha o campo ${field.toUpperCase()}`);
+          toast.warning(`Por favor, preencha o campo ${field.toUpperCase()}`);
           setLoading(false);
           return;
         }
@@ -86,14 +87,14 @@ export default function FormularioMontagemEletricaHidraulica({
       const result = await response.json();
 
       if (result.success) {
-        alert('Formulário de Controle de Qualidade - Montagem Elétrica/Hidráulica salvo com sucesso!');
+        toast.success('Formulário de Controle de Qualidade - Montagem Elétrica/Hidráulica salvo com sucesso!');
         onSubmit();
       } else {
         throw new Error(result.error || 'Erro ao salvar formulário');
       }
     } catch (error) {
       console.error('Erro ao salvar formulário:', error);
-      alert('Erro ao salvar formulário. Por favor, tente novamente.');
+      toast.error('Erro ao salvar formulário. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }

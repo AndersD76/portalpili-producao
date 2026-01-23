@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
 import './globals.css'
 import NotificationManager from '@/components/NotificationManager'
 
@@ -47,6 +48,12 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <NotificationManager />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          duration={4000}
+        />
       </body>
     </html>
   )

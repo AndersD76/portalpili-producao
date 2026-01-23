@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface FormularioControleQualidadeCentralProps {
   opd: string;
@@ -118,7 +119,7 @@ export default function FormularioControleQualidadeCentral({ opd, cliente, ativi
       setFormData(prev => ({ ...prev, [fieldName]: uploadedFiles }));
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
-      alert('Erro ao fazer upload de arquivos');
+      toast.error('Erro ao fazer upload de arquivos');
     } finally {
       setUploadingImages(prev => ({ ...prev, [fieldName]: false }));
     }

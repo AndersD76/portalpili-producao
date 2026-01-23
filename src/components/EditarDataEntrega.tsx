@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface EditarDataEntregaProps {
   isOpen: boolean;
@@ -27,11 +28,11 @@ export default function EditarDataEntrega({
 
   const handleConfirm = () => {
     if (!novaData) {
-      alert('Por favor, informe a nova data de entrega');
+      toast.warning('Por favor, informe a nova data de entrega');
       return;
     }
     if (!justificativa.trim()) {
-      alert('Por favor, informe a justificativa para a alteração');
+      toast.warning('Por favor, informe a justificativa para a alteracao');
       return;
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface Postit {
   id: number;
@@ -45,7 +46,7 @@ export default function ModalPostits({ opd, onClose }: ModalPostitsProps) {
       }
     } catch (error) {
       console.error('Erro ao carregar post-its:', error);
-      alert('Erro ao carregar post-its');
+      toast.error('Erro ao carregar post-its');
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export default function ModalPostits({ opd, onClose }: ModalPostitsProps) {
 
         const data = await response.json();
         if (data.success) {
-          alert('Post-it atualizado com sucesso!');
+          toast.success('Post-it atualizado com sucesso!');
           loadPostits();
           resetForm();
         }
@@ -88,14 +89,14 @@ export default function ModalPostits({ opd, onClose }: ModalPostitsProps) {
 
         const data = await response.json();
         if (data.success) {
-          alert('Post-it criado com sucesso!');
+          toast.success('Post-it criado com sucesso!');
           loadPostits();
           resetForm();
         }
       }
     } catch (error) {
       console.error('Erro ao salvar post-it:', error);
-      alert('Erro ao salvar post-it');
+      toast.error('Erro ao salvar post-it');
     }
   };
 
@@ -120,12 +121,12 @@ export default function ModalPostits({ opd, onClose }: ModalPostitsProps) {
 
       const data = await response.json();
       if (data.success) {
-        alert('Post-it excluído com sucesso!');
+        toast.success('Post-it excluído com sucesso!');
         loadPostits();
       }
     } catch (error) {
       console.error('Erro ao excluir post-it:', error);
-      alert('Erro ao excluir post-it');
+      toast.error('Erro ao excluir post-it');
     }
   };
 

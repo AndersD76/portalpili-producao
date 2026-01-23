@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Mensagem } from '@/types/opd';
 
 interface MensagensChatProps {
@@ -22,7 +23,7 @@ export default function MensagensChat({
     e.preventDefault();
 
     if (!novaMensagem.trim() || !autor.trim()) {
-      alert('Preencha o nome e a mensagem');
+      toast.warning('Por favor, preencha o nome e a mensagem');
       return;
     }
 
@@ -32,7 +33,7 @@ export default function MensagensChat({
       setNovaMensagem('');
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      alert('Erro ao enviar mensagem');
+      toast.error('Erro ao enviar mensagem');
     } finally {
       setEnviando(false);
     }

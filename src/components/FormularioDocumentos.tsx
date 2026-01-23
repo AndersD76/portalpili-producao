@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface Documento {
   nome: string;
@@ -87,7 +88,7 @@ export default function FormularioDocumentos({
 
     // Validar tipo de arquivo
     if (!file.type.includes('pdf') && !file.type.includes('image')) {
-      alert('Por favor, selecione um arquivo PDF ou imagem');
+      toast.warning('Por favor, selecione um arquivo PDF ou imagem');
       return;
     }
 
@@ -118,11 +119,11 @@ export default function FormularioDocumentos({
         }
         setDocumentos(novosDocumentos);
       } else {
-        alert('Erro ao fazer upload: ' + result.error);
+        toast.error('Erro ao fazer upload: ' + result.error);
       }
     } catch (err) {
       console.error('Erro no upload:', err);
-      alert('Erro ao fazer upload do arquivo');
+      toast.error('Erro ao fazer upload do arquivo');
     } finally {
       setUploadingIndex(null);
     }

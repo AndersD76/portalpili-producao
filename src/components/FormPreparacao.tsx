@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface FormPreparacaoProps {
   numeroOpd: string;
@@ -33,7 +34,7 @@ export default function FormPreparacao({ numeroOpd, onSubmit, onCancel }: FormPr
     // Validar campos obrigatórios
     if (!formData.nome_cliente || !formData.modelo_equipamento || !formData.cidade_uf ||
         !formData.data_prevista_inicio || !formData.tecnicos_designados) {
-      alert('Por favor, preencha todos os campos obrigatórios');
+      toast.warning('Por favor, preencha todos os campos obrigatorios');
       return;
     }
 

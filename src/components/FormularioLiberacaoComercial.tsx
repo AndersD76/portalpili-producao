@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface FormularioLiberacaoComercialProps {
   opd: string;
@@ -98,7 +99,7 @@ export default function FormularioLiberacaoComercial({
 
       for (const field of requiredFields) {
         if (!formData[field as keyof typeof formData]) {
-          alert(`Por favor, preencha todos os critérios de verificação.`);
+          toast.warning('Por favor, preencha todos os criterios de verificacao.');
           setLoading(false);
           return;
         }
@@ -106,7 +107,7 @@ export default function FormularioLiberacaoComercial({
 
       // Se algum critério não foi atendido, a ação é obrigatória
       if (formData.todos_criterios_atendidos === 'Não' && !formData.acao_necessaria.trim()) {
-        alert('Por favor, informe a ação necessária para liberar a proposta.');
+        toast.warning('Por favor, informe a acao necessaria para liberar a proposta.');
         setLoading(false);
         return;
       }
@@ -144,14 +145,14 @@ export default function FormularioLiberacaoComercial({
       const result = await response.json();
 
       if (result.success) {
-        alert('Formulário de Liberação Comercial salvo com sucesso!');
+        toast.success('Formulario de Liberacao Comercial salvo com sucesso!');
         onSubmit(dados_formulario);
       } else {
         throw new Error(result.error || 'Erro ao salvar formulário');
       }
     } catch (error) {
       console.error('Erro ao salvar formulário:', error);
-      alert('Erro ao salvar formulário. Por favor, tente novamente.');
+      toast.error('Erro ao salvar formulario. Por favor, tente novamente.');
     } finally {
       setLoading(false);
       setUploadingFiles(false);

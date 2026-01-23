@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface FormLiberacaoEmbarqueProps {
   numeroOpd: string;
@@ -49,7 +50,7 @@ export default function FormLiberacaoEmbarque({ numeroOpd, onSubmit, onCancel }:
 
     // Validar campos obrigatórios
     if (!formData.responsavel_liberacao || !formData.data_liberacao) {
-      alert('Por favor, preencha todos os campos obrigatórios');
+      toast.warning('Por favor, preencha todos os campos obrigatorios');
       return;
     }
 

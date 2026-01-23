@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface SignaturePadProps {
   onSave: (signatureData: string) => void;
@@ -84,7 +85,7 @@ export default function SignaturePad({ onSave, label = 'Assinatura', required = 
     if (!canvas) return;
 
     if (isEmpty) {
-      alert('Por favor, assine antes de salvar');
+      toast.warning('Por favor, assine antes de salvar');
       return;
     }
 

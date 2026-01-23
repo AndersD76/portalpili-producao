@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface Comentario {
   id: number;
@@ -101,11 +102,11 @@ export default function ChatOPD({ numeroOPD }: ChatOPDProps) {
         setNovaMensagem('');
         fetchComentarios(); // Recarregar comentários
       } else {
-        alert('Erro ao enviar mensagem');
+        toast.error('Erro ao enviar mensagem');
       }
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
-      alert('Erro ao enviar mensagem');
+      toast.error('Erro ao enviar mensagem');
     } finally {
       setEnviando(false);
     }

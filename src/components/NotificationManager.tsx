@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 
 interface NotificationManagerProps {
   userId?: string;
@@ -249,7 +250,7 @@ export function NotificationBell() {
     }
 
     if (permission === 'denied') {
-      alert('Notificações bloqueadas. Habilite nas configurações do navegador.');
+      toast.warning('Notificacoes bloqueadas. Habilite nas configuracoes do navegador.');
       return;
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface WebcamCaptureProps {
   onPhotoCapture: (photoDataUrl: string) => void;
@@ -58,7 +59,7 @@ export default function WebcamCapture({
 
     // Verificar se o vídeo está pronto
     if (videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) {
-      alert('Aguarde o vídeo carregar completamente');
+      toast.warning('Aguarde o vídeo carregar completamente');
       return;
     }
 

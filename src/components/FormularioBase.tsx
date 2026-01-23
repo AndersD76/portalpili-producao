@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, ReactNode } from 'react';
+import { toast } from 'sonner';
 
 // ============================================
 // TIPOS
@@ -146,7 +147,7 @@ export default function FormularioBase({
       onSuccess(uploaded);
     } catch (err) {
       console.error('Erro no upload:', err);
-      alert('Erro ao fazer upload');
+      toast.error('Erro ao fazer upload');
     } finally {
       setUploading(false);
     }

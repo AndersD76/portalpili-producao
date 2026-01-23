@@ -2,6 +2,7 @@
 
 import { Atividade, LogAtividade } from '@/types/atividade';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import Modal from './Modal';
 import AtividadeForm from './AtividadeForm';
 
@@ -283,11 +284,11 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
       if (result.success) {
         onRefresh();
       } else {
-        alert(result.error || 'Erro ao executar ação');
+        toast.error(result.error || 'Erro ao executar acao');
       }
     } catch (error) {
       console.error('Erro ao controlar timer:', error);
-      alert('Erro ao controlar timer');
+      toast.error('Erro ao controlar timer');
     } finally {
       setLoading(false);
     }

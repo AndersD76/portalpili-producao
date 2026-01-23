@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface FormularioCorteProps {
   opd: string;
@@ -70,7 +71,7 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
       setFormData(prev => ({ ...prev, [fieldName]: uploadedFiles }));
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
-      alert('Erro ao fazer upload de arquivos');
+      toast.error('Erro ao fazer upload de arquivos');
     } finally {
       setUploadingImages(prev => ({ ...prev, [fieldName]: false }));
     }

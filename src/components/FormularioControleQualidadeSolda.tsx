@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 
 interface FormularioControleQualidadeSoldaProps {
   opd: string;
@@ -162,7 +163,7 @@ export default function FormularioControleQualidadeSolda({
 
       for (const field of requiredFields) {
         if (!formData[field as keyof typeof formData]) {
-          alert(`Por favor, preencha o campo ${field.toUpperCase()}`);
+          toast.warning(`Por favor, preencha o campo ${field.toUpperCase()}`);
           setLoading(false);
           setUploadingImages(false);
           return;
@@ -214,14 +215,14 @@ export default function FormularioControleQualidadeSolda({
       const result = await response.json();
 
       if (result.success) {
-        alert('Formulário de Controle de Qualidade - Solda salvo com sucesso!');
+        toast.success('Formulario de Controle de Qualidade - Solda salvo com sucesso!');
         onSubmit();
       } else {
         throw new Error(result.error || 'Erro ao salvar formulário');
       }
     } catch (error) {
       console.error('Erro ao salvar formulário:', error);
-      alert('Erro ao salvar formulário. Por favor, tente novamente.');
+      toast.error('Erro ao salvar formulario. Por favor, tente novamente.');
     } finally {
       setLoading(false);
       setUploadingImages(false);
