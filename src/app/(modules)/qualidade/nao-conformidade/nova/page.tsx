@@ -31,7 +31,6 @@ export default function NovaNaoConformidadePage() {
 
   const [formData, setFormData] = useState({
     // Identificação
-    email: '',
     data_emissao: new Date().toISOString().split('T')[0],
     responsavel_emissao: '',
     turno_trabalho: '' as TurnoTrabalho | '',
@@ -160,17 +159,6 @@ export default function NovaNaoConformidadePage() {
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data da emissão *</label>
                 <input

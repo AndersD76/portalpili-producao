@@ -374,7 +374,14 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
     <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-lg transition">
       <div
         className="p-3 sm:p-4 cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => {
+          // Se tem formulário e a atividade não está "A REALIZAR", abre o formulário direto
+          if (FormComponent && atividade.status !== 'A REALIZAR') {
+            setShowFormModal(true);
+          } else {
+            setExpanded(!expanded);
+          }
+        }}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">

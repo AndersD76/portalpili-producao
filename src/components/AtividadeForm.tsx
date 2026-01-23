@@ -20,20 +20,13 @@ export default function AtividadeForm({ atividade, numeroOpd, onSuccess, onCance
     data_termino: '',
     status: 'A REALIZAR' as 'A REALIZAR' | 'EM ANDAMENTO' | 'PAUSADA' | 'CONCLUÍDA',
     observacoes: '',
-    dias: '',
-    formulario_tipo: ''
+    dias: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (atividade) {
-      // Extrair o tipo de formulário do filename
-      let formulario_tipo = '';
-      if (atividade.formulario_anexo?.filename) {
-        formulario_tipo = atividade.formulario_anexo.filename.replace('.pdf', '');
-      }
-
       setFormData({
         atividade: atividade.atividade || '',
         responsavel: atividade.responsavel || 'PCP',
@@ -43,8 +36,7 @@ export default function AtividadeForm({ atividade, numeroOpd, onSuccess, onCance
         data_termino: atividade.data_termino ? atividade.data_termino.split('T')[0] : '',
         status: atividade.status || 'A REALIZAR',
         observacoes: atividade.observacoes || '',
-        dias: atividade.dias ? String(atividade.dias) : '',
-        formulario_tipo
+        dias: atividade.dias ? String(atividade.dias) : ''
       });
     }
   }, [atividade]);
@@ -65,22 +57,6 @@ export default function AtividadeForm({ atividade, numeroOpd, onSuccess, onCance
         : `/api/atividades/${numeroOpd}`;
       const method = atividade ? 'PATCH' : 'POST';
 
-      // Mapear formulário tipo para o arquivo correspondente
-      const formularios: { [key: string]: string } = {
-        'preparacao': 'preparacao.pdf',
-        'desembarque-pre-instalacao': 'desembarque-pre-instalacao.pdf',
-        'liberacao-embarque': 'liberacao-embarque.pdf',
-        'entrega': 'entrega.pdf'
-      };
-
-      const formulario_anexo = formData.formulario_tipo && formularios[formData.formulario_tipo]
-        ? {
-            filename: formularios[formData.formulario_tipo],
-            url: `/forms/${formularios[formData.formulario_tipo]}`,
-            size: 0
-          }
-        : null;
-
       const payload: any = {
         atividade: formData.atividade,
         responsavel: formData.responsavel,
@@ -91,8 +67,7 @@ export default function AtividadeForm({ atividade, numeroOpd, onSuccess, onCance
         status: formData.status,
         observacoes: formData.observacoes || null,
         dias: formData.dias ? parseInt(formData.dias) : null,
-        numero_opd: numeroOpd,
-        formulario_anexo
+        numero_opd: numeroOpd
       };
 
       const response = await fetch(url, {
@@ -257,25 +232,6 @@ export default function AtividadeForm({ atividade, numeroOpd, onSuccess, onCance
             placeholder="Ex: 5"
           />
         </div>
-      </div>
-
-      <div>
-        <label htmlFor="formulario_tipo" className="block text-sm font-medium text-gray-700 mb-1">
-          Formulário de Instalação
-        </label>
-        <select
-          id="formulario_tipo"
-          name="formulario_tipo"
-          value={formData.formulario_tipo}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-        >
-          <option value="">Sem formulário</option>
-          <option value="preparacao">PREPARAÇÃO</option>
-          <option value="desembarque-pre-instalacao">DESEMBARQUE E PRÉ INSTALAÇÃO</option>
-          <option value="liberacao-embarque">LIBERAÇÃO E EMBARQUE</option>
-          <option value="entrega">ENTREGA</option>
-        </select>
       </div>
 
       <div>
