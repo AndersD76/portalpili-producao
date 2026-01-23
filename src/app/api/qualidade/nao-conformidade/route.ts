@@ -76,7 +76,12 @@ export async function POST(request: Request) {
       disposicao_descricao,
       acao_contencao,
       responsavel_contencao,
-      created_by
+      created_by,
+      anexos,
+      turno_trabalho,
+      numero_opd,
+      quantidade_itens,
+      data_contencao
     } = body;
 
     // Validações
@@ -101,8 +106,8 @@ export async function POST(request: Request) {
         tipo, origem, gravidade, descricao, evidencias,
         produtos_afetados, quantidade_afetada, detectado_por, detectado_por_id,
         disposicao, disposicao_descricao, acao_contencao, responsavel_contencao,
-        status, created_by, created, updated
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        status, created_by, created, updated, anexos, turno_trabalho, numero_opd, quantidade_itens, data_contencao
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *
     `, [
       numero,
@@ -113,7 +118,7 @@ export async function POST(request: Request) {
       origem || null,
       gravidade || null,
       descricao,
-      evidencias ? JSON.stringify(evidencias) : null,
+      evidencias || null,
       produtos_afetados || null,
       quantidade_afetada || null,
       detectado_por || null,
@@ -125,7 +130,12 @@ export async function POST(request: Request) {
       'ABERTA',
       created_by || null,
       new Date().toISOString(),
-      new Date().toISOString()
+      new Date().toISOString(),
+      anexos ? JSON.stringify(anexos) : null,
+      turno_trabalho || null,
+      numero_opd || null,
+      quantidade_itens || null,
+      data_contencao || null
     ]);
 
     await client.query('COMMIT');

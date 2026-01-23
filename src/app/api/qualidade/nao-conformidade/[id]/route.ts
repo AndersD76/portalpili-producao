@@ -77,13 +77,20 @@ export async function PUT(
       'tipo', 'origem', 'gravidade', 'descricao', 'evidencias',
       'produtos_afetados', 'quantidade_afetada', 'detectado_por', 'detectado_por_id',
       'disposicao', 'disposicao_descricao', 'acao_contencao', 'data_contencao',
-      'responsavel_contencao', 'status', 'acao_corretiva_id', 'closed_by', 'closed_at'
+      'responsavel_contencao', 'status', 'acao_corretiva_id', 'closed_by', 'closed_at',
+      'anexos', 'turno_trabalho', 'numero_opd', 'quantidade_itens',
+      'data_emissao', 'responsavel_emissao', 'unidade_fabricacao', 'processo_origem',
+      'tarefa_origem', 'codigo_peca', 'evidencia_objetiva', 'acao_imediata',
+      'responsaveis_acoes', 'prazo_acoes', 'responsavel_liberacao'
     ];
+
+    // JSON fields need to be stringified
+    const jsonFields = ['evidencias', 'anexos'];
 
     for (const field of updateableFields) {
       if (body[field] !== undefined) {
         fields.push(`${field} = $${paramIndex}`);
-        if (field === 'evidencias') {
+        if (jsonFields.includes(field)) {
           values.push(body[field] ? JSON.stringify(body[field]) : null);
         } else {
           values.push(body[field]);

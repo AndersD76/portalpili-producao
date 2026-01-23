@@ -275,15 +275,11 @@ export default function DetalhesNCPage() {
               </div>
               <div class="field">
                 <div class="field-label">Unidade de Fabricação</div>
-                <div class="field-value">${nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao as keyof typeof UNIDADES_FABRICACAO] || nc.unidade_fabricacao : nc.local_ocorrencia || '-'}</div>
+                <div class="field-value">${nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao as keyof typeof UNIDADES_FABRICACAO] || nc.unidade_fabricacao : (nc.local_ocorrencia ? UNIDADES_FABRICACAO[nc.local_ocorrencia as keyof typeof UNIDADES_FABRICACAO] || nc.local_ocorrencia : '-')}</div>
               </div>
               <div class="field">
                 <div class="field-label">Processo de Origem</div>
-                <div class="field-value">${nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem as keyof typeof PROCESSOS_ORIGEM] || nc.processo_origem : nc.origem || '-'}</div>
-              </div>
-              <div class="field">
-                <div class="field-label">Setor Responsável</div>
-                <div class="field-value">${nc.setor_responsavel || '-'}</div>
+                <div class="field-value">${nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem as keyof typeof PROCESSOS_ORIGEM] || nc.processo_origem : (nc.setor_responsavel ? PROCESSOS_ORIGEM[nc.setor_responsavel as keyof typeof PROCESSOS_ORIGEM] || nc.setor_responsavel : '-')}</div>
               </div>
             </div>
           </div>
@@ -295,7 +291,7 @@ export default function DetalhesNCPage() {
             <div class="grid">
               <div class="field">
                 <div class="field-label">Tarefa de Origem</div>
-                <div class="field-value">${nc.tarefa_origem ? TAREFAS_ORIGEM[nc.tarefa_origem as keyof typeof TAREFAS_ORIGEM] || nc.tarefa_origem : '-'}</div>
+                <div class="field-value">${nc.tarefa_origem ? TAREFAS_ORIGEM[nc.tarefa_origem as keyof typeof TAREFAS_ORIGEM] || nc.tarefa_origem : (nc.origem ? TAREFAS_ORIGEM[nc.origem as keyof typeof TAREFAS_ORIGEM] || nc.origem : '-')}</div>
               </div>
               <div class="field">
                 <div class="field-label">Número OPD</div>
@@ -322,7 +318,7 @@ export default function DetalhesNCPage() {
             </div>
             <div class="field grid-full" style="margin-top: 8px;">
               <div class="field-label">Evidência Objetiva</div>
-              <div class="text-box">${nc.evidencia_objetiva || '-'}</div>
+              <div class="text-box">${nc.evidencia_objetiva || (typeof nc.evidencias === 'string' ? nc.evidencias : '') || '-'}</div>
             </div>
             <div class="field grid-full" style="margin-top: 8px;">
               <div class="field-label">Ação Imediata</div>
@@ -888,15 +884,11 @@ export default function DetalhesNCPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Unidade de Fabricação</p>
-                    <p className="font-medium">{nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao] || nc.unidade_fabricacao : nc.local_ocorrencia || '-'}</p>
+                    <p className="font-medium">{nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao] || nc.unidade_fabricacao : (nc.local_ocorrencia ? UNIDADES_FABRICACAO[nc.local_ocorrencia as keyof typeof UNIDADES_FABRICACAO] || nc.local_ocorrencia : '-')}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Processo de Origem</p>
-                    <p className="font-medium">{nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem] || nc.processo_origem : nc.origem || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Setor Responsável</p>
-                    <p className="font-medium">{nc.setor_responsavel || '-'}</p>
+                    <p className="font-medium">{nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem] || nc.processo_origem : (nc.setor_responsavel ? PROCESSOS_ORIGEM[nc.setor_responsavel as keyof typeof PROCESSOS_ORIGEM] || nc.setor_responsavel : '-')}</p>
                   </div>
                 </div>
               </div>
@@ -907,7 +899,7 @@ export default function DetalhesNCPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Tarefa de Origem</p>
-                    <p className="font-medium">{nc.tarefa_origem ? TAREFAS_ORIGEM[nc.tarefa_origem] || nc.tarefa_origem : '-'}</p>
+                    <p className="font-medium">{nc.tarefa_origem ? TAREFAS_ORIGEM[nc.tarefa_origem] || nc.tarefa_origem : (nc.origem ? TAREFAS_ORIGEM[nc.origem as keyof typeof TAREFAS_ORIGEM] || nc.origem : '-')}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Número OPD</p>
@@ -934,7 +926,7 @@ export default function DetalhesNCPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Evidência Objetiva</p>
-                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{nc.evidencia_objetiva || '-'}</p>
+                    <p className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">{nc.evidencia_objetiva || (typeof nc.evidencias === 'string' ? nc.evidencias : '') || '-'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Ação Imediata</p>

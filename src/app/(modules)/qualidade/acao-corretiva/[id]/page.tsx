@@ -342,7 +342,7 @@ export default function DetalhesAcaoCorretivaPage() {
             <div class="field-row">
               <div class="field">
                 <div class="field-label">Data de Emissão</div>
-                <div class="field-value">${formatDatePrint(acao.data_emissao)}</div>
+                <div class="field-value">${formatDatePrint(acao.data_emissao || acao.data_abertura)}</div>
               </div>
               <div class="field">
                 <div class="field-label">Emitente</div>
@@ -404,11 +404,11 @@ export default function DetalhesAcaoCorretivaPage() {
             <div class="field-row">
               <div class="field">
                 <div class="field-label">Responsaveis</div>
-                <div class="field-value">${acao.responsaveis || '-'}</div>
+                <div class="field-value">${acao.responsaveis || acao.responsavel_principal || '-'}</div>
               </div>
               <div class="field">
                 <div class="field-label">Prazo</div>
-                <div class="field-value">${formatDatePrint(acao.prazo)}</div>
+                <div class="field-value">${formatDatePrint(acao.prazo || acao.prazo_conclusao)}</div>
               </div>
             </div>
           </div>
@@ -669,8 +669,8 @@ export default function DetalhesAcaoCorretivaPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data de Emissão</label>
                 <input
                   type="date"
-                  value={editData.data_emissao?.split('T')[0] || ''}
-                  onChange={(e) => setEditData({ ...editData, data_emissao: e.target.value })}
+                  value={(editData.data_emissao || editData.data_abertura || '').split('T')[0]}
+                  onChange={(e) => setEditData({ ...editData, data_emissao: e.target.value, data_abertura: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
@@ -688,7 +688,7 @@ export default function DetalhesAcaoCorretivaPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Data de Emissão</p>
-                <p className="font-medium">{formatDate(acao.data_emissao)}</p>
+                <p className="font-medium">{formatDate(acao.data_emissao || acao.data_abertura)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Emitente</p>
@@ -816,8 +816,8 @@ export default function DetalhesAcaoCorretivaPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Responsáveis</label>
                   <input
                     type="text"
-                    value={editData.responsaveis || ''}
-                    onChange={(e) => setEditData({ ...editData, responsaveis: e.target.value })}
+                    value={editData.responsaveis || editData.responsavel_principal || ''}
+                    onChange={(e) => setEditData({ ...editData, responsaveis: e.target.value, responsavel_principal: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                 </div>
@@ -825,8 +825,8 @@ export default function DetalhesAcaoCorretivaPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prazo</label>
                   <input
                     type="date"
-                    value={editData.prazo?.split('T')[0] || ''}
-                    onChange={(e) => setEditData({ ...editData, prazo: e.target.value })}
+                    value={(editData.prazo || editData.prazo_conclusao || '').split('T')[0]}
+                    onChange={(e) => setEditData({ ...editData, prazo: e.target.value, prazo_conclusao: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg"
                   />
                 </div>
@@ -841,11 +841,11 @@ export default function DetalhesAcaoCorretivaPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Responsáveis</p>
-                  <p className="font-medium">{acao.responsaveis || '-'}</p>
+                  <p className="font-medium">{acao.responsaveis || acao.responsavel_principal || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Prazo</p>
-                  <p className="font-medium">{formatDate(acao.prazo)}</p>
+                  <p className="font-medium">{formatDate(acao.prazo || acao.prazo_conclusao)}</p>
                 </div>
               </div>
             </div>
