@@ -115,6 +115,118 @@ export default function DetalhesNCPage() {
     }
   };
 
+  const handlePrint = () => {
+    if (!nc) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Registro de Não Conformidade - ${nc.numero}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          h1 { color: #333; border-bottom: 2px solid #dc2626; padding-bottom: 10px; }
+          h2 { color: #555; margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }
+          .info-item { margin-bottom: 10px; }
+          .label { font-weight: bold; color: #666; font-size: 12px; text-transform: uppercase; }
+          .value { font-size: 14px; color: #333; margin-top: 3px; }
+          .description { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0; }
+          .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+          .status-ABERTA { background: #fee2e2; color: #991b1b; }
+          .status-EM_ANALISE { background: #fef3c7; color: #92400e; }
+          .status-PENDENTE_ACAO { background: #ffedd5; color: #9a3412; }
+          .status-FECHADA { background: #dcfce7; color: #166534; }
+          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #666; text-align: center; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Registro de Não Conformidade</h1>
+          <span class="status-badge status-${nc.status}">${STATUS_NAO_CONFORMIDADE[nc.status as keyof typeof STATUS_NAO_CONFORMIDADE] || nc.status}</span>
+        </div>
+
+        <h2>Identificação</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">Número</div>
+            <div class="value">${nc.numero}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Data da Ocorrência</div>
+            <div class="value">${formatDate(nc.data_ocorrencia)}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Local</div>
+            <div class="value">${nc.local_ocorrencia || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Tipo</div>
+            <div class="value">${TIPOS_NAO_CONFORMIDADE[nc.tipo] || nc.tipo}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Origem</div>
+            <div class="value">${nc.origem ? ORIGENS_NAO_CONFORMIDADE[nc.origem as keyof typeof ORIGENS_NAO_CONFORMIDADE] || nc.origem : '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Gravidade</div>
+            <div class="value">${nc.gravidade ? GRAVIDADES_NAO_CONFORMIDADE[nc.gravidade] : '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Setor Responsável</div>
+            <div class="value">${nc.setor_responsavel || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Detectado Por</div>
+            <div class="value">${nc.detectado_por || '-'}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Produtos Afetados</div>
+            <div class="value">${nc.produtos_afetados || '-'}</div>
+          </div>
+        </div>
+
+        <h2>Descrição da Não Conformidade</h2>
+        <div class="description">${nc.descricao}</div>
+
+        ${nc.disposicao ? `
+        <h2>Disposição</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">Disposição</div>
+            <div class="value">${DISPOSICOES_NAO_CONFORMIDADE[nc.disposicao]}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">Responsável Contenção</div>
+            <div class="value">${nc.responsavel_contencao || '-'}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${nc.acao_contencao ? `
+        <h2>Ação de Contenção</h2>
+        <div class="description">${nc.acao_contencao}</div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili</p>
+          <p>Criado em: ${formatDateTime(nc.created)} | Atualizado em: ${formatDateTime(nc.updated)}${nc.closed_at ? ` | Fechado em: ${formatDateTime(nc.closed_at)}` : ''}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 250);
+    }
+  };
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
@@ -228,6 +340,15 @@ export default function DetalhesNCPage() {
                 Criar RAC
               </Link>
             )}
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Imprimir
+            </button>
             <button
               onClick={handleDelete}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm ml-auto"

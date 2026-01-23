@@ -127,6 +127,258 @@ export default function DetalhesReclamacaoPage() {
     }
   };
 
+  const handlePrint = () => {
+    if (!reclamacao) return;
+
+    const tipoReclamacao = reclamacao.tipo_reclamacao
+      ? TIPOS_RECLAMACAO[reclamacao.tipo_reclamacao as keyof typeof TIPOS_RECLAMACAO] || reclamacao.tipo_reclamacao
+      : '-';
+    const impacto = reclamacao.impacto
+      ? IMPACTOS_RECLAMACAO[reclamacao.impacto as keyof typeof IMPACTOS_RECLAMACAO] || reclamacao.impacto
+      : '-';
+    const status = STATUS_RECLAMACAO[reclamacao.status as keyof typeof STATUS_RECLAMACAO] || reclamacao.status;
+    const procedencia = reclamacao.procedencia === null ? 'Não definida' : (reclamacao.procedencia ? 'Procedente' : 'Improcedente');
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reclamação ${reclamacao.numero}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            padding: 20px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #ea580c;
+          }
+          .header h1 {
+            color: #ea580c;
+            font-size: 24px;
+            margin-bottom: 5px;
+          }
+          .header .numero {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+          }
+          .header .subtitle {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+          }
+          .status-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+          }
+          .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 11px;
+          }
+          .status-aberta { background: #fee2e2; color: #991b1b; }
+          .status-em_analise { background: #fef3c7; color: #92400e; }
+          .status-respondida { background: #dbeafe; color: #1e40af; }
+          .status-fechada { background: #d1fae5; color: #065f46; }
+          .procedente { background: #fee2e2; color: #991b1b; }
+          .improcedente { background: #f3f4f6; color: #374151; }
+          .nao-definida { background: #f3f4f6; color: #6b7280; }
+          .section {
+            margin-bottom: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          .section-title {
+            background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+            color: white;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+          }
+          .section-content {
+            padding: 15px;
+          }
+          .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+          }
+          .grid-full {
+            grid-column: span 2;
+          }
+          .field {
+            margin-bottom: 10px;
+          }
+          .field-label {
+            font-size: 10px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+          }
+          .field-value {
+            font-size: 12px;
+            color: #111827;
+            font-weight: 500;
+          }
+          .text-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 5px;
+            white-space: pre-wrap;
+          }
+          .text-box.resposta {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+          }
+          .text-box.acao {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 10px;
+            color: #9ca3af;
+          }
+          @media print {
+            body { padding: 10px; }
+            .section { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>RECLAMACAO DE CLIENTE</h1>
+          <div class="numero">${reclamacao.numero}</div>
+          <div class="subtitle">Data: ${formatDate(reclamacao.data_reclamacao)}</div>
+          <div class="status-row">
+            <span class="status-badge status-${reclamacao.status.toLowerCase()}">${status}</span>
+            <span class="status-badge ${reclamacao.procedencia === null ? 'nao-definida' : (reclamacao.procedencia ? 'procedente' : 'improcedente')}">${procedencia}</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">INFORMACOES DO CLIENTE</div>
+          <div class="section-content">
+            <div class="grid">
+              <div class="grid-full">
+                <div class="field">
+                  <div class="field-label">Nome do Cliente</div>
+                  <div class="field-value">${reclamacao.cliente_nome}</div>
+                </div>
+              </div>
+              <div>
+                <div class="field">
+                  <div class="field-label">Contato</div>
+                  <div class="field-value">${reclamacao.cliente_contato || '-'}</div>
+                </div>
+              </div>
+              <div>
+                <div class="field">
+                  <div class="field-label">E-mail</div>
+                  <div class="field-value">${reclamacao.cliente_email || '-'}</div>
+                </div>
+              </div>
+              <div>
+                <div class="field">
+                  <div class="field-label">Telefone</div>
+                  <div class="field-value">${reclamacao.cliente_telefone || '-'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">DETALHES DA RECLAMACAO</div>
+          <div class="section-content">
+            <div class="grid">
+              <div>
+                <div class="field">
+                  <div class="field-label">Tipo de Reclamacao</div>
+                  <div class="field-value">${tipoReclamacao}</div>
+                </div>
+              </div>
+              <div>
+                <div class="field">
+                  <div class="field-label">Impacto</div>
+                  <div class="field-value">${impacto}</div>
+                </div>
+              </div>
+              <div>
+                <div class="field">
+                  <div class="field-label">OPD Relacionada</div>
+                  <div class="field-value">${reclamacao.numero_opd || '-'}</div>
+                </div>
+              </div>
+              ${reclamacao.numero_serie ? `
+              <div>
+                <div class="field">
+                  <div class="field-label">Numero de Serie</div>
+                  <div class="field-value">${reclamacao.numero_serie}</div>
+                </div>
+              </div>
+              ` : ''}
+            </div>
+            <div class="field grid-full">
+              <div class="field-label">Descricao da Reclamacao</div>
+              <div class="text-box">${reclamacao.descricao}</div>
+            </div>
+            ${reclamacao.resposta_cliente ? `
+            <div class="field grid-full">
+              <div class="field-label">Resposta ao Cliente</div>
+              <div class="text-box resposta">${reclamacao.resposta_cliente}</div>
+            </div>
+            ` : ''}
+            ${reclamacao.acao_tomada ? `
+            <div class="field grid-full">
+              <div class="field-label">Acao Tomada</div>
+              <div class="text-box acao">${reclamacao.acao_tomada}</div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} - Portal Pili - Gestao da Qualidade</p>
+          <p>Criado em: ${formatDateTime(reclamacao.created)} | Atualizado em: ${formatDateTime(reclamacao.updated)}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  };
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
@@ -254,6 +506,15 @@ export default function DetalhesReclamacaoPage() {
                 Criar RAC
               </Link>
             )}
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Imprimir
+            </button>
             <button
               onClick={handleDelete}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm ml-auto"

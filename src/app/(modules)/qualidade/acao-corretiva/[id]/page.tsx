@@ -178,6 +178,324 @@ export default function DetalhesAcaoCorretivaPage() {
     }
   };
 
+  const handlePrint = () => {
+    if (!acao) return;
+
+    const formatDatePrint = (dateString: string | null | undefined) => {
+      if (!dateString) return '-';
+      return new Date(dateString).toLocaleDateString('pt-BR');
+    };
+
+    const getStatusLabel = (status: string) => {
+      return STATUS_ACAO_CORRETIVA[status as keyof typeof STATUS_ACAO_CORRETIVA] || status;
+    };
+
+    const getProcessosLabel = () => {
+      if (!acao.processos_envolvidos || acao.processos_envolvidos.length === 0) return '-';
+      return acao.processos_envolvidos
+        .map(p => PROCESSOS_ORIGEM[p] || p)
+        .join(', ');
+    };
+
+    const getStatusAcoesLabel = () => {
+      if (!acao.status_acoes) return '-';
+      return STATUS_ACOES_AC[acao.status_acoes as keyof typeof STATUS_ACOES_AC] || acao.status_acoes;
+    };
+
+    const getAcoesFinalizadasLabel = () => {
+      if (!acao.acoes_finalizadas) return '-';
+      return ACOES_FINALIZADAS_AC[acao.acoes_finalizadas as keyof typeof ACOES_FINALIZADAS_AC] || acao.acoes_finalizadas;
+    };
+
+    const getSituacaoFinalLabel = () => {
+      if (!acao.situacao_final) return '-';
+      return SITUACAO_FINAL_AC[acao.situacao_final as keyof typeof SITUACAO_FINAL_AC] || acao.situacao_final;
+    };
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>RAC - ${acao.numero}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            padding: 20px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #1e40af;
+          }
+          .header h1 {
+            color: #1e40af;
+            font-size: 22px;
+            margin-bottom: 5px;
+          }
+          .header .subtitle {
+            color: #64748b;
+            font-size: 11px;
+          }
+          .header .rac-number {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-top: 8px;
+          }
+          .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 8px;
+          }
+          .status-ABERTA { background-color: #fee2e2; color: #991b1b; }
+          .status-EM_ANDAMENTO { background-color: #dbeafe; color: #1e40af; }
+          .status-AGUARDANDO_VERIFICACAO { background-color: #fef3c7; color: #92400e; }
+          .status-FECHADA { background-color: #dcfce7; color: #166534; }
+          .section {
+            margin-bottom: 18px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+          }
+          .section-header {
+            background-color: #1e40af;
+            color: white;
+            padding: 8px 15px;
+            font-weight: bold;
+            font-size: 13px;
+          }
+          .section-content {
+            padding: 15px;
+            background-color: #f8fafc;
+          }
+          .field-row {
+            display: flex;
+            margin-bottom: 10px;
+          }
+          .field-row:last-child {
+            margin-bottom: 0;
+          }
+          .field {
+            flex: 1;
+            padding-right: 15px;
+          }
+          .field-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+            font-weight: bold;
+          }
+          .field-value {
+            font-size: 12px;
+            color: #1e293b;
+          }
+          .text-block {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+          }
+          .text-block.falha { border-left: 4px solid #ef4444; }
+          .text-block.causas { border-left: 4px solid #f59e0b; }
+          .text-block.subcausas { border-left: 4px solid #f97316; }
+          .text-block.acoes { border-left: 4px solid #3b82f6; }
+          .processos-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+          }
+          .processo-tag {
+            background-color: #e2e8f0;
+            color: #475569;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+          }
+          .eficacia-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+          }
+          .eficacia-EFICAZ { background-color: #dcfce7; color: #166534; }
+          .eficacia-PARCIALMENTE_EFICAZ { background-color: #fef3c7; color: #92400e; }
+          .eficacia-NAO_EFICAZ { background-color: #fee2e2; color: #991b1b; }
+          .footer {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 10px;
+            color: #64748b;
+            text-align: center;
+          }
+          @media print {
+            body { padding: 10px; }
+            .section { break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>REGISTRO DE ACAO CORRETIVA</h1>
+          <div class="subtitle">No 57-3 - REV. 01</div>
+          <div class="rac-number">${acao.numero}</div>
+          <span class="status-badge status-${acao.status}">${getStatusLabel(acao.status)}</span>
+        </div>
+
+        <div class="section">
+          <div class="section-header">IDENTIFICACAO</div>
+          <div class="section-content">
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">E-mail</div>
+                <div class="field-value">${acao.email || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Data de Emissao</div>
+                <div class="field-value">${formatDatePrint(acao.data_emissao)}</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Emitente</div>
+                <div class="field-value">${acao.emitente || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">NC Relacionada</div>
+                <div class="field-value">${acao.numero_nc_relacionada || '-'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">ANALISE DAS CAUSAS</div>
+          <div class="section-content">
+            <div class="field-row">
+              <div class="field" style="flex: 1; padding-right: 0;">
+                <div class="field-label">Processos Envolvidos</div>
+                <div class="field-value">${getProcessosLabel()}</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field" style="flex: 1; padding-right: 0;">
+                <div class="field-label">Falha</div>
+                <div class="text-block falha">${acao.falha || '-'}</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field" style="flex: 1; padding-right: 0;">
+                <div class="field-label">Causas</div>
+                <div class="text-block causas">${acao.causas || '-'}</div>
+              </div>
+            </div>
+            ${acao.subcausas ? `
+            <div class="field-row">
+              <div class="field" style="flex: 1; padding-right: 0;">
+                <div class="field-label">Subcausas</div>
+                <div class="text-block subcausas">${acao.subcausas}</div>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">ACOES PARA ELIMINAR AS CAUSAS</div>
+          <div class="section-content">
+            <div class="field-row">
+              <div class="field" style="flex: 1; padding-right: 0;">
+                <div class="field-label">Acoes</div>
+                <div class="text-block acoes">${acao.acoes || '-'}</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Responsaveis</div>
+                <div class="field-value">${acao.responsaveis || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Prazo</div>
+                <div class="field-value">${formatDatePrint(acao.prazo)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">CONDICOES DAS ACOES</div>
+          <div class="section-content">
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Status das Acoes</div>
+                <div class="field-value">${getStatusAcoesLabel()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">ANALISE DA EFICACIA</div>
+          <div class="section-content">
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Acoes Finalizadas?</div>
+                <div class="field-value">${getAcoesFinalizadasLabel()}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Situacao Final</div>
+                <div class="field-value">
+                  ${acao.situacao_final ? `<span class="eficacia-badge eficacia-${acao.situacao_final}">${getSituacaoFinalLabel()}</span>` : '-'}
+                </div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Responsavel pela Analise</div>
+                <div class="field-value">${acao.responsavel_analise || '-'}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Data da Analise</div>
+                <div class="field-value">${formatDatePrint(acao.data_analise)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')} | Portal Pili - Sistema de Gestao da Qualidade</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  };
+
   const handleProcessoChange = (processo: ProcessoOrigem) => {
     const processos = editData.processos_envolvidos || [];
     const newProcessos = processos.includes(processo)
@@ -318,6 +636,15 @@ export default function DetalhesAcaoCorretivaPage() {
                 </button>
               </>
             )}
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Imprimir
+            </button>
             <button
               onClick={handleDelete}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm ml-auto"

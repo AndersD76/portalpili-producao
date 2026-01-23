@@ -115,21 +115,8 @@ export default function ModalVisualizarFormulario({
     setError(null);
 
     try {
-      // Buscar o endpoint no mapeamento
-      const apiEndpoint = ENDPOINT_MAP[tipoFormulario];
-
-      if (!apiEndpoint) {
-        console.warn('Tipo de formulário não mapeado:', tipoFormulario);
-        setError(`Tipo de formulário não suportado: ${tipoFormulario}`);
-        setLoading(false);
-        return;
-      }
-
-      // Para formulários de documentos, adiciona o tipo como parâmetro
-      let endpoint = `/api/${apiEndpoint}/${numeroOpd}?atividade_id=${atividadeId}`;
-      if (['OBRA_CIVIL', 'ENGENHARIA_MECANICA', 'ENGENHARIA_ELETRICA_HIDRAULICA'].includes(tipoFormulario)) {
-        endpoint += `&tipo=${tipoFormulario}`;
-      }
+      // Usar API genérica que busca por atividade_id
+      const endpoint = `/api/formularios-preenchidos/atividade/${atividadeId}`;
       console.log('Carregando formulário:', endpoint);
 
       const response = await fetch(endpoint);
@@ -138,7 +125,26 @@ export default function ModalVisualizarFormulario({
       if (result.success) {
         setFormulario(result.data);
       } else {
-        setError(result.error || 'Formulário não encontrado');
+        // Fallback: tentar endpoint específico se a API genérica falhar
+        const apiEndpoint = ENDPOINT_MAP[tipoFormulario];
+        if (apiEndpoint) {
+          let fallbackEndpoint = `/api/${apiEndpoint}/${numeroOpd}?atividade_id=${atividadeId}`;
+          if (['OBRA_CIVIL', 'ENGENHARIA_MECANICA', 'ENGENHARIA_ELETRICA_HIDRAULICA'].includes(tipoFormulario)) {
+            fallbackEndpoint += `&tipo=${tipoFormulario}`;
+          }
+          console.log('Tentando fallback:', fallbackEndpoint);
+
+          const fallbackResponse = await fetch(fallbackEndpoint);
+          const fallbackResult = await fallbackResponse.json();
+
+          if (fallbackResult.success) {
+            setFormulario(fallbackResult.data);
+          } else {
+            setError(fallbackResult.error || 'Formulário não encontrado');
+          }
+        } else {
+          setError(result.error || 'Formulário não encontrado');
+        }
       }
     } catch (err) {
       setError('Erro ao carregar formulário');
