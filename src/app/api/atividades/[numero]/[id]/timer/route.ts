@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
 
 type AcaoTimer = 'INICIAR' | 'PAUSAR' | 'RETOMAR' | 'FINALIZAR';
 
@@ -32,7 +33,7 @@ export async function POST(
 
     // Buscar atividade atual
     const atividadeResult = await pool.query(
-      `SELECT id, status, tempo_acumulado_segundos, ultimo_inicio, logs, data_inicio
+      `SELECT id, numero_opd, atividade, status, tempo_acumulado_segundos, ultimo_inicio, logs, data_inicio
        FROM registros_atividades WHERE id = $1`,
       [parseInt(id)]
     );
@@ -162,6 +163,22 @@ export async function POST(
         WHERE id = $5
         RETURNING *
       `, [novoStatus, tempoAcumulado, ultimoInicio, JSON.stringify(logs), parseInt(id)]);
+    }
+
+    // Enviar push notification para início e fim de tarefas
+    try {
+      if (acao === 'INICIAR') {
+        await enviarNotificacaoPush(
+          notificacoes.tarefaIniciada(atividade.numero_opd, atividade.atividade, usuario_nome)
+        );
+      } else if (acao === 'FINALIZAR') {
+        await enviarNotificacaoPush(
+          notificacoes.tarefaFinalizada(atividade.numero_opd, atividade.atividade, usuario_nome)
+        );
+      }
+    } catch (notifError) {
+      console.error('Erro ao enviar notificação:', notifError);
+      // Não falha a operação se falhar a notificação
     }
 
     return NextResponse.json({
