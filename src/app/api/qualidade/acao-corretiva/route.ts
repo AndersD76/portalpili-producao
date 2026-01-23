@@ -69,7 +69,14 @@ export async function POST(request: Request) {
       responsavel_principal_id,
       prazo_conclusao,
       equipe,
-      created_by
+      created_by,
+      // Campos adicionais do formulário
+      emitente,
+      processos_envolvidos,
+      causas,
+      subcausas,
+      acoes,
+      status_acoes
     } = body;
 
     // Validações
@@ -92,8 +99,9 @@ export async function POST(request: Request) {
       INSERT INTO acoes_corretivas (
         numero, data_abertura, origem_tipo, origem_id, origem_descricao,
         descricao_problema, responsavel_principal, responsavel_principal_id,
-        prazo_conclusao, equipe, status, created_by, created, updated
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        prazo_conclusao, equipe, status, created_by, created, updated,
+        emitente, processos_envolvidos, causas, subcausas, acoes, status_acoes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `, [
       numero,
@@ -109,7 +117,13 @@ export async function POST(request: Request) {
       'ABERTA',
       created_by || null,
       new Date().toISOString(),
-      new Date().toISOString()
+      new Date().toISOString(),
+      emitente || null,
+      processos_envolvidos ? JSON.stringify(processos_envolvidos) : null,
+      causas || null,
+      subcausas || null,
+      acoes || null,
+      status_acoes || null
     ]);
 
     // Se a origem for uma NC ou reclamação, atualizar a referência

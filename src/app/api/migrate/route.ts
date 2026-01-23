@@ -241,7 +241,27 @@ export async function POST() {
       }
     }
 
-    // 11. Reprocessar NCs dos formulários existentes
+    // 11. Adicionar colunas extras na tabela acoes_corretivas
+    try {
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS emitente VARCHAR(255)`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS processos_envolvidos JSONB`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS causas TEXT`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS subcausas TEXT`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS acoes TEXT`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS status_acoes VARCHAR(50)`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS acoes_finalizadas VARCHAR(50)`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS situacao_final VARCHAR(50)`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS responsavel_analise VARCHAR(255)`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS data_analise DATE`);
+      await pool.query(`ALTER TABLE acoes_corretivas ADD COLUMN IF NOT EXISTS evidencias_anexos JSONB`);
+      results.push('✅ Colunas extras adicionadas à tabela acoes_corretivas');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro colunas acoes_corretivas: ${e.message}`);
+      }
+    }
+
+    // 12. Reprocessar NCs dos formulários existentes
     try {
       // Buscar formulários com "não conforme" e atualizar atividades
       const atividadesComNC = await pool.query(`
