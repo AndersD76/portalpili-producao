@@ -454,7 +454,7 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
           {(formData as any)[`${fieldName}_imagem`] && (formData as any)[`${fieldName}_imagem`].length > 0 && (
             <div className="mt-3 space-y-2">
               {(formData as any)[`${fieldName}_imagem`].map((file: { filename: string; url: string; size: number }, index: number) => {
-                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename || file.url);
+                const isImage = file.url?.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename || file.url);
                 return (
                   <div key={index} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
                     <div className="flex items-center space-x-3 flex-1 min-w-0">

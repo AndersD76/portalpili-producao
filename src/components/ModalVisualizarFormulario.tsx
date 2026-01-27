@@ -818,7 +818,7 @@ export default function ModalVisualizarFormulario({
     const getCorStatus = (status: string) => {
       const s = status?.toLowerCase() || '';
       if (s.includes('conforme') && !s.includes('não')) return 'bg-green-100 text-green-800 border-green-300';
-      if (s.includes('não conforme') || s === 'não' || s === 'nao') return 'bg-red-100 text-red-800 border-red-300';
+      if (s.includes('não conforme') || s === 'não' || s === 'nao') return 'bg-orange-100 text-orange-800 border-orange-300';
       if (s.includes('não aplicável') || s.includes('n/a')) return 'bg-gray-100 text-gray-600 border-gray-300';
       return 'bg-blue-100 text-blue-800 border-blue-300';
     };
@@ -912,9 +912,12 @@ export default function ModalVisualizarFormulario({
                 const isAnexoArray = Array.isArray(value) && value.length > 0 && value[0] && typeof value[0] === 'object' && 'url' in value[0];
                 // Verifica se é um único anexo (objeto com url)
                 const isAnexoSingle = !Array.isArray(value) && typeof value === 'object' && value !== null && 'url' in value;
+                // Verifica se é um valor Sim/Não
+                const valorStr = String(value).toLowerCase();
+                const isSimNao = valorStr === 'sim' || valorStr === 'não' || valorStr === 'nao';
 
                 return (
-                  <div key={idx} className="border-b border-gray-200 pb-2">
+                  <div key={idx} className={`border-b border-gray-200 pb-2 ${isSimNao ? 'flex items-center justify-between' : ''}`}>
                     <span className="font-semibold text-gray-700">{formatarNomeCampo(key)}:</span>
                     {isAnexoArray ? (
                       <div className="mt-2 space-y-1">
@@ -951,6 +954,14 @@ export default function ModalVisualizarFormulario({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
                       </a>
+                    ) : isSimNao ? (
+                      <span className={`ml-2 px-3 py-1 rounded-full text-sm font-bold ${
+                        valorStr === 'sim'
+                          ? 'bg-green-100 text-green-800 border border-green-300'
+                          : 'bg-red-100 text-red-800 border border-red-300'
+                      }`}>
+                        {String(value)}
+                      </span>
                     ) : (
                       <p className="text-gray-900 mt-1">
                         {typeof value === 'object' ? JSON.stringify(value) : String(value)}

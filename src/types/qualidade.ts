@@ -458,3 +458,60 @@ export const STATUS_ITEM_ACAO: Record<StatusItemAcao, string> = {
   CONCLUIDA: 'Concluída',
   CANCELADA: 'Cancelada'
 };
+
+// ==========================================
+// Tipos para Configuração de CQ (Controle de Qualidade)
+// ==========================================
+
+// Opção do dropdown do CQ
+export interface CQOpcaoDropdown {
+  valor: string;
+  label: string;
+}
+
+// Configuração de uma pergunta/campo de CQ
+export interface CQPerguntaConfig {
+  id: string;                    // Ex: 'cq1a', 'cq2b'
+  codigo: string;                // Ex: 'CQ1-A', 'CQ2-B'
+  titulo: string;                // Título da pergunta
+  criterios: string;             // Critérios de aceitação
+  descricao?: string;            // Descrição detalhada (opcional)
+  opcoes: CQOpcaoDropdown[];     // Opções do dropdown
+  requerImagem: boolean;         // Se requer anexo de imagem
+  ordem: number;                 // Ordem de exibição
+  ativo: boolean;                // Se está ativo/visível
+  secao?: string;                // Seção do formulário (A, B, C, etc.)
+}
+
+// Configuração de um formulário CQ completo
+export interface CQFormularioConfig {
+  id: number;
+  tipo: 'CONTROLE_QUALIDADE' | 'CONTROLE_QUALIDADE_CENTRAL' | 'CONTROLE_QUALIDADE_SOLDA' | 'CONTROLE_QUALIDADE_SOLDA_LADO2';
+  nome: string;                  // Nome do formulário
+  descricao?: string;            // Descrição do formulário
+  perguntas: CQPerguntaConfig[]; // Lista de perguntas
+  created: string;
+  updated: string;
+}
+
+// Opções padrão do dropdown CQ
+export const CQ_OPCOES_PADRAO: CQOpcaoDropdown[] = [
+  { valor: '', label: 'Selecione' },
+  { valor: 'Conforme', label: 'Conforme' },
+  { valor: 'Não conforme', label: 'Não conforme' }
+];
+
+export const CQ_OPCOES_COM_NA: CQOpcaoDropdown[] = [
+  { valor: '', label: 'Selecione' },
+  { valor: 'Conforme', label: 'Conforme' },
+  { valor: 'Não conforme', label: 'Não conforme' },
+  { valor: 'Não aplicável', label: 'Não aplicável' }
+];
+
+// Tipos de formulário CQ
+export const TIPOS_FORMULARIO_CQ = {
+  CONTROLE_QUALIDADE: 'Controle de qualidade - Montagem',
+  CONTROLE_QUALIDADE_CENTRAL: 'Controle de qualidade - Central hidráulica',
+  CONTROLE_QUALIDADE_SOLDA: 'Controle de qualidade - Solda lado 1',
+  CONTROLE_QUALIDADE_SOLDA_LADO2: 'Controle de qualidade - Solda lado 2'
+} as const;

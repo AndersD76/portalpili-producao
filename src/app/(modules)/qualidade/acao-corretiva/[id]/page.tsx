@@ -29,6 +29,23 @@ export default function DetalhesAcaoCorretivaPage() {
   const [uploadingEvidencias, setUploadingEvidencias] = useState(false);
   const fileInputEvidenciasRef = useRef<HTMLInputElement>(null);
 
+  // Modal para Iniciar Tratamento
+  const [showModalTratamento, setShowModalTratamento] = useState(false);
+  const [tratamentoData, setTratamentoData] = useState({
+    acoes: '',
+    responsaveis: '',
+    prazo: ''
+  });
+
+  // Modal para Análise de Eficácia
+  const [showModalEficacia, setShowModalEficacia] = useState(false);
+  const [eficaciaData, setEficaciaData] = useState({
+    acoes_finalizadas: '' as AcoesFinalizadasAC | '',
+    situacao_final: '' as SituacaoFinalAC | '',
+    responsavel_analise: '',
+    data_analise: ''
+  });
+
   useEffect(() => {
     const authenticated = localStorage.getItem('authenticated');
     if (authenticated !== 'true') {
@@ -131,13 +148,13 @@ export default function DetalhesAcaoCorretivaPage() {
     }
   };
 
-  const handleStatusChange = async (newStatus: StatusAcaoCorretiva) => {
+  const handleStatusChange = async (newStatus: StatusAcaoCorretiva, additionalData?: Partial<AcaoCorretiva>) => {
     setSaving(true);
     try {
       const response = await fetch(`/api/qualidade/acao-corretiva/${params.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, ...additionalData })
       });
 
       const result = await response.json();
@@ -153,12 +170,67 @@ export default function DetalhesAcaoCorretivaPage() {
           acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
         }
         setAcao(acaoData);
+        setEditData(acaoData);
       }
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
     } finally {
       setSaving(false);
     }
+  };
+
+  // Iniciar Tratamento - abre modal
+  const handleIniciarTratamento = () => {
+    setTratamentoData({
+      acoes: acao?.acoes || '',
+      responsaveis: acao?.responsaveis || acao?.responsavel_principal || '',
+      prazo: (acao?.prazo || acao?.prazo_conclusao || '').split('T')[0]
+    });
+    setShowModalTratamento(true);
+  };
+
+  // Confirmar início do tratamento
+  const handleConfirmarTratamento = async () => {
+    if (!tratamentoData.acoes.trim()) {
+      alert('Por favor, descreva as ações que serão realizadas.');
+      return;
+    }
+    await handleStatusChange('EM_ANDAMENTO', {
+      acoes: tratamentoData.acoes,
+      responsaveis: tratamentoData.responsaveis,
+      responsavel_principal: tratamentoData.responsaveis,
+      prazo: tratamentoData.prazo,
+      prazo_conclusao: tratamentoData.prazo,
+      status_acoes: 'EM_ANDAMENTO'
+    });
+    setShowModalTratamento(false);
+  };
+
+  // Aguardar Verificação - abre modal de eficácia
+  const handleAguardarVerificacao = () => {
+    setEficaciaData({
+      acoes_finalizadas: '',
+      situacao_final: '',
+      responsavel_analise: '',
+      data_analise: new Date().toISOString().split('T')[0]
+    });
+    setShowModalEficacia(true);
+  };
+
+  // Confirmar análise de eficácia
+  const handleConfirmarEficacia = async () => {
+    if (!eficaciaData.acoes_finalizadas) {
+      alert('Por favor, informe se as ações foram finalizadas.');
+      return;
+    }
+    await handleStatusChange('AGUARDANDO_VERIFICACAO', {
+      acoes_finalizadas: eficaciaData.acoes_finalizadas as AcoesFinalizadasAC,
+      situacao_final: eficaciaData.situacao_final as SituacaoFinalAC || null,
+      responsavel_analise: eficaciaData.responsavel_analise,
+      data_analise: eficaciaData.data_analise,
+      status_acoes: 'FINALIZADAS'
+    });
+    setShowModalEficacia(false);
   };
 
   const handleDelete = async () => {
@@ -611,13 +683,22 @@ export default function DetalhesAcaoCorretivaPage() {
               <>
                 <button
                   onClick={() => setEditMode(!editMode)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                  className={`px-4 py-2 ${editMode ? 'bg-gray-500' : 'bg-blue-600'} text-white rounded-lg hover:opacity-90 transition text-sm`}
                 >
-                  {editMode ? 'Cancelar Edição' : 'Editar'}
+                  {editMode ? 'Cancelar' : 'Editar'}
                 </button>
+                {editMode && (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-50"
+                  >
+                    {saving ? 'Salvando...' : 'Salvar Alterações'}
+                  </button>
+                )}
                 {acao.status === 'ABERTA' && (
                   <button
-                    onClick={() => handleStatusChange('EM_ANDAMENTO')}
+                    onClick={handleIniciarTratamento}
                     disabled={saving}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm disabled:opacity-50"
                   >
@@ -626,20 +707,22 @@ export default function DetalhesAcaoCorretivaPage() {
                 )}
                 {acao.status === 'EM_ANDAMENTO' && (
                   <button
-                    onClick={() => handleStatusChange('AGUARDANDO_VERIFICACAO')}
+                    onClick={handleAguardarVerificacao}
                     disabled={saving}
                     className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm disabled:opacity-50"
                   >
                     Aguardar Verificação
                   </button>
                 )}
-                <button
-                  onClick={() => handleStatusChange('FECHADA')}
-                  disabled={saving}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-50"
-                >
-                  Fechar RAC
-                </button>
+                {acao.status === 'AGUARDANDO_VERIFICACAO' && (
+                  <button
+                    onClick={() => handleStatusChange('FECHADA')}
+                    disabled={saving}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-50"
+                  >
+                    Fechar RAC
+                  </button>
+                )}
               </>
             )}
             <button
@@ -1034,6 +1117,168 @@ export default function DetalhesAcaoCorretivaPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal Iniciar Tratamento */}
+      {showModalTratamento && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Iniciar Tratamento</h2>
+                <button onClick={() => setShowModalTratamento(false)} className="text-white/80 hover:text-white">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+              <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                Descreva as ações que serão realizadas para tratar esta não conformidade.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ações a serem realizadas *</label>
+                <textarea
+                  value={tratamentoData.acoes}
+                  onChange={(e) => setTratamentoData({ ...tratamentoData, acoes: e.target.value })}
+                  rows={4}
+                  required
+                  placeholder="Descreva detalhadamente as ações que serão realizadas..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsáveis</label>
+                  <input
+                    type="text"
+                    value={tratamentoData.responsaveis}
+                    onChange={(e) => setTratamentoData({ ...tratamentoData, responsaveis: e.target.value })}
+                    placeholder="Nome dos responsáveis"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo</label>
+                  <input
+                    type="date"
+                    value={tratamentoData.prazo}
+                    onChange={(e) => setTratamentoData({ ...tratamentoData, prazo: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowModalTratamento(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmarTratamento}
+                  disabled={saving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                >
+                  {saving ? 'Salvando...' : 'Iniciar Tratamento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Análise de Eficácia */}
+      {showModalEficacia && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">Análise da Eficácia</h2>
+                <button onClick={() => setShowModalEficacia(false)} className="text-white/80 hover:text-white">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+              <p className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg">
+                Avalie se as ações foram eficazes para eliminar a causa raiz do problema.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ações Finalizadas? *</label>
+                  <select
+                    value={eficaciaData.acoes_finalizadas}
+                    onChange={(e) => setEficaciaData({ ...eficaciaData, acoes_finalizadas: e.target.value as AcoesFinalizadasAC })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  >
+                    <option value="">Selecione...</option>
+                    {Object.entries(ACOES_FINALIZADAS_AC).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Situação Final</label>
+                  <select
+                    value={eficaciaData.situacao_final}
+                    onChange={(e) => setEficaciaData({ ...eficaciaData, situacao_final: e.target.value as SituacaoFinalAC })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  >
+                    <option value="">Selecione...</option>
+                    {Object.entries(SITUACAO_FINAL_AC).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Responsável pela Análise</label>
+                  <input
+                    type="text"
+                    value={eficaciaData.responsavel_analise}
+                    onChange={(e) => setEficaciaData({ ...eficaciaData, responsavel_analise: e.target.value })}
+                    placeholder="Nome do responsável"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data da Análise</label>
+                  <input
+                    type="date"
+                    value={eficaciaData.data_analise}
+                    onChange={(e) => setEficaciaData({ ...eficaciaData, data_analise: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowModalEficacia(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmarEficacia}
+                  disabled={saving}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition disabled:opacity-50"
+                >
+                  {saving ? 'Salvando...' : 'Confirmar Análise'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
