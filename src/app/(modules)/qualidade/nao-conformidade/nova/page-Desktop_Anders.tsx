@@ -31,6 +31,7 @@ export default function NovaNaoConformidadePage() {
 
   const [formData, setFormData] = useState({
     // Identificação
+    email: '',
     data_emissao: new Date().toISOString().split('T')[0],
     responsavel_emissao: '',
     turno_trabalho: '' as TurnoTrabalho | '',
@@ -105,37 +106,8 @@ export default function NovaNaoConformidadePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Campos legados (manter compatibilidade)
-          data_ocorrencia: formData.data_emissao,
-          local_ocorrencia: formData.unidade_fabricacao,
-          setor_responsavel: formData.processo_origem,
-          origem: formData.tarefa_origem,
-          evidencias: formData.evidencia_objetiva,
-          produtos_afetados: formData.codigo_peca,
-          detectado_por: formData.responsavel_emissao,
-          acao_contencao: formData.acao_imediata,
-          responsavel_contencao: formData.responsaveis_acoes,
-          data_contencao: formData.prazo_acoes,
-          // Campos novos (usar diretamente)
-          data_emissao: formData.data_emissao,
-          responsavel_emissao: formData.responsavel_emissao,
-          unidade_fabricacao: formData.unidade_fabricacao,
-          processo_origem: formData.processo_origem,
-          tarefa_origem: formData.tarefa_origem,
-          codigo_peca: formData.codigo_peca,
-          evidencia_objetiva: formData.evidencia_objetiva,
-          acao_imediata: formData.acao_imediata,
-          responsaveis_acoes: formData.responsaveis_acoes,
-          prazo_acoes: formData.prazo_acoes,
-          // Campos diretos
-          turno_trabalho: formData.turno_trabalho,
-          numero_opd: formData.numero_opd,
-          quantidade_itens: formData.quantidade_itens ? parseInt(formData.quantidade_itens) : null,
-          // Campos comuns
-          tipo: formData.tipo,
-          gravidade: formData.gravidade,
-          descricao: formData.descricao,
-          disposicao: formData.disposicao,
+          ...formData,
+          quantidade_itens: formData.quantidade_itens ? parseInt(formData.quantidade_itens) : 0,
           anexos: anexos.length > 0 ? anexos : null,
           created_by: user?.id || null
         })
@@ -188,6 +160,17 @@ export default function NovaNaoConformidadePage() {
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">IDENTIFICAÇÃO</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail *</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Data da emissão *</label>
                 <input
@@ -311,26 +294,15 @@ export default function NovaNaoConformidadePage() {
                 />
                 {uploading && <p className="text-sm text-gray-500 mt-1">Enviando arquivos...</p>}
                 {anexos.length > 0 && (
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="mt-2 space-y-1">
                     {anexos.map((anexo, index) => (
-                      <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50">
-                        {anexo.url?.startsWith('data:image/') ? (
-                          <img src={anexo.url} alt={anexo.filename} className="w-full h-24 object-cover" />
-                        ) : (
-                          <div className="w-full h-24 flex items-center justify-center bg-gray-100">
-                            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className="p-2 flex items-center justify-between">
-                          <span className="text-xs text-gray-600 truncate flex-1">{anexo.filename}</span>
-                          <button type="button" onClick={() => removeAnexo(index)} className="ml-2 text-red-600 hover:text-red-800">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <span className="text-sm text-gray-700">{anexo.filename}</span>
+                        <button type="button" onClick={() => removeAnexo(index)} className="text-red-600 hover:text-red-800">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     ))}
                   </div>
