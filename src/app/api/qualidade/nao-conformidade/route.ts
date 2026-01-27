@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       finalOrigem || null,
       gravidade || null,
       descricao,
-      finalEvidencias || null,
+      null, // evidencias é JSONB - não usado diretamente
       finalProdutosAfetados || null,
       quantidade_afetada || quantidade_itens || null,
       finalDetectadoPor || null,
