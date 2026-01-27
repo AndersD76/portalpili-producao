@@ -147,11 +147,11 @@ export async function POST(request: Request) {
       data: result.rows[0],
       message: 'Reclamação registrada com sucesso'
     }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Erro ao criar reclamação:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao criar reclamação' },
+      { success: false, error: 'Erro ao criar reclamação: ' + (error?.message || String(error)) },
       { status: 500 }
     );
   } finally {
