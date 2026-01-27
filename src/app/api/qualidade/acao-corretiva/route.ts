@@ -121,8 +121,8 @@ export async function POST(request: Request) {
       emitente || null,
       processos_envolvidos ? JSON.stringify(processos_envolvidos) : null,
       causas || null,
-      subcausas || null,
-      acoes || null,
+      subcausas ? JSON.stringify(subcausas) : null,
+      acoes ? JSON.stringify(acoes) : null,
       status_acoes || null,
       descricao_problema || null,
       responsavel_principal || null
@@ -160,11 +160,11 @@ export async function POST(request: Request) {
       data: result.rows[0],
       message: 'Ação corretiva registrada com sucesso'
     }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Erro ao criar ação corretiva:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao criar ação corretiva' },
+      { success: false, error: 'Erro ao criar ação corretiva: ' + (error?.message || String(error)) },
       { status: 500 }
     );
   } finally {
