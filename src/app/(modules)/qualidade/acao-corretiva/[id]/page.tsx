@@ -231,11 +231,11 @@ export default function DetalhesAcaoCorretivaPage() {
               <div class="section-content">
                 <div class="anexos-grid">
                   ${evidencias.map((anexo: any, idx: number) => {
-                    const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
-                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+                    const url = anexo.url?.startsWith('data:') ? anexo.url : (anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`);
+                    const isImage = anexo.url?.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
                     return isImage ? `
                       <div class="anexo-item">
-                        <img src="${url}" alt="Evidência ${idx + 1}" crossorigin="anonymous" />
+                        <img src="${url}" alt="Evidência ${idx + 1}" />
                         <p class="anexo-name">${anexo.filename || `Evidência ${idx + 1}`}</p>
                       </div>
                     ` : `
@@ -981,8 +981,8 @@ export default function DetalhesAcaoCorretivaPage() {
                   <p className="text-sm text-gray-500 mb-2">Evidências</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {acao.evidencias_anexos.map((anexo, index) => {
-                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
-                      const url = anexo.url?.startsWith('http') ? anexo.url : `${window.location.origin}${anexo.url}`;
+                      const isImage = anexo.url?.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
+                      const url = anexo.url?.startsWith('data:') ? anexo.url : (anexo.url?.startsWith('http') ? anexo.url : `${window.location.origin}${anexo.url}`);
                       return (
                         <div key={index} className="border rounded-lg overflow-hidden bg-gray-50">
                           {isImage ? (

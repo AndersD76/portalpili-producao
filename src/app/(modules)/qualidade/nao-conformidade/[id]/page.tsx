@@ -150,12 +150,20 @@ export default function DetalhesNCPage() {
 
   // Helper para URL de imagem
   const getImageUrl = (anexo: Anexo): string => {
-    if (anexo.url?.startsWith('http')) return anexo.url;
+    if (!anexo.url) return '';
+    // Se for base64 data URL, retornar diretamente
+    if (anexo.url.startsWith('data:')) return anexo.url;
+    // Se for URL externa (http/https), retornar diretamente
+    if (anexo.url.startsWith('http')) return anexo.url;
+    // Se for caminho relativo, adicionar origem
     return `${window.location.origin}${anexo.url}`;
   };
 
   // Verificar se é imagem
   const isImage = (anexo: Anexo): boolean => {
+    // Verificar se é base64 de imagem
+    if (anexo.url?.startsWith('data:image/')) return true;
+    // Verificar pela extensão do arquivo
     return /\.(jpg|jpeg|png|gif|webp)$/i.test(anexo.filename || anexo.url || '');
   };
 
@@ -174,7 +182,7 @@ export default function DetalhesNCPage() {
           <div class="section-content">
             <div class="anexos-grid">
               ${anexos.map((anexo: Anexo, idx: number) => {
-                const url = anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`;
+                const url = anexo.url?.startsWith('data:') ? anexo.url : (anexo.url?.startsWith('http') ? anexo.url : `${baseUrl}${anexo.url}`);
                 const isImg = isImage(anexo);
                 return isImg ? `
                   <div class="anexo-item">
