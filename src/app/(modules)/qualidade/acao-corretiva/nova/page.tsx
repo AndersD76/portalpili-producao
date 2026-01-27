@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ProcessoOrigem, PROCESSOS_ORIGEM, StatusAcoesAC, STATUS_ACOES_AC } from '@/types/qualidade';
+import { ProcessoOrigem, PROCESSOS_ORIGEM } from '@/types/qualidade';
 
 function NovaAcaoCorretivaForm() {
   const router = useRouter();
@@ -28,9 +28,7 @@ function NovaAcaoCorretivaForm() {
     // Ações para Eliminar as Causas
     acoes: '',
     responsaveis: '',
-    prazo: '',
-    // Condições das Ações
-    status_acoes: '' as StatusAcoesAC | ''
+    prazo: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -73,7 +71,7 @@ function NovaAcaoCorretivaForm() {
           causas: formData.causas || null,
           subcausas: formData.subcausas || null,
           acoes: formData.acoes || null,
-          status_acoes: formData.status_acoes || null,
+          status_acoes: 'EM_ANDAMENTO',
           created_by: user?.id || null
         })
       });
@@ -237,26 +235,6 @@ function NovaAcaoCorretivaForm() {
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* CONDIÇÕES DAS AÇÕES */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CONDIÇÕES DAS AÇÕES</h2>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status das ações *</label>
-          <select
-            name="status_acoes"
-            value={formData.status_acoes}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Selecione...</option>
-            {Object.entries(STATUS_ACOES_AC).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
         </div>
       </div>
 
