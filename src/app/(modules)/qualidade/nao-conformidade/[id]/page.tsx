@@ -880,15 +880,19 @@ export default function DetalhesNCPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Turno de Trabalho</p>
-                    <p className="font-medium">{nc.turno_trabalho ? TURNOS_TRABALHO[nc.turno_trabalho] || nc.turno_trabalho : '-'}</p>
+                    <p className="font-medium">{nc.turno_trabalho ? (TURNOS_TRABALHO[nc.turno_trabalho as keyof typeof TURNOS_TRABALHO] || nc.turno_trabalho) : '-'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Unidade de Fabricação</p>
-                    <p className="font-medium">{nc.unidade_fabricacao ? UNIDADES_FABRICACAO[nc.unidade_fabricacao] || nc.unidade_fabricacao : (nc.local_ocorrencia ? UNIDADES_FABRICACAO[nc.local_ocorrencia as keyof typeof UNIDADES_FABRICACAO] || nc.local_ocorrencia : '-')}</p>
+                    <p className="font-medium">{(nc.unidade_fabricacao || nc.local_ocorrencia) ? (UNIDADES_FABRICACAO[(nc.unidade_fabricacao || nc.local_ocorrencia) as keyof typeof UNIDADES_FABRICACAO] || nc.unidade_fabricacao || nc.local_ocorrencia) : '-'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Processo de Origem</p>
-                    <p className="font-medium">{nc.processo_origem ? PROCESSOS_ORIGEM[nc.processo_origem] || nc.processo_origem : (nc.setor_responsavel ? PROCESSOS_ORIGEM[nc.setor_responsavel as keyof typeof PROCESSOS_ORIGEM] || nc.setor_responsavel : '-')}</p>
+                    <p className="font-medium">{(nc.processo_origem || nc.setor_responsavel) ? (PROCESSOS_ORIGEM[(nc.processo_origem || nc.setor_responsavel) as keyof typeof PROCESSOS_ORIGEM] || nc.processo_origem || nc.setor_responsavel) : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Setor Responsável</p>
+                    <p className="font-medium">{nc.setor_responsavel || nc.processo_origem || '-'}</p>
                   </div>
                 </div>
               </div>

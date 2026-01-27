@@ -60,6 +60,19 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      // Campos novos do formulário
+      data_emissao,
+      responsavel_emissao,
+      unidade_fabricacao,
+      processo_origem,
+      tarefa_origem,
+      codigo_peca,
+      evidencia_objetiva,
+      acao_imediata,
+      responsaveis_acoes,
+      prazo_acoes,
+      responsavel_liberacao,
+      // Campos existentes/legado
       data_ocorrencia,
       local_ocorrencia,
       setor_responsavel,
@@ -84,10 +97,22 @@ export async function POST(request: Request) {
       data_contencao
     } = body;
 
+    // Usar campos novos com fallback para legado (salvar nos campos existentes do banco)
+    const finalDataOcorrencia = data_emissao || data_ocorrencia;
+    const finalDetectadoPor = responsavel_emissao || detectado_por;
+    const finalLocalOcorrencia = unidade_fabricacao || local_ocorrencia;
+    const finalSetorResponsavel = processo_origem || setor_responsavel;
+    const finalOrigem = tarefa_origem || origem;
+    const finalProdutosAfetados = codigo_peca || produtos_afetados;
+    const finalEvidencias = evidencia_objetiva || evidencias;
+    const finalAcaoContencao = acao_imediata || acao_contencao;
+    const finalResponsavelContencao = responsaveis_acoes || responsavel_contencao;
+    const finalDataContencao = prazo_acoes || data_contencao;
+
     // Validações
-    if (!data_ocorrencia || !tipo || !descricao) {
+    if (!finalDataOcorrencia || !tipo || !descricao) {
       return NextResponse.json(
-        { success: false, error: 'Data de ocorrência, tipo e descrição são obrigatórios' },
+        { success: false, error: 'Data de emissão, tipo e descrição são obrigatórios' },
         { status: 400 }
       );
     }
@@ -106,27 +131,30 @@ export async function POST(request: Request) {
         tipo, origem, gravidade, descricao, evidencias,
         produtos_afetados, quantidade_afetada, detectado_por, detectado_por_id,
         disposicao, disposicao_descricao, acao_contencao, responsavel_contencao,
-        status, created_by, created, updated, anexos, turno_trabalho, numero_opd, quantidade_itens, data_contencao
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+        status, created_by, created, updated, anexos, turno_trabalho, numero_opd, quantidade_itens, data_contencao,
+        data_emissao, responsavel_emissao, unidade_fabricacao, processo_origem,
+        tarefa_origem, codigo_peca, evidencia_objetiva, acao_imediata,
+        responsaveis_acoes, prazo_acoes, responsavel_liberacao
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37)
       RETURNING *
     `, [
       numero,
-      data_ocorrencia,
-      local_ocorrencia || null,
-      setor_responsavel || null,
+      finalDataOcorrencia,
+      finalLocalOcorrencia || null,
+      finalSetorResponsavel || null,
       tipo,
-      origem || null,
+      finalOrigem || null,
       gravidade || null,
       descricao,
-      evidencias || null,
-      produtos_afetados || null,
-      quantidade_afetada || null,
-      detectado_por || null,
+      finalEvidencias || null,
+      finalProdutosAfetados || null,
+      quantidade_afetada || quantidade_itens || null,
+      finalDetectadoPor || null,
       detectado_por_id || null,
       disposicao || null,
       disposicao_descricao || null,
-      acao_contencao || null,
-      responsavel_contencao || null,
+      finalAcaoContencao || null,
+      finalResponsavelContencao || null,
       'ABERTA',
       created_by || null,
       new Date().toISOString(),
@@ -135,7 +163,19 @@ export async function POST(request: Request) {
       turno_trabalho || null,
       numero_opd || null,
       quantidade_itens || null,
-      data_contencao || null
+      finalDataContencao || null,
+      // Campos novos - para exibição correta
+      finalDataOcorrencia || null,
+      finalDetectadoPor || null,
+      finalLocalOcorrencia || null,
+      finalSetorResponsavel || null,
+      finalOrigem || null,
+      finalProdutosAfetados || null,
+      finalEvidencias || null,
+      finalAcaoContencao || null,
+      finalResponsavelContencao || null,
+      finalDataContencao || null,
+      responsavel_liberacao || null
     ]);
 
     await client.query('COMMIT');
@@ -143,8 +183,8 @@ export async function POST(request: Request) {
     // Enviar notificação push para nova NC
     try {
       const ncCriada = result.rows[0];
-      const opdReferencia = produtos_afetados || origem || 'N/A';
-      const usuario = detectado_por || created_by || 'Sistema';
+      const opdReferencia = finalProdutosAfetados || finalOrigem || 'N/A';
+      const usuario = finalDetectadoPor || created_by || 'Sistema';
       await enviarNotificacaoPush(notificacoes.ncCriada(ncCriada.id, ncCriada.numero, opdReferencia, usuario));
     } catch (notifError) {
       console.error('Erro ao enviar notificação:', notifError);

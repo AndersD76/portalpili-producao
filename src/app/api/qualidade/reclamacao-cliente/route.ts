@@ -59,6 +59,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      // Campos novos do formulário
+      data_emissao,
+      nome_emitente,
+      nome_cliente,
+      numero_nf,
+      codigo_equipamento,
+      local_instalado,
+      acao_imediata,
+      anexos,
+      // Campos existentes/legado
       data_reclamacao,
       cliente_nome,
       cliente_contato,
@@ -73,8 +83,12 @@ export async function POST(request: Request) {
       created_by
     } = body;
 
+    // Usar campos novos com fallback para legado
+    const finalDataReclamacao = data_emissao || data_reclamacao;
+    const finalClienteNome = nome_cliente || cliente_nome;
+
     // Validações
-    if (!data_reclamacao || !cliente_nome || !descricao) {
+    if (!finalDataReclamacao || !finalClienteNome || !descricao) {
       return NextResponse.json(
         { success: false, error: 'Data, cliente e descrição são obrigatórios' },
         { status: 400 }
@@ -93,13 +107,15 @@ export async function POST(request: Request) {
       INSERT INTO reclamacoes_clientes (
         numero, data_reclamacao, cliente_nome, cliente_contato, cliente_email,
         cliente_telefone, numero_opd, numero_serie, tipo_reclamacao, descricao,
-        evidencias, impacto, status, created_by, created, updated
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        evidencias, impacto, status, created_by, created, updated,
+        data_emissao, nome_emitente, nome_cliente, numero_nf, codigo_equipamento,
+        local_instalado, acao_imediata, anexos
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       RETURNING *
     `, [
       numero,
-      data_reclamacao,
-      cliente_nome,
+      finalDataReclamacao,
+      finalClienteNome,
       cliente_contato || null,
       cliente_email || null,
       cliente_telefone || null,
@@ -107,12 +123,21 @@ export async function POST(request: Request) {
       numero_serie || null,
       tipo_reclamacao || null,
       descricao,
-      evidencias ? JSON.stringify(evidencias) : null,
+      evidencias ? JSON.stringify(evidencias) : (anexos ? JSON.stringify(anexos) : null),
       impacto || null,
       'ABERTA',
       created_by || null,
       new Date().toISOString(),
-      new Date().toISOString()
+      new Date().toISOString(),
+      // Campos novos
+      finalDataReclamacao || null,
+      nome_emitente || null,
+      finalClienteNome || null,
+      numero_nf || null,
+      codigo_equipamento || null,
+      local_instalado || null,
+      acao_imediata || null,
+      anexos ? JSON.stringify(anexos) : null
     ]);
 
     await client.query('COMMIT');

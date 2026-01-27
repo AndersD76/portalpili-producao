@@ -100,8 +100,8 @@ export async function POST(request: Request) {
         numero, data_abertura, origem_tipo, origem_id, origem_descricao,
         descricao_problema, responsavel_principal, responsavel_principal_id,
         prazo_conclusao, equipe, status, created_by, created, updated,
-        emitente, processos_envolvidos, causas, subcausas, acoes, status_acoes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        emitente, processos_envolvidos, causas, subcausas, acoes, status_acoes, falha, responsaveis
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING *
     `, [
       numero,
@@ -123,7 +123,9 @@ export async function POST(request: Request) {
       causas || null,
       subcausas || null,
       acoes || null,
-      status_acoes || null
+      status_acoes || null,
+      descricao_problema || null,
+      responsavel_principal || null
     ]);
 
     // Se a origem for uma NC ou reclamação, atualizar a referência
