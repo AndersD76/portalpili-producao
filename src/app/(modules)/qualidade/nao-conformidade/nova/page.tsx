@@ -299,15 +299,26 @@ export default function NovaNaoConformidadePage() {
                 />
                 {uploading && <p className="text-sm text-gray-500 mt-1">Enviando arquivos...</p>}
                 {anexos.length > 0 && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {anexos.map((anexo, index) => (
-                      <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <span className="text-sm text-gray-700">{anexo.filename}</span>
-                        <button type="button" onClick={() => removeAnexo(index)} className="text-red-600 hover:text-red-800">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                      <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50">
+                        {anexo.url?.startsWith('data:image/') ? (
+                          <img src={anexo.url} alt={anexo.filename} className="w-full h-24 object-cover" />
+                        ) : (
+                          <div className="w-full h-24 flex items-center justify-center bg-gray-100">
+                            <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="p-2 flex items-center justify-between">
+                          <span className="text-xs text-gray-600 truncate flex-1">{anexo.filename}</span>
+                          <button type="button" onClick={() => removeAnexo(index)} className="ml-2 text-red-600 hover:text-red-800">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
