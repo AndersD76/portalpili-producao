@@ -40,21 +40,39 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
     }
   }, []);
 
-  // Verificar se já está inscrito
+  // Verificar se já está inscrito e se a subscription é válida
   const checkSubscription = async (reg: ServiceWorkerRegistration) => {
     try {
       const subscription = await reg.pushManager.getSubscription();
-      setIsSubscribed(!!subscription);
 
-      // Mostrar banner se não está inscrito e permissão não foi negada
-      if (!subscription && Notification.permission !== 'denied') {
-        // Esperar um pouco para não ser intrusivo
-        setTimeout(() => {
-          setShowBanner(true);
-        }, 3000);
+      if (subscription) {
+        // Verificar se a subscription está válida no servidor
+        const checkResponse = await fetch(`/api/push-subscription?endpoint=${encodeURIComponent(subscription.endpoint)}`);
+        const checkData = await checkResponse.json();
+
+        if (!checkData.registered || !checkData.active) {
+          // Subscription local existe mas não está no servidor ou está inativa
+          // Isso acontece quando as chaves VAPID mudam
+          console.log('Subscription local inválida, reativando...');
+          await subscription.unsubscribe();
+          setIsSubscribed(false);
+          setTimeout(() => setShowBanner(true), 2000);
+        } else {
+          setIsSubscribed(true);
+        }
+      } else {
+        setIsSubscribed(false);
+        // Mostrar banner se não está inscrito e permissão não foi negada
+        if (Notification.permission !== 'denied') {
+          setTimeout(() => setShowBanner(true), 3000);
+        }
       }
     } catch (error) {
       console.error('Erro ao verificar subscription:', error);
+      // Em caso de erro, mostrar banner para reativar
+      if (Notification.permission !== 'denied') {
+        setTimeout(() => setShowBanner(true), 3000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -75,19 +93,27 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
         return;
       }
 
+      // Remover subscription antiga se existir
+      const existingSubscription = await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        await existingSubscription.unsubscribe();
+        console.log('Subscription antiga removida');
+      }
+
       // Obter VAPID public key do servidor
       const keyResponse = await fetch('/api/send-notification');
       const keyData = await keyResponse.json();
 
       if (!keyData.publicKey) {
         console.error('VAPID key não disponível');
+        toast.error('Erro ao obter chave de notificação');
         return;
       }
 
       // Converter base64 para Uint8Array
       const applicationServerKey = urlBase64ToUint8Array(keyData.publicKey);
 
-      // Criar subscription
+      // Criar nova subscription
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey
@@ -111,12 +137,16 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
       if (result.success) {
         setIsSubscribed(true);
         setShowBanner(false);
+        toast.success('Notificações ativadas com sucesso!');
 
         // Tocar som de confirmação
         playNotificationSound();
+      } else {
+        toast.error('Erro ao ativar notificações');
       }
     } catch (error) {
       console.error('Erro ao inscrever:', error);
+      toast.error('Erro ao ativar notificações');
     }
   }, [registration, userId, userNome]);
 
