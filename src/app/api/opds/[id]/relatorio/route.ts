@@ -70,18 +70,18 @@ export async function GET(
         descricao, quantidade, data_ocorrencia, prazo_acao_imediata,
         acao_imediata, created
       FROM nao_conformidades
-      WHERE opd_relacionada = $1
+      WHERE numero_opd = $1
       ORDER BY created DESC
     `, [id]);
 
     // 7. Buscar ações corretivas relacionadas
     const acsResult = await pool.query(`
       SELECT
-        id, numero, status, nc_relacionada, processos_envolvidos,
-        causa_raiz, acoes, responsaveis, prazos, situacao_final, created
+        id, numero, status, origem_tipo, origem_id, processos_envolvidos,
+        causa_raiz_identificada, causas, acoes, responsavel_principal, prazo_conclusao, situacao_final, created
       FROM acoes_corretivas
-      WHERE nc_relacionada IN (
-        SELECT numero FROM nao_conformidades WHERE opd_relacionada = $1
+      WHERE origem_tipo = 'NAO_CONFORMIDADE' AND origem_id IN (
+        SELECT id FROM nao_conformidades WHERE numero_opd = $1
       )
       ORDER BY created DESC
     `, [id]);
