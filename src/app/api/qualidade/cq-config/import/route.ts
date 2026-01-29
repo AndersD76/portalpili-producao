@@ -26,6 +26,15 @@ import {
   CQ_T2_PINTURA,
   CQ_U_MONTAGEM_HIDRAULICA_ELETRICA,
   CQ_V_EXPEDICAO,
+  // Coletores
+  CQ_Ac_MONTAGEM_INICIAL,
+  CQ_Bc_CENTRAL_HIDRAULICA,
+  CQ_Cc_CICLONE,
+  CQ_Dc_TUBO_COLETA,
+  CQ_Ec_COLUNA_INFERIOR,
+  CQ_Fc_COLUNA_SUPERIOR,
+  CQ_Gc_ESCADA_PLATIBANDA,
+  CQ_Hc_PINTURA,
   CQSetor
 } from '@/lib/cqQuestions';
 
@@ -55,6 +64,17 @@ const SETORES_TOMBADOR: CQSetor[] = [
   CQ_V_EXPEDICAO,
 ];
 
+const SETORES_COLETOR: CQSetor[] = [
+  CQ_Ac_MONTAGEM_INICIAL,
+  CQ_Bc_CENTRAL_HIDRAULICA,
+  CQ_Cc_CICLONE,
+  CQ_Dc_TUBO_COLETA,
+  CQ_Ec_COLUNA_INFERIOR,
+  CQ_Fc_COLUNA_SUPERIOR,
+  CQ_Gc_ESCADA_PLATIBANDA,
+  CQ_Hc_PINTURA,
+];
+
 // POST - Importar setores e perguntas do arquivo cqQuestions.ts
 export async function POST() {
   const client = await pool.connect();
@@ -65,9 +85,13 @@ export async function POST() {
     let setoresImportados = 0;
     let perguntasImportadas = 0;
 
-    for (let i = 0; i < SETORES_TOMBADOR.length; i++) {
-      const setor = SETORES_TOMBADOR[i];
+    // Importar todos os setores (Tombador + Coletor)
+    const TODOS_SETORES = [
+      ...SETORES_TOMBADOR.map((s, i) => ({ ...s, produto: 'TOMBADOR' as const, ordem: i })),
+      ...SETORES_COLETOR.map((s, i) => ({ ...s, produto: 'COLETOR' as const, ordem: i + 100 }))
+    ];
 
+    for (const setor of TODOS_SETORES) {
       // Verificar se o setor já existe
       const existingSetor = await client.query(
         'SELECT id FROM cq_setores WHERE codigo = $1',
@@ -84,7 +108,7 @@ export async function POST() {
           INSERT INTO cq_setores (codigo, nome, processo, produto, ordem)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id
-        `, [setor.codigo, setor.nome, setor.processo || null, setor.produto || 'TOMBADOR', i]);
+        `, [setor.codigo, setor.nome, setor.processo || null, setor.produto, setor.ordem]);
 
         setorId = setorResult.rows[0].id;
         setoresImportados++;
@@ -118,7 +142,7 @@ export async function POST() {
             pergunta.metodoVerificacao || null,
             pergunta.instrumento || null,
             pergunta.criteriosAceitacao || null,
-            JSON.stringify(pergunta.opcoes || ['Conforme', 'Não conforme']),
+            JSON.stringify(pergunta.opcoes || ['Conforme', 'Não conforme', 'Não Aplicável']),
             pergunta.requerImagem || false,
             pergunta.imagemDescricao || null,
             pergunta.tipoResposta || 'selecao',
