@@ -184,10 +184,10 @@ export async function GET(
         timeline
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao gerar relatório:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao gerar relatório' },
+      { success: false, error: 'Erro ao gerar relatório: ' + (error?.message || String(error)) },
       { status: 500 }
     );
   }
