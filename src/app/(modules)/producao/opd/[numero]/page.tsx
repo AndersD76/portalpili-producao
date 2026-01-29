@@ -303,6 +303,16 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
               </button>
 
               <button
+                onClick={() => router.push(`/producao/opd/${numero}/relatorio`)}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-1.5 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="hidden sm:inline">Relatório</span>
+              </button>
+
+              <button
                 onClick={() => setShowEditModal(true)}
                 className="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition flex items-center space-x-1.5 text-sm"
               >

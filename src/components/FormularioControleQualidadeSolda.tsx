@@ -11,6 +11,11 @@ interface FormularioControleQualidadeSoldaProps {
   onCancel: () => void;
 }
 
+// Type for saved images (from database)
+type SavedImage = { filename: string; url: string; size: number };
+// Type for image field that can hold either File[] or saved images
+type ImageField = File[] | SavedImage[] | null;
+
 export default function FormularioControleQualidadeSolda({
   opd,
   cliente,
@@ -24,66 +29,66 @@ export default function FormularioControleQualidadeSolda({
 
     // CQ2-D - SOLDA REFORÇOS VIGAS
     cq2d_status: '',
-    cq2d_imagem: null as File[] | null,
+    cq2d_imagem: null as ImageField,
 
     // CQ3-D - REFORÇOS TRAVA CINTAS
     cq3d_status: '',
 
     // CQ4-D - SOLDA REFORÇOS TRAVA CINTAS
     cq4d_status: '',
-    cq4d_imagem: null as File[] | null,
+    cq4d_imagem: null as ImageField,
 
     // CQ5-D - SOLDA CAIXA TRAVA CHASSI 24569
     cq5d_status: '',
-    cq5d_imagem: null as File[] | null,
+    cq5d_imagem: null as ImageField,
 
     // CQ6-D - SOLDA TRAVA RODAS E ENCAIXE DOS CILINDROS
     cq6d_status: '',
-    cq6d_imagem: null as File[] | null,
+    cq6d_imagem: null as ImageField,
 
     // CQ7-D - POSICIONAMENTO BATENTE DE DESCIDA
     cq7d_status: '',
-    cq7d_imagem: null as File[] | null,
+    cq7d_imagem: null as ImageField,
 
     // CQ8-D - SOLDA BATENTE DE DESCIDA
     cq8d_status: '',
-    cq8d_imagem: null as File[] | null,
+    cq8d_imagem: null as ImageField,
 
     // CQ9-D - SOLDA GRAMPOS E BARRA REDONDAS
     cq9d_status: '',
-    cq9d_imagem: null as File[] | null,
+    cq9d_imagem: null as ImageField,
 
     // CQ10-D - SOLDA FECHAMENTO FRONTAL GRADEADO
     cq10d_status: '',
-    cq10d_imagem: null as File[] | null,
+    cq10d_imagem: null as ImageField,
 
     // CQ11-D - SOLDA DA BARRA CHATA NO LAVRADO
     cq11d_status: '',
-    cq11d_imagem: null as File[] | null,
+    cq11d_imagem: null as ImageField,
 
     // CQ12-D - SOLDA REFORÇO TRANVERSAL PARA ASSOALHO
     cq12d_status: '',
-    cq12d_imagem: null as File[] | null,
+    cq12d_imagem: null as ImageField,
 
     // CQ13-D - SOLDA CHAPA 1050 X 3000
     cq13d_status: '',
-    cq13d_imagem: null as File[] | null,
+    cq13d_imagem: null as ImageField,
 
     // CQ14-D - SOLDA PISO
     cq14d_status: '',
-    cq14d_imagem: null as File[] | null,
+    cq14d_imagem: null as ImageField,
 
     // CQ15-D - SOLDA EMENDA VIGAS
     cq15d_status: '',
-    cq15d_imagem: null as File[] | null,
+    cq15d_imagem: null as ImageField,
 
     // CQ16-D - CHAPA DE FECHAMENTO DIANTEIRA
     cq16d_status: '',
-    cq16d_imagem: null as File[] | null,
+    cq16d_imagem: null as ImageField,
 
     // CQ17-D - CHAPA DE FECHAMENTO TRASEIRA
     cq17d_status: '',
-    cq17d_imagem: null as File[] | null,
+    cq17d_imagem: null as ImageField,
   });
 
   const [loading, setLoading] = useState(false);
@@ -151,43 +156,58 @@ export default function FormularioControleQualidadeSolda({
     carregarDadosExistentes();
   }, [atividadeId, opd]);
 
-  const handleFileChange = (field: string, files: FileList | null) => {
+  const handleFileChange = async (field: string, files: FileList | null) => {
     if (files && files.length > 0) {
+      // Convert files to base64 for preview and storage
+      const fileArray: SavedImage[] = [];
+      for (const file of Array.from(files)) {
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        fileArray.push({
+          filename: file.name,
+          url: base64,
+          size: file.size
+        });
+      }
+
+      // Merge with existing images
+      const existingImages = (formData[field as keyof typeof formData] as SavedImage[] | null) || [];
+      const mergedImages = [...existingImages, ...fileArray];
+
       setFormData(prev => ({
         ...prev,
-        [field]: Array.from(files)
+        [field]: mergedImages
       }));
     }
   };
 
-  const uploadFiles = async (files: File[], tipo: string) => {
-    const uploadedFiles = [];
+  // Helper to check if image is a saved image (not File)
+  const isSavedImage = (img: File | SavedImage): img is SavedImage => {
+    return 'url' in img && 'filename' in img;
+  };
 
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('tipo', tipo);
-      formData.append('numero_opd', opd);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        uploadedFiles.push({
-          filename: result.filename,
-          url: result.url,
-          size: file.size
-        });
-      } else {
-        throw new Error(`Erro ao fazer upload de ${file.name}`);
-      }
+  // Helper to remove image from field
+  const removeImage = (field: string, index: number) => {
+    const images = formData[field as keyof typeof formData] as ImageField;
+    if (images && Array.isArray(images)) {
+      const newImages = images.filter((_, i) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        [field]: newImages.length > 0 ? newImages : null
+      }));
     }
+  };
 
-    return uploadedFiles;
+  // Images are already stored as base64, just return them
+  const processImages = (images: ImageField): SavedImage[] | null => {
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return null;
+    }
+    // Images are already in SavedImage format with base64 URLs
+    return images as SavedImage[];
   };
 
   const getUsuario = () => {
@@ -207,27 +227,9 @@ export default function FormularioControleQualidadeSolda({
     setSavingDraft(true);
 
     try {
-      // Upload de todas as imagens primeiro
-      const imageFields = [
-        'cq2d_imagem', 'cq4d_imagem', 'cq5d_imagem', 'cq6d_imagem',
-        'cq7d_imagem', 'cq8d_imagem', 'cq9d_imagem', 'cq10d_imagem',
-        'cq11d_imagem', 'cq12d_imagem', 'cq13d_imagem', 'cq14d_imagem',
-        'cq15d_imagem', 'cq16d_imagem', 'cq17d_imagem'
-      ];
-
-      const uploadedData: any = {};
-
-      for (const field of imageFields) {
-        const files = formData[field as keyof typeof formData] as File[] | null;
-        if (files && files.length > 0 && files[0] instanceof File) {
-          const uploaded = await uploadFiles(files, 'controle_qualidade_solda');
-          uploadedData[field] = uploaded;
-        }
-      }
-
+      // Images are already in base64 format, just use formData directly
       const dados_formulario = {
         ...formData,
-        ...uploadedData,
       };
 
       const response = await fetch(`/api/formularios-controle-qualidade-solda/${opd}`, {
@@ -283,30 +285,11 @@ export default function FormularioControleQualidadeSolda({
         }
       }
 
-      // Upload de todas as imagens
-      const imageFields = [
-        'cq2d_imagem', 'cq4d_imagem', 'cq5d_imagem', 'cq6d_imagem',
-        'cq7d_imagem', 'cq8d_imagem', 'cq9d_imagem', 'cq10d_imagem',
-        'cq11d_imagem', 'cq12d_imagem', 'cq13d_imagem', 'cq14d_imagem',
-        'cq15d_imagem', 'cq16d_imagem', 'cq17d_imagem'
-      ];
-
-      const uploadedData: any = {};
-
-      for (const field of imageFields) {
-        const files = formData[field as keyof typeof formData] as File[] | null;
-        if (files && files.length > 0) {
-          const uploaded = await uploadFiles(files, 'controle_qualidade_solda');
-          uploadedData[field] = uploaded;
-        }
-      }
-
       setUploadingImages(false);
 
-      // Preparar dados para envio
+      // Images are already in base64 format, just use formData directly
       const dados_formulario = {
         ...formData,
-        ...uploadedData,
       };
 
       // Enviar formulario (finalizado)
@@ -396,27 +379,46 @@ export default function FormularioControleQualidadeSolda({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span className="text-sm text-gray-600">
-                    {formData[imageField as keyof typeof formData] && (formData[imageField as keyof typeof formData] as File[])?.length > 0
-                      ? `${(formData[imageField as keyof typeof formData] as File[]).length} arquivo(s) selecionado(s)`
+                    {(formData[imageField as keyof typeof formData] as ImageField)?.length
+                      ? `${(formData[imageField as keyof typeof formData] as ImageField)!.length} arquivo(s) - Clique para adicionar mais`
                       : 'Clique para selecionar imagens'}
                   </span>
                   <span className="text-xs text-gray-500 mt-1">PNG, JPG (múltiplas imagens permitidas)</span>
                 </button>
               </div>
-              {formData[imageField as keyof typeof formData] && (formData[imageField as keyof typeof formData] as File[])?.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {(formData[imageField as keyof typeof formData] as File[]).map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
-                      <div className="flex items-center space-x-2">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              {/* Image preview grid */}
+              {(formData[imageField as keyof typeof formData] as ImageField)?.length ? (
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {(formData[imageField as keyof typeof formData] as SavedImage[]).map((img, index) => (
+                    <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50 group">
+                      {img.url?.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(img.filename || '') ? (
+                        <img
+                          src={img.url}
+                          alt={img.filename}
+                          className="w-full h-24 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-24 flex items-center justify-center bg-gray-100">
+                          <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(imageField, index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        title="Remover"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        <span className="text-sm text-green-800">{file.name}</span>
-                      </div>
+                      </button>
+                      <p className="text-xs text-gray-600 p-1 truncate">{img.filename}</p>
                     </div>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>

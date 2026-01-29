@@ -63,21 +63,34 @@ export async function PUT(
     let paramIndex = 1;
 
     const updateableFields = [
-      'data_abertura', 'origem_tipo', 'origem_id', 'origem_descricao',
+      'data_abertura', 'data_emissao', 'origem_tipo', 'origem_id', 'origem_descricao',
       'descricao_problema', 'analise_causa_raiz', 'metodo_analise', 'causa_raiz_identificada',
       'acoes', 'verificacao_eficacia', 'data_verificacao', 'responsavel_verificacao',
       'acao_eficaz', 'padronizacao_realizada', 'descricao_padronizacao', 'documentos_atualizados',
       'responsavel_principal', 'responsavel_principal_id', 'equipe', 'prazo_conclusao',
-      'data_conclusao', 'status'
+      'data_conclusao', 'status', 'emitente', 'processos_envolvidos', 'causas', 'subcausas',
+      'status_acoes', 'anexos', 'falha', 'responsaveis', 'prazo', 'acoes_finalizadas',
+      'situacao_final', 'responsavel_analise', 'data_analise', 'evidencias_anexos'
     ];
+
+    // Campos que precisam ser serializados como JSON
+    const jsonFields = ['acoes', 'equipe', 'documentos_atualizados', 'processos_envolvidos', 'subcausas', 'anexos', 'evidencias_anexos'];
 
     for (const field of updateableFields) {
       if (body[field] !== undefined) {
         fields.push(`${field} = $${paramIndex}`);
-        if (['acoes', 'equipe', 'documentos_atualizados'].includes(field)) {
-          values.push(body[field] ? JSON.stringify(body[field]) : null);
+        if (jsonFields.includes(field)) {
+          // Se já é string, usar diretamente; se é objeto, serializar
+          const value = body[field];
+          if (value === null || value === '') {
+            values.push(null);
+          } else if (typeof value === 'string') {
+            values.push(value);
+          } else {
+            values.push(JSON.stringify(value));
+          }
         } else {
-          values.push(body[field]);
+          values.push(body[field] === '' ? null : body[field]);
         }
         paramIndex++;
       }

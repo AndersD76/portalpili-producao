@@ -61,16 +61,31 @@ export default function DetalhesAcaoCorretivaPage() {
       const data = await response.json();
       if (data.success) {
         const acaoData = data.data;
-        // Parse JSON fields if they're strings
-        if (typeof acaoData.processos_envolvidos === 'string') {
-          acaoData.processos_envolvidos = JSON.parse(acaoData.processos_envolvidos);
+        // Parse JSON fields if they're strings - with safe handling
+        const parseJsonField = (field: any) => {
+          if (!field) return null;
+          if (typeof field === 'string') {
+            try {
+              return JSON.parse(field);
+            } catch {
+              return null;
+            }
+          }
+          return field;
+        };
+
+        acaoData.processos_envolvidos = parseJsonField(acaoData.processos_envolvidos) || [];
+        acaoData.registro_nc_anexos = parseJsonField(acaoData.registro_nc_anexos) || [];
+        acaoData.evidencias_anexos = parseJsonField(acaoData.evidencias_anexos) || [];
+        acaoData.subcausas = typeof acaoData.subcausas === 'string' ? acaoData.subcausas : (acaoData.subcausas ? JSON.stringify(acaoData.subcausas) : '');
+
+        // O campo 'acoes' pode ser um array de ItemAcao (legado) ou uma string
+        // Se for array, converter para string de descrições para exibição
+        if (Array.isArray(acaoData.acoes)) {
+          const acoesArray = acaoData.acoes as any[];
+          acaoData.acoes = acoesArray.map((a: any) => a.descricao || a).join('\n');
         }
-        if (typeof acaoData.registro_nc_anexos === 'string') {
-          acaoData.registro_nc_anexos = JSON.parse(acaoData.registro_nc_anexos);
-        }
-        if (typeof acaoData.evidencias_anexos === 'string') {
-          acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
-        }
+
         setAcao(acaoData);
         setEditData(acaoData);
       } else {
@@ -129,14 +144,18 @@ export default function DetalhesAcaoCorretivaPage() {
       const result = await response.json();
       if (result.success) {
         const acaoData = result.data;
-        if (typeof acaoData.processos_envolvidos === 'string') {
-          acaoData.processos_envolvidos = JSON.parse(acaoData.processos_envolvidos);
-        }
-        if (typeof acaoData.registro_nc_anexos === 'string') {
-          acaoData.registro_nc_anexos = JSON.parse(acaoData.registro_nc_anexos);
-        }
-        if (typeof acaoData.evidencias_anexos === 'string') {
-          acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
+        const parseJsonField = (field: any) => {
+          if (!field) return null;
+          if (typeof field === 'string') {
+            try { return JSON.parse(field); } catch { return null; }
+          }
+          return field;
+        };
+        acaoData.processos_envolvidos = parseJsonField(acaoData.processos_envolvidos) || [];
+        acaoData.registro_nc_anexos = parseJsonField(acaoData.registro_nc_anexos) || [];
+        acaoData.evidencias_anexos = parseJsonField(acaoData.evidencias_anexos) || [];
+        if (Array.isArray(acaoData.acoes)) {
+          acaoData.acoes = (acaoData.acoes as any[]).map((a: any) => a.descricao || a).join('\n');
         }
         setAcao(acaoData);
         setEditMode(false);
@@ -160,14 +179,18 @@ export default function DetalhesAcaoCorretivaPage() {
       const result = await response.json();
       if (result.success) {
         const acaoData = result.data;
-        if (typeof acaoData.processos_envolvidos === 'string') {
-          acaoData.processos_envolvidos = JSON.parse(acaoData.processos_envolvidos);
-        }
-        if (typeof acaoData.registro_nc_anexos === 'string') {
-          acaoData.registro_nc_anexos = JSON.parse(acaoData.registro_nc_anexos);
-        }
-        if (typeof acaoData.evidencias_anexos === 'string') {
-          acaoData.evidencias_anexos = JSON.parse(acaoData.evidencias_anexos);
+        const parseJsonField = (field: any) => {
+          if (!field) return null;
+          if (typeof field === 'string') {
+            try { return JSON.parse(field); } catch { return null; }
+          }
+          return field;
+        };
+        acaoData.processos_envolvidos = parseJsonField(acaoData.processos_envolvidos) || [];
+        acaoData.registro_nc_anexos = parseJsonField(acaoData.registro_nc_anexos) || [];
+        acaoData.evidencias_anexos = parseJsonField(acaoData.evidencias_anexos) || [];
+        if (Array.isArray(acaoData.acoes)) {
+          acaoData.acoes = (acaoData.acoes as any[]).map((a: any) => a.descricao || a).join('\n');
         }
         setAcao(acaoData);
         setEditData(acaoData);

@@ -409,7 +409,7 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
                   </svg>
                   <span className="text-sm text-gray-600">
                     {(formData as any)[`${fieldName}_imagem`] && (formData as any)[`${fieldName}_imagem`].length > 0
-                      ? `${(formData as any)[`${fieldName}_imagem`].length} arquivo(s) selecionado(s)`
+                      ? `${(formData as any)[`${fieldName}_imagem`].length} arquivo(s) - Clique para adicionar mais`
                       : 'Clique para selecionar imagens'}
                   </span>
                   <span className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (múltiplos arquivos)</span>
@@ -417,6 +417,43 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
               )}
             </button>
           </div>
+          {/* Image preview grid */}
+          {(formData as any)[`${fieldName}_imagem`] && (formData as any)[`${fieldName}_imagem`].length > 0 && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {(formData as any)[`${fieldName}_imagem`].map((arquivo: { filename: string; url: string; size: number }, index: number) => (
+                <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50 group">
+                  {arquivo.url?.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(arquivo.filename || '') ? (
+                    <img
+                      src={arquivo.url}
+                      alt={arquivo.filename}
+                      className="w-full h-24 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-24 flex items-center justify-center bg-gray-100">
+                      <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentImages = (formData as any)[`${fieldName}_imagem`] || [];
+                      const newImages = currentImages.filter((_: any, i: number) => i !== index);
+                      setFormData(prev => ({ ...prev, [`${fieldName}_imagem`]: newImages.length > 0 ? newImages : null }));
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                    title="Remover"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <p className="text-xs text-gray-600 p-1 truncate">{arquivo.filename}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

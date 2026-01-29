@@ -93,25 +93,46 @@ export default function FormularioReuniaoStart2({ opd, cliente, atividadeId, onS
     prazo_sob_plataforma: ''
   });
 
-  // Carregar dados da Reunião de Start 1
+  const [hasExistingStart2, setHasExistingStart2] = useState(false);
+
+  // Carregar dados: primeiro tenta Start 2 existente, depois Start 1
   useEffect(() => {
     const fetchPreviousData = async () => {
       try {
         setLoadingPreviousData(true);
-        const response = await fetch(`/api/formularios-reuniao/${opd}`);
-        const result = await response.json();
 
-        if (result.success && result.data && result.data.dados_formulario) {
+        // Primeiro, tentar carregar dados de Start 2 existente (para edição)
+        const responseStart2 = await fetch(`/api/formularios-start2/${opd}`);
+        const resultStart2 = await responseStart2.json();
+
+        if (resultStart2.success && resultStart2.data && resultStart2.data.dados_formulario) {
+          // Já existe Start 2 preenchido - carregar para edição
+          const dadosStart2 = typeof resultStart2.data.dados_formulario === 'string'
+            ? JSON.parse(resultStart2.data.dados_formulario)
+            : resultStart2.data.dados_formulario;
+
+          setFormData(prev => ({ ...prev, ...dadosStart2 }));
+          setHasExistingStart2(true);
+          return;
+        }
+
+        // Se não tem Start 2, carregar dados do Start 1
+        const responseStart1 = await fetch(`/api/formularios-reuniao/${opd}`);
+        const resultStart1 = await responseStart1.json();
+
+        if (resultStart1.success && resultStart1.data && resultStart1.data.dados_formulario) {
           // Pre-preencher com dados do Start 1
-          const dadosStart1 = typeof result.data.dados_formulario === 'string'
-            ? JSON.parse(result.data.dados_formulario)
-            : result.data.dados_formulario;
+          const dadosStart1 = typeof resultStart1.data.dados_formulario === 'string'
+            ? JSON.parse(resultStart1.data.dados_formulario)
+            : resultStart1.data.dados_formulario;
 
           setFormData(prev => ({ ...prev, ...dadosStart1 }));
+        } else {
+          setError('Aviso: Não foi encontrado formulário da Reunião de Start 1. Preencha manualmente.');
         }
       } catch (err) {
-        console.error('Erro ao carregar dados da Reunião de Start 1:', err);
-        setError('Aviso: Não foi possível carregar os dados da Reunião de Start 1. Preencha manualmente.');
+        console.error('Erro ao carregar dados:', err);
+        setError('Aviso: Não foi possível carregar os dados anteriores. Preencha manualmente.');
       } finally {
         setLoadingPreviousData(false);
       }
@@ -173,9 +194,15 @@ export default function FormularioReuniaoStart2({ opd, cliente, atividadeId, onS
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-1">
       {/* Mensagem de validação */}
-      <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">
-        <p className="font-semibold">Reunião de Start 2 - Validação</p>
-        <p className="text-sm">Os dados abaixo foram carregados da Reunião de Start 1. Valide e atualize conforme necessário.</p>
+      <div className={`px-4 py-3 rounded border ${hasExistingStart2 ? 'bg-green-100 border-green-400 text-green-700' : 'bg-blue-100 border-blue-400 text-blue-700'}`}>
+        <p className="font-semibold">
+          {hasExistingStart2 ? 'Reunião de Start 2 - Edição' : 'Reunião de Start 2 - Validação'}
+        </p>
+        <p className="text-sm">
+          {hasExistingStart2
+            ? 'Editando formulário de Start 2 salvo anteriormente. Atualize conforme necessário.'
+            : 'Os dados abaixo foram carregados da Reunião de Start 1. Valide e atualize conforme necessário.'}
+        </p>
       </div>
 
       {/* Mensagem de erro */}
