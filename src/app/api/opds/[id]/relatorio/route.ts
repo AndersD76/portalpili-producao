@@ -67,8 +67,8 @@ export async function GET(
     const ncsResult = await pool.query(`
       SELECT
         id, numero, status, gravidade, tipo, disposicao,
-        descricao, quantidade_afetada as quantidade, data_ocorrencia, prazo_acao_imediata,
-        acao_imediata, created
+        descricao, quantidade_afetada as quantidade, data_ocorrencia,
+        acao_imediata, acao_contencao, prazo_acoes, created
       FROM nao_conformidades
       WHERE numero_opd = $1
       ORDER BY created DESC
