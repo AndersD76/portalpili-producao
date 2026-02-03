@@ -7,13 +7,13 @@ import NotificationManager from '@/components/NotificationManager'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Portal Pili',
+  title: 'SIG - Sistema Integrado de Gestão',
   description: 'Sistema de gestão de produção e qualidade - Portal Pili',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Pili',
+    title: 'SIG',
   },
   formatDetection: {
     telephone: false,

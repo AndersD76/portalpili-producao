@@ -26,8 +26,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Usar o ID diretamente (apenas números)
+      // Formatar ID: remover tudo que não for número e formatar com USR
       const idNumero = idFuncionario.trim().replace(/\D/g, ''); // Remove não-dígitos
+      const idFormatado = `USR${idNumero.padStart(3, '0')}`;
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -35,7 +36,7 @@ export default function LoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id_funcionario: idNumero,
+          id_funcionario: idFormatado,
           senha: senha,
         }),
       });
@@ -75,21 +76,21 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
             <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Portal Pili</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Sistema Integrado Pili</h1>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Entrar</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Entrar no Sistema</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ID */}
             <div>
               <label htmlFor="idFuncionario" className="block text-sm font-semibold text-gray-700 mb-2">
-                ID do Usuário
+                ID do Funcionário
               </label>
               <input
                 type="text"
@@ -157,7 +158,7 @@ export default function LoginPage() {
 
         {/* Version Info */}
         <div className="text-center mt-6 text-red-100 text-sm">
-          <p>Portal Pili v1.0</p>
+          <p>Sistema Integrado Pili v1.0</p>
         </div>
       </div>
 
