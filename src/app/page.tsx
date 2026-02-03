@@ -79,6 +79,33 @@ export default function Home() {
             }));
           }
         }
+
+        // Buscar NCs
+        const ncsResponse = await fetch('/api/qualidade/nao-conformidade');
+        if (ncsResponse.ok) {
+          const ncsData = await ncsResponse.json();
+          if (ncsData.success && Array.isArray(ncsData.data)) {
+            const ncs = ncsData.data;
+            const ncsAbertas = ncs.filter((nc: { status?: string }) =>
+              nc.status === 'Aberta' || nc.status === 'aberta' || nc.status === 'ABERTA'
+            ).length;
+            setStats(prev => ({ ...prev, ncsAbertas }));
+          }
+        }
+
+        // Buscar Ações Corretivas
+        const acoesResponse = await fetch('/api/qualidade/acao-corretiva');
+        if (acoesResponse.ok) {
+          const acoesData = await acoesResponse.json();
+          if (acoesData.success && Array.isArray(acoesData.data)) {
+            const acoes = acoesData.data;
+            const acoesPendentes = acoes.filter((ac: { status?: string }) =>
+              ac.status === 'Pendente' || ac.status === 'pendente' || ac.status === 'PENDENTE' ||
+              ac.status === 'Em Andamento' || ac.status === 'em andamento' || ac.status === 'EM ANDAMENTO'
+            ).length;
+            setStats(prev => ({ ...prev, acoesPendentes }));
+          }
+        }
       } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
       } finally {
