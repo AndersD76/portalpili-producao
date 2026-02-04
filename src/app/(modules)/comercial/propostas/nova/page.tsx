@@ -15,9 +15,10 @@ interface PrecoBase {
   id: number;
   produto: string;
   modelo: string;
-  comprimento: number;
+  tamanho: number;
   preco: number;
   descricao: string;
+  tipo: string;
 }
 
 interface Opcional {
@@ -81,12 +82,12 @@ export default function NovaPropostaPage() {
   }, [formData.tipo_produto, precosBase]);
 
   useEffect(() => {
-    // Atualizar preço quando modelo/comprimento muda
+    // Atualizar preço quando modelo/tamanho muda
     if (formData.modelo && formData.comprimento) {
       const preco = precosBase.find(
         p => p.produto === formData.tipo_produto &&
              p.modelo === formData.modelo &&
-             p.comprimento === parseInt(formData.comprimento)
+             p.tamanho === parseInt(formData.comprimento)
       );
       setPrecoSelecionado(preco || null);
     }
@@ -215,11 +216,11 @@ export default function NovaPropostaPage() {
       .map(p => p.modelo)
   )];
 
-  // Obter comprimentos disponíveis para o modelo selecionado
-  const comprimentosDisponiveis = precosBase
+  // Obter tamanhos disponíveis para o modelo selecionado
+  const tamanhosDisponiveis = precosBase
     .filter(p => p.produto === formData.tipo_produto && p.modelo === formData.modelo)
-    .map(p => ({ comprimento: p.comprimento, preco: p.preco }))
-    .sort((a, b) => a.comprimento - b.comprimento);
+    .map(p => ({ tamanho: p.tamanho, preco: p.preco }))
+    .sort((a, b) => a.tamanho - b.tamanho);
 
   // Opcionais filtrados por tipo de produto
   const opcionaisFiltrados = opcionais.filter(
@@ -336,11 +337,11 @@ export default function NovaPropostaPage() {
                     disabled={!formData.modelo}
                   >
                     <option value="">Selecione...</option>
-                    {comprimentosDisponiveis.map((item) => (
-                      <option key={item.comprimento} value={item.comprimento}>
+                    {tamanhosDisponiveis.map((item) => (
+                      <option key={item.tamanho} value={item.tamanho}>
                         {formData.tipo_produto === 'TOMBADOR'
-                          ? `${item.comprimento}m - ${formatCurrency(item.preco)}`
-                          : `${item.comprimento}° - ${formatCurrency(item.preco)}`
+                          ? `${item.tamanho}m - ${formatCurrency(item.preco)}`
+                          : `${item.tamanho}° - ${formatCurrency(item.preco)}`
                         }
                       </option>
                     ))}
