@@ -68,15 +68,27 @@ export default function ComercialPage() {
   const fetchData = async () => {
     try {
       const [opResponse, clienteResponse, propostaResponse, atividadeResponse] = await Promise.all([
-        fetch('/api/comercial/oportunidades').catch(() => null),
+        fetch('/api/comercial/oportunidades').catch((e) => { console.error('Fetch oportunidades error:', e); return null; }),
         fetch('/api/comercial/clientes').catch(() => null),
         fetch('/api/comercial/propostas').catch(() => null),
         fetch('/api/comercial/atividades').catch(() => null),
       ]);
 
+      // Debug: Log response status
+      console.log('API Responses:', {
+        oportunidades: opResponse ? opResponse.status : 'null',
+        clientes: clienteResponse ? clienteResponse.status : 'null',
+        propostas: propostaResponse ? propostaResponse.status : 'null',
+        atividades: atividadeResponse ? atividadeResponse.status : 'null',
+      });
+
       // Processar Oportunidades/Pipeline
-      if (opResponse) {
-        const opData = await opResponse.json().catch(() => ({ pipeline: [] }));
+      if (opResponse && opResponse.ok) {
+        const opData = await opResponse.json().catch((e) => {
+          console.error('Erro ao parsear oportunidades:', e);
+          return { pipeline: [] };
+        });
+        console.log('Oportunidades API response:', opData);
         const pipeline = opData.pipeline || [];
         const newPipeline: ComercialStats['pipeline'] = {
           prospeccao: { quantidade: 0, valor: 0 },
