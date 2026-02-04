@@ -55,6 +55,8 @@ export default function AdminUsuariosPage() {
   const [filtroAtivo, setFiltroAtivo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [usuarioVisualizando, setUsuarioVisualizando] = useState<Usuario | null>(null);
+  const [usuarioExcluindo, setUsuarioExcluindo] = useState<Usuario | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
@@ -216,6 +218,46 @@ export default function AdminUsuariosPage() {
     }
   };
 
+  const handleVisualizarUsuario = async (usuario: Usuario) => {
+    try {
+      const res = await fetch(`/api/admin/usuarios/${usuario.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setUsuarioVisualizando(data.data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar detalhes:', error);
+    }
+  };
+
+  const handleExcluirUsuario = async () => {
+    if (!usuarioExcluindo) return;
+    setSalvando(true);
+
+    try {
+      const res = await fetch(`/api/admin/usuarios/${usuarioExcluindo.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setMensagem({ tipo: 'sucesso', texto: 'Usuário desativado com sucesso!' });
+        fetchDados();
+        setTimeout(() => {
+          setUsuarioExcluindo(null);
+          setMensagem(null);
+        }, 1500);
+      } else {
+        setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao desativar usuário' });
+      }
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      setMensagem({ tipo: 'erro', texto: 'Erro ao desativar usuário' });
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -370,15 +412,36 @@ export default function AdminUsuariosPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => handleEditarUsuario(usuario)}
-                      className="text-blue-600 hover:text-blue-800 transition"
-                      title="Editar permissões"
-                    >
-                      <svg className="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleVisualizarUsuario(usuario)}
+                        className="text-gray-600 hover:text-gray-800 transition p-1 rounded hover:bg-gray-100"
+                        title="Visualizar detalhes"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleEditarUsuario(usuario)}
+                        className="text-blue-600 hover:text-blue-800 transition p-1 rounded hover:bg-blue-50"
+                        title="Editar usuário"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setUsuarioExcluindo(usuario)}
+                        className="text-red-600 hover:text-red-800 transition p-1 rounded hover:bg-red-50"
+                        title="Excluir usuário"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -577,6 +640,160 @@ export default function AdminUsuariosPage() {
                   </svg>
                 )}
                 Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Visualização */}
+      {usuarioVisualizando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+            <div className="p-4 sm:p-6 border-b bg-gray-50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                  Detalhes do Usuário
+                </h2>
+                <button
+                  onClick={() => setUsuarioVisualizando(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-red-600">
+                    {usuarioVisualizando.nome?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{usuarioVisualizando.nome}</h3>
+                  <p className="text-sm text-gray-500">{usuarioVisualizando.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">ID Funcionário</p>
+                  <p className="font-medium text-gray-900">{usuarioVisualizando.id_funcionario || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Cargo</p>
+                  <p className="font-medium text-gray-900">{usuarioVisualizando.cargo || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Departamento</p>
+                  <p className="font-medium text-gray-900">{usuarioVisualizando.departamento || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Perfil</p>
+                  <p className="font-medium text-gray-900">{usuarioVisualizando.perfil_nome || 'Sem perfil'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Status</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    usuarioVisualizando.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {usuarioVisualizando.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase">Admin</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    usuarioVisualizando.is_admin ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {usuarioVisualizando.is_admin ? 'Sim' : 'Não'}
+                  </span>
+                </div>
+              </div>
+
+              {usuarioVisualizando.ultimo_acesso && (
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-gray-500 uppercase">Último Acesso</p>
+                  <p className="font-medium text-gray-900">
+                    {new Date(usuarioVisualizando.ultimo_acesso).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="p-4 sm:p-6 border-t bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => setUsuarioVisualizando(null)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
+              >
+                Fechar
+              </button>
+              <button
+                onClick={() => {
+                  setUsuarioVisualizando(null);
+                  handleEditarUsuario(usuarioVisualizando);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      {usuarioExcluindo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                Desativar Usuário
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-4">
+                Tem certeza que deseja desativar o usuário <strong>{usuarioExcluindo.nome}</strong>?
+                O usuário não poderá mais acessar o sistema.
+              </p>
+
+              {mensagem && (
+                <div className={`mb-4 p-3 rounded-lg text-sm ${
+                  mensagem.tipo === 'sucesso'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {mensagem.texto}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-end gap-3 rounded-b-xl">
+              <button
+                onClick={() => {
+                  setUsuarioExcluindo(null);
+                  setMensagem(null);
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
+                disabled={salvando}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleExcluirUsuario}
+                disabled={salvando}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2"
+              >
+                {salvando && (
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                Desativar
               </button>
             </div>
           </div>

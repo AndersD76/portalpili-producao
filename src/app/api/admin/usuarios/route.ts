@@ -141,41 +141,67 @@ export async function POST(request: Request) {
       departamento,
       perfil_id,
       is_admin,
+      id_funcionario,
     } = body;
 
-    if (!nome || !email || !senha) {
+    if (!nome || !email) {
       return NextResponse.json(
-        { success: false, error: 'Nome, email e senha são obrigatórios' },
+        { success: false, error: 'Nome e email são obrigatórios' },
         { status: 400 }
       );
     }
 
-    // Verifica se já existe
-    const existing = await query(
+    // Verifica se já existe por email
+    const existingEmail = await query(
       `SELECT id FROM usuarios WHERE email = $1`,
       [email]
     );
 
-    if (existing?.rowCount && existing.rowCount > 0) {
+    if (existingEmail?.rowCount && existingEmail.rowCount > 0) {
       return NextResponse.json(
         { success: false, error: 'Email já cadastrado' },
         { status: 409 }
       );
     }
 
-    // Hash da senha
-    const password = await bcrypt.hash(senha, 10);
+    // Verifica se já existe por id_funcionario (se fornecido)
+    if (id_funcionario) {
+      const existingFunc = await query(
+        `SELECT id FROM usuarios WHERE id_funcionario = $1`,
+        [id_funcionario]
+      );
+
+      if (existingFunc?.rowCount && existingFunc.rowCount > 0) {
+        return NextResponse.json(
+          { success: false, error: 'ID Funcionário já cadastrado' },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Hash da senha (usa senha padrão se não fornecida)
+    const senhaParaHash = senha || 'pili@123';
+    const password = await bcrypt.hash(senhaParaHash, 10);
 
     // Verifica quais colunas existem
     const colsCheck = await query(`
       SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'usuarios' AND column_name IN ('cargo', 'departamento', 'perfil_id', 'is_admin', 'ativo')
+      WHERE table_name = 'usuarios' AND column_name IN ('cargo', 'departamento', 'perfil_id', 'is_admin', 'ativo', 'id_funcionario', 'senha_hash')
     `);
     const existingCols = new Set(colsCheck?.rows?.map(r => r.column_name) || []);
 
     // Monta query dinamicamente baseada nas colunas existentes
     const fields = ['nome', 'email', 'password', 'telefone', 'role', 'active'];
-    const values = [nome, email, password, telefone || null, role || 'user', true];
+    const values: unknown[] = [nome, email, password, telefone || null, role || 'user', true];
+
+    if (existingCols.has('id_funcionario') && id_funcionario) {
+      fields.push('id_funcionario');
+      values.push(id_funcionario);
+    }
+    if (existingCols.has('senha_hash')) {
+      fields.push('senha_hash');
+      values.push(password);
+    }
 
     if (existingCols.has('cargo')) {
       fields.push('cargo');
@@ -202,7 +228,7 @@ export async function POST(request: Request) {
 
     const result = await query(
       `INSERT INTO usuarios (${fields.join(', ')}) VALUES (${placeholders})
-       RETURNING id, nome, email, role, active, created_at`,
+       RETURNING id, nome, email, id_funcionario, cargo, departamento, perfil_id, is_admin, ativo, created_at`,
       values
     );
 
