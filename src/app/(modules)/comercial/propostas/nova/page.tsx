@@ -510,17 +510,17 @@ export default function NovaPropostaPage() {
   const getOpcionalPreco = useCallback((codigoPattern: string, tamanho?: number) => {
     // Try exact match first
     let opc = opcionais.find(o => o.codigo === codigoPattern);
-    if (opc) return opc.preco || 0;
+    if (opc) return Number(opc.preco) || 0;
 
     // Try with tamanho suffix
     if (tamanho) {
       opc = opcionais.find(o => o.codigo === `${codigoPattern}_${tamanho}`);
-      if (opc) return opc.preco || 0;
+      if (opc) return Number(opc.preco) || 0;
     }
 
     // Try partial match
     opc = opcionais.find(o => o.codigo.startsWith(codigoPattern));
-    return opc?.preco || 0;
+    return Number(opc?.preco) || 0;
   }, [opcionais]);
 
   // Auto-fill optional prices when tombador_tamanho changes
@@ -590,44 +590,64 @@ export default function NovaPropostaPage() {
     let precoOpcionais = 0;
 
     if (form.produto === 'TOMBADOR' && form.tombador_tamanho) {
+      // Find base price - use Number() to ensure type consistency
       const preco = precosBase.find(p =>
         p.produto === 'TOMBADOR' &&
-        p.tamanho === form.tombador_tamanho &&
+        Number(p.tamanho) === Number(form.tombador_tamanho) &&
         p.tipo === form.tombador_tipo
       );
-      precoBase = preco?.preco || 0;
+      precoBase = Number(preco?.preco) || 0;
 
-      // Add opcionais values
-      if (form.tombador_economizador === 'COM') precoOpcionais += form.tombador_economizador_qtd * form.tombador_economizador_valor;
-      if (form.tombador_calco_manutencao === 'COM') precoOpcionais += form.tombador_calco_qtd * form.tombador_calco_valor;
-      if (form.tombador_kit_descida === 'COM') precoOpcionais += form.tombador_kit_descida_qtd * form.tombador_kit_descida_valor;
-      if (form.tombador_travamento === 'COM') precoOpcionais += form.tombador_travamento_qtd * form.tombador_travamento_valor;
-      if (form.tombador_enclausuramento === 'COM') precoOpcionais += form.tombador_enclausuramento_qtd * form.tombador_enclausuramento_valor;
-      if (form.tombador_grelhas === 'COM') precoOpcionais += form.tombador_grelhas_qtd * form.tombador_grelhas_valor;
-      if (form.tombador_varandas === 'COM') precoOpcionais += form.tombador_varandas_qtd * form.tombador_varandas_valor;
-      if (form.tombador_oleo === 'COM') precoOpcionais += form.tombador_oleo_valor;
-      if (form.tombador_guindaste === 'COM') precoOpcionais += form.tombador_guindaste_qtd * form.tombador_guindaste_valor;
+      // Debug log
+      console.log('Tombador price lookup:', {
+        tamanho: form.tombador_tamanho,
+        tipo: form.tombador_tipo,
+        found: preco,
+        precoBase,
+        allPrices: precosBase.filter(p => p.produto === 'TOMBADOR')
+      });
+
+      // Add opcionais values - use Number() to ensure correct arithmetic
+      if (form.tombador_economizador === 'COM') precoOpcionais += Number(form.tombador_economizador_qtd) * Number(form.tombador_economizador_valor);
+      if (form.tombador_calco_manutencao === 'COM') precoOpcionais += Number(form.tombador_calco_qtd) * Number(form.tombador_calco_valor);
+      if (form.tombador_kit_descida === 'COM') precoOpcionais += Number(form.tombador_kit_descida_qtd) * Number(form.tombador_kit_descida_valor);
+      if (form.tombador_travamento === 'COM') precoOpcionais += Number(form.tombador_travamento_qtd) * Number(form.tombador_travamento_valor);
+      if (form.tombador_enclausuramento === 'COM') precoOpcionais += Number(form.tombador_enclausuramento_qtd) * Number(form.tombador_enclausuramento_valor);
+      if (form.tombador_grelhas === 'COM') precoOpcionais += Number(form.tombador_grelhas_qtd) * Number(form.tombador_grelhas_valor);
+      if (form.tombador_varandas === 'COM') precoOpcionais += Number(form.tombador_varandas_qtd) * Number(form.tombador_varandas_valor);
+      if (form.tombador_oleo === 'COM') precoOpcionais += Number(form.tombador_oleo_valor);
+      if (form.tombador_guindaste === 'COM') precoOpcionais += Number(form.tombador_guindaste_qtd) * Number(form.tombador_guindaste_valor);
     } else if (form.produto === 'COLETOR' && form.coletor_grau_rotacao) {
+      // Find base price - use Number() to ensure type consistency
       const preco = precosBase.find(p =>
         p.produto === 'COLETOR' &&
-        p.tamanho === form.coletor_grau_rotacao &&
+        Number(p.tamanho) === Number(form.coletor_grau_rotacao) &&
         p.tipo === form.coletor_tipo
       );
-      precoBase = preco?.preco || 0;
+      precoBase = Number(preco?.preco) || 0;
 
-      // Add coletor opcionais
-      if (form.coletor_retorno_grao === 'COM RETORNO DE GRÃO') precoOpcionais += form.coletor_retorno_grao_qtd * form.coletor_retorno_grao_valor;
-      if (form.coletor_tubo_diametro === '4 POLEGADAS') precoOpcionais += form.coletor_tubo_qtd * form.coletor_tubo_valor;
-      if (form.coletor_platibanda === 'COM PLATIBANDA') precoOpcionais += form.coletor_platibanda_qtd * form.coletor_platibanda_valor;
-      if (form.coletor_cadeira_platibanda === 'COM CADEIRA') precoOpcionais += form.coletor_cadeira_qtd * form.coletor_cadeira_valor;
-      if (form.coletor_oleo === 'COM') precoOpcionais += form.coletor_oleo_valor;
+      // Debug log
+      console.log('Coletor price lookup:', {
+        grau: form.coletor_grau_rotacao,
+        tipo: form.coletor_tipo,
+        found: preco,
+        precoBase,
+        allPrices: precosBase.filter(p => p.produto === 'COLETOR')
+      });
+
+      // Add coletor opcionais - use Number() to ensure correct arithmetic
+      if (form.coletor_retorno_grao === 'COM RETORNO DE GRÃO') precoOpcionais += Number(form.coletor_retorno_grao_qtd) * Number(form.coletor_retorno_grao_valor);
+      if (form.coletor_tubo_diametro === '4 POLEGADAS') precoOpcionais += Number(form.coletor_tubo_qtd) * Number(form.coletor_tubo_valor);
+      if (form.coletor_platibanda === 'COM PLATIBANDA') precoOpcionais += Number(form.coletor_platibanda_qtd) * Number(form.coletor_platibanda_valor);
+      if (form.coletor_cadeira_platibanda === 'COM CADEIRA') precoOpcionais += Number(form.coletor_cadeira_qtd) * Number(form.coletor_cadeira_valor);
+      if (form.coletor_oleo === 'COM') precoOpcionais += Number(form.coletor_oleo_valor);
     }
 
     // Add frete and montagem
-    if (form.frete_tipo === 'CIF') precoOpcionais += form.frete_qtd * form.frete_valor;
-    if (form.montagem === 'COM MONTAGEM DO EQUIPAMENTO') precoOpcionais += form.montagem_valor;
+    if (form.frete_tipo === 'CIF') precoOpcionais += Number(form.frete_qtd) * Number(form.frete_valor);
+    if (form.montagem === 'COM MONTAGEM DO EQUIPAMENTO') precoOpcionais += Number(form.montagem_valor);
 
-    const total = (precoBase + precoOpcionais) * form.quantidade;
+    const total = (precoBase + precoOpcionais) * Number(form.quantidade);
     setPrecoCalculado({ base: precoBase, opcionais: precoOpcionais, total });
   }, [form, precosBase]);
 
@@ -1023,6 +1043,16 @@ export default function NovaPropostaPage() {
                       <span className="text-gray-600">Tamanho:</span>
                       <span className="font-medium">{form.tombador_tamanho}m {form.tombador_tipo}</span>
                     </div>
+                    {(() => {
+                      const precoInfo = precosBase.find(p =>
+                        p.produto === 'TOMBADOR' &&
+                        Number(p.tamanho) === Number(form.tombador_tamanho) &&
+                        p.tipo === form.tombador_tipo
+                      );
+                      return precoInfo?.descricao && (
+                        <div className="text-xs text-gray-500 italic">{precoInfo.descricao}</div>
+                      );
+                    })()}
                   </>
                 )}
                 {form.produto === 'COLETOR' && form.coletor_grau_rotacao && (
@@ -1031,6 +1061,16 @@ export default function NovaPropostaPage() {
                       <span className="text-gray-600">Rotação:</span>
                       <span className="font-medium">{form.coletor_grau_rotacao}° {form.coletor_tipo}</span>
                     </div>
+                    {(() => {
+                      const precoInfo = precosBase.find(p =>
+                        p.produto === 'COLETOR' &&
+                        Number(p.tamanho) === Number(form.coletor_grau_rotacao) &&
+                        p.tipo === form.coletor_tipo
+                      );
+                      return precoInfo?.descricao && (
+                        <div className="text-xs text-gray-500 italic">{precoInfo.descricao}</div>
+                      );
+                    })()}
                   </>
                 )}
                 <div className="flex justify-between">
@@ -1043,10 +1083,120 @@ export default function NovaPropostaPage() {
                     <span className="text-gray-600">Preço Base:</span>
                     <span className="font-medium">{formatarMoeda(precoCalculado.base)}</span>
                   </div>
+
+                  {/* Show selected optionals with values */}
+                  {form.produto === 'TOMBADOR' && (
+                    <div className="mt-2 space-y-1 text-xs">
+                      {form.tombador_economizador === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Economizador ({form.tombador_economizador_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_economizador_qtd) * Number(form.tombador_economizador_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_calco_manutencao === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Calço Manutenção ({form.tombador_calco_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_calco_qtd) * Number(form.tombador_calco_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_kit_descida === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Kit Descida ({form.tombador_kit_descida_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_kit_descida_qtd) * Number(form.tombador_kit_descida_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_travamento === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Travamento ({form.tombador_travamento_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_travamento_qtd) * Number(form.tombador_travamento_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_enclausuramento === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Enclausuramento ({form.tombador_enclausuramento_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_enclausuramento_qtd) * Number(form.tombador_enclausuramento_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_grelhas === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Grelhas ({form.tombador_grelhas_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_grelhas_qtd) * Number(form.tombador_grelhas_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_varandas === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Varandas ({form.tombador_varandas_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_varandas_qtd) * Number(form.tombador_varandas_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_oleo === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Óleo Hidráulico</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_oleo_valor))}</span>
+                        </div>
+                      )}
+                      {form.tombador_guindaste === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Guindaste ({form.tombador_guindaste_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.tombador_guindaste_qtd) * Number(form.tombador_guindaste_valor))}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {form.produto === 'COLETOR' && (
+                    <div className="mt-2 space-y-1 text-xs">
+                      {form.coletor_retorno_grao === 'COM RETORNO DE GRÃO' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Retorno Grão ({form.coletor_retorno_grao_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.coletor_retorno_grao_qtd) * Number(form.coletor_retorno_grao_valor))}</span>
+                        </div>
+                      )}
+                      {form.coletor_tubo_diametro === '4 POLEGADAS' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Tubo 4 pol ({form.coletor_tubo_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.coletor_tubo_qtd) * Number(form.coletor_tubo_valor))}</span>
+                        </div>
+                      )}
+                      {form.coletor_platibanda === 'COM PLATIBANDA' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Platibanda ({form.coletor_platibanda_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.coletor_platibanda_qtd) * Number(form.coletor_platibanda_valor))}</span>
+                        </div>
+                      )}
+                      {form.coletor_cadeira_platibanda === 'COM CADEIRA' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Cadeira ({form.coletor_cadeira_qtd}x)</span>
+                          <span>+ {formatarMoeda(Number(form.coletor_cadeira_qtd) * Number(form.coletor_cadeira_valor))}</span>
+                        </div>
+                      )}
+                      {form.coletor_oleo === 'COM' && (
+                        <div className="flex justify-between text-green-700">
+                          <span>Óleo Hidráulico</span>
+                          <span>+ {formatarMoeda(Number(form.coletor_oleo_valor))}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Frete and Montagem */}
+                  {form.frete_tipo === 'CIF' && Number(form.frete_valor) > 0 && (
+                    <div className="flex justify-between text-xs text-blue-700 mt-1">
+                      <span>Frete CIF ({form.frete_qtd}x)</span>
+                      <span>+ {formatarMoeda(Number(form.frete_qtd) * Number(form.frete_valor))}</span>
+                    </div>
+                  )}
+                  {form.montagem === 'COM MONTAGEM DO EQUIPAMENTO' && Number(form.montagem_valor) > 0 && (
+                    <div className="flex justify-between text-xs text-blue-700">
+                      <span>Montagem</span>
+                      <span>+ {formatarMoeda(Number(form.montagem_valor))}</span>
+                    </div>
+                  )}
+
                   {precoCalculado.opcionais > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Opcionais:</span>
-                      <span>+ {formatarMoeda(precoCalculado.opcionais)}</span>
+                    <div className="flex justify-between text-green-600 mt-2 pt-2 border-t border-dashed">
+                      <span className="font-medium">Total Opcionais:</span>
+                      <span className="font-medium">+ {formatarMoeda(precoCalculado.opcionais)}</span>
                     </div>
                   )}
                 </div>
@@ -1056,6 +1206,11 @@ export default function NovaPropostaPage() {
                     <span className="font-semibold text-gray-900">Total:</span>
                     <span className="font-bold text-red-600">{formatarMoeda(precoCalculado.total)}</span>
                   </div>
+                  {form.quantidade > 1 && (
+                    <div className="text-xs text-gray-500 text-right">
+                      ({form.quantidade} unidades)
+                    </div>
+                  )}
                 </div>
 
                 {form.cliente_id && (
