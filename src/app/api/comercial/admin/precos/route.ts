@@ -19,12 +19,15 @@ export async function GET(request: Request) {
 
     switch (tipo) {
       case 'categorias':
-        sql = `SELECT * FROM crm_precos_categorias ORDER BY ordem`;
+        sql = `SELECT * FROM crm_precos_categorias ORDER BY ordem_exibicao`;
         break;
 
       case 'base':
         sql = `
-          SELECT pb.*, pc.nome as categoria_nome
+          SELECT pb.id, pb.produto as tipo_produto, pb.tipo as modelo, pb.tamanho as comprimento,
+                 pb.descricao, pb.preco, pb.ativo, pb.qt_cilindros, pb.qt_motores, pb.qt_oleo,
+                 pb.angulo_inclinacao, pb.ordem_exibicao, pb.created_at, pb.updated_at,
+                 pc.nome as categoria_nome
           FROM crm_precos_base pb
           LEFT JOIN crm_precos_categorias pc ON pb.categoria_id = pc.id
           WHERE 1=1
@@ -34,15 +37,17 @@ export async function GET(request: Request) {
           params.push(ativo === 'true');
         }
         if (tipo_produto) {
-          sql += ` AND pb.tipo_produto = $${paramIndex++}`;
+          sql += ` AND pb.produto = $${paramIndex++}`;
           params.push(tipo_produto);
         }
-        sql += ` ORDER BY pb.tipo_produto, pb.modelo, pb.comprimento`;
+        sql += ` ORDER BY pb.produto, pb.tipo, pb.tamanho`;
         break;
 
       case 'opcoes':
         sql = `
-          SELECT po.*, pc.nome as categoria_nome
+          SELECT po.id, po.categoria_id, po.codigo, po.nome, po.descricao,
+                 po.preco_tipo as tipo_valor, po.preco as valor, po.ativo,
+                 po.produto, po.ordem_exibicao, pc.nome as categoria_nome
           FROM crm_precos_opcoes po
           LEFT JOIN crm_precos_categorias pc ON po.categoria_id = pc.id
           WHERE 1=1
@@ -51,7 +56,7 @@ export async function GET(request: Request) {
           sql += ` AND po.ativo = $${paramIndex++}`;
           params.push(ativo === 'true');
         }
-        sql += ` ORDER BY pc.ordem, po.ordem`;
+        sql += ` ORDER BY pc.ordem_exibicao, po.ordem_exibicao`;
         break;
 
       case 'descontos':
@@ -128,24 +133,28 @@ export async function POST(request: Request) {
       case 'base':
         sql = `
           INSERT INTO crm_precos_base (
-            tipo_produto, modelo, comprimento, descricao, preco, categoria_id
-          ) VALUES ($1, $2, $3, $4, $5, $6)
-          RETURNING *
+            produto, tipo, tamanho, descricao, preco, categoria_id, qt_cilindros, qt_motores, qt_oleo, angulo_inclinacao
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING id, produto as tipo_produto, tipo as modelo, tamanho as comprimento, descricao, preco, ativo
         `;
         params = [
-          dados.tipo_produto,
-          dados.modelo,
-          dados.comprimento,
+          dados.tipo_produto || dados.produto,
+          dados.modelo || dados.tipo,
+          dados.comprimento || dados.tamanho,
           dados.descricao,
           dados.preco,
           dados.categoria_id,
+          dados.qt_cilindros || null,
+          dados.qt_motores || null,
+          dados.qt_oleo || null,
+          dados.angulo_inclinacao || null,
         ];
         break;
 
       case 'opcoes':
         sql = `
           INSERT INTO crm_precos_opcoes (
-            categoria_id, codigo, nome, descricao, tipo_valor, valor, ordem, tipo_produto_aplicavel
+            categoria_id, codigo, nome, descricao, preco_tipo, preco, ordem_exibicao, produto
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *
         `;
@@ -154,10 +163,10 @@ export async function POST(request: Request) {
           dados.codigo,
           dados.nome,
           dados.descricao,
-          dados.tipo_valor || 'FIXO',
-          dados.valor,
-          dados.ordem || 0,
-          dados.tipo_produto_aplicavel,
+          dados.preco_tipo || dados.tipo_valor || 'FIXO',
+          dados.preco || dados.valor,
+          dados.ordem_exibicao || dados.ordem || 0,
+          dados.produto || dados.tipo_produto_aplicavel,
         ];
         break;
 
