@@ -1018,41 +1018,67 @@ export default function ModalVisualizarFormulario({
         {dados.documentos && dados.documentos.length > 0 && (
           <div className="space-y-3">
             <h5 className="font-semibold text-gray-900">Documentos:</h5>
-            {dados.documentos.map((doc: any, index: number) => (
-              <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-3">
-                  {/* Ícone PDF */}
-                  <svg className="w-8 h-8 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{doc.nome || 'Documento sem nome'}</p>
-                    {doc.arquivo && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-gray-500 truncate">{doc.arquivo.filename}</p>
-                        {doc.arquivo.size && (
-                          <span className="text-xs text-gray-400">({formatFileSize(doc.arquivo.size)})</span>
-                        )}
-                      </div>
+            {dados.documentos.map((doc: any, index: number) => {
+              // Construct URL from arquivo data - try multiple possible paths
+              const getDocUrl = () => {
+                if (doc.arquivo?.url) return doc.arquivo.url;
+                if (doc.arquivo?.filename) return `/api/uploads/${doc.arquivo.filename}`;
+                if (doc.url) return doc.url;
+                if (doc.filename) return `/api/uploads/${doc.filename}`;
+                return null;
+              };
+              const docUrl = getDocUrl();
+
+              return (
+                <a
+                  key={index}
+                  href={docUrl || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!docUrl) {
+                      e.preventDefault();
+                      alert('URL do documento não encontrada');
+                    }
+                  }}
+                  className={`block bg-white rounded-lg p-4 border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer ${!docUrl ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Ícone PDF */}
+                    <svg className="w-8 h-8 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900">{doc.nome || 'Documento sem nome'}</p>
+                      {(doc.arquivo?.filename || doc.filename) && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-sm text-gray-500 truncate">{doc.arquivo?.filename || doc.filename}</p>
+                          {(doc.arquivo?.size || doc.size) && (
+                            <span className="text-xs text-gray-400">({formatFileSize(doc.arquivo?.size || doc.size)})</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {docUrl ? (
+                      <span className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Abrir
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 px-3 py-1.5 bg-gray-400 text-white text-sm rounded-lg">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Sem URL
+                      </span>
                     )}
                   </div>
-                  {doc.arquivo && doc.arquivo.url && (
-                    <a
-                      href={doc.arquivo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      Abrir
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+                </a>
+              );
+            })}
           </div>
         )}
 
