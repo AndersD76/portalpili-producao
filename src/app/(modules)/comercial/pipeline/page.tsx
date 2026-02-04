@@ -23,7 +23,7 @@ interface Oportunidade {
 }
 
 export default function PipelinePage() {
-  const [user, setUser] = useState<{ id: number; nome: string; perfil?: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; nome: string; perfil?: string; is_admin?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
   const [filtroVendedor, setFiltroVendedor] = useState<string>('');
@@ -45,7 +45,8 @@ export default function PipelinePage() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       // Filtrar pelo vendedor logado por padrão (exceto admin/diretor)
-      if (parsedUser.perfil !== 'admin' && parsedUser.perfil !== 'diretor') {
+      // Admin usa is_admin boolean, não perfil string
+      if (!parsedUser.is_admin && parsedUser.perfil !== 'diretor') {
         setFiltroVendedor(String(parsedUser.id));
       }
     } catch {
