@@ -6,7 +6,8 @@
 /**
  * Remove caracteres não numéricos do CNPJ
  */
-export function limparCNPJ(cnpj: string): string {
+export function limparCNPJ(cnpj: string | null | undefined): string {
+  if (!cnpj) return '';
   return cnpj.replace(/[^\d]/g, '');
 }
 
@@ -15,7 +16,8 @@ export function limparCNPJ(cnpj: string): string {
  * @param cnpj CNPJ limpo ou formatado
  * @returns CNPJ formatado como XX.XXX.XXX/XXXX-XX
  */
-export function formatarCNPJ(cnpj: string): string {
+export function formatarCNPJ(cnpj: string | null | undefined): string {
+  if (!cnpj) return '-';
   const cleaned = limparCNPJ(cnpj);
   if (cleaned.length !== 14) return cnpj; // Retorna original se inválido
 
@@ -30,7 +32,8 @@ export function formatarCNPJ(cnpj: string): string {
  * @param cpf CPF limpo ou formatado
  * @returns CPF formatado como XXX.XXX.XXX-XX
  */
-export function formatarCPF(cpf: string): string {
+export function formatarCPF(cpf: string | null | undefined): string {
+  if (!cpf) return '-';
   const cleaned = cpf.replace(/[^\d]/g, '');
   if (cleaned.length !== 11) return cpf;
 
@@ -45,7 +48,8 @@ export function formatarCPF(cpf: string): string {
  * @param telefone Telefone limpo ou formatado
  * @returns Telefone formatado como (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
  */
-export function formatarTelefone(telefone: string): string {
+export function formatarTelefone(telefone: string | null | undefined): string {
+  if (!telefone) return '-';
   const cleaned = telefone.replace(/[^\d]/g, '');
 
   if (cleaned.length === 11) {
