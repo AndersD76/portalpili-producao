@@ -241,18 +241,18 @@ export default function AdminUsuariosPage() {
 
       const data = await res.json();
       if (data.success) {
-        setMensagem({ tipo: 'sucesso', texto: 'Usuário desativado com sucesso!' });
+        setMensagem({ tipo: 'sucesso', texto: 'Usuário excluído com sucesso!' });
         fetchDados();
         setTimeout(() => {
           setUsuarioExcluindo(null);
           setMensagem(null);
         }, 1500);
       } else {
-        setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao desativar usuário' });
+        setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao excluir usuário' });
       }
     } catch (error) {
       console.error('Erro ao excluir:', error);
-      setMensagem({ tipo: 'erro', texto: 'Erro ao desativar usuário' });
+      setMensagem({ tipo: 'erro', texto: 'Erro ao excluir usuário' });
     } finally {
       setSalvando(false);
     }
@@ -754,11 +754,11 @@ export default function AdminUsuariosPage() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-                Desativar Usuário
+                Excluir Usuário
               </h3>
               <p className="text-sm text-gray-500 text-center mb-4">
-                Tem certeza que deseja desativar o usuário <strong>{usuarioExcluindo.nome}</strong>?
-                O usuário não poderá mais acessar o sistema.
+                Tem certeza que deseja <strong>excluir permanentemente</strong> o usuário <strong>{usuarioExcluindo.nome}</strong>?
+                Esta ação não pode ser desfeita.
               </p>
 
               {mensagem && (
@@ -793,7 +793,7 @@ export default function AdminUsuariosPage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                 )}
-                Desativar
+                Excluir
               </button>
             </div>
           </div>

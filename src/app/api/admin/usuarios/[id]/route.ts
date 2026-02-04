@@ -190,28 +190,41 @@ export async function DELETE(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    // Soft delete - apenas desativa
-    const result = await query(
-      `UPDATE usuarios SET ativo = false WHERE id = $1
-       RETURNING id, nome`,
+    // Primeiro busca o nome do usuário
+    const usuario = await query(
+      `SELECT nome FROM usuarios WHERE id = $1`,
       [id]
     );
 
-    if (!result?.rows?.length) {
+    if (!usuario?.rows?.length) {
       return NextResponse.json(
         { success: false, error: 'Usuário não encontrado' },
         { status: 404 }
       );
     }
 
+    const nomeUsuario = usuario.rows[0].nome;
+
+    // Remove permissões do usuário primeiro
+    await query(
+      `DELETE FROM permissoes_modulos WHERE usuario_id = $1`,
+      [id]
+    );
+
+    // Exclui o usuário permanentemente
+    await query(
+      `DELETE FROM usuarios WHERE id = $1`,
+      [id]
+    );
+
     return NextResponse.json({
       success: true,
-      message: `Usuário ${result.rows[0].nome} desativado com sucesso`,
+      message: `Usuário ${nomeUsuario} excluído permanentemente`,
     });
   } catch (error) {
-    console.error('Erro ao desativar usuário:', error);
+    console.error('Erro ao excluir usuário:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao desativar usuário' },
+      { success: false, error: 'Erro ao excluir usuário' },
       { status: 500 }
     );
   }
