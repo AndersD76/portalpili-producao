@@ -120,7 +120,10 @@ export default function ComercialPage() {
           propostas: {
             total: propostas.length,
             abertas: propostas.filter((p: { situacao: string }) => ['RASCUNHO', 'ENVIADA', 'EM_NEGOCIACAO'].includes(p.situacao)).length,
-            valorTotal: propostas.reduce((sum: number, p: { valor_total: number }) => sum + (p.valor_total || 0), 0),
+            valorTotal: propostas.reduce((sum: number, p: { valor_total: string | number | null }) => {
+              const valor = typeof p.valor_total === 'string' ? parseFloat(p.valor_total) : (p.valor_total || 0);
+              return sum + (isNaN(valor) ? 0 : valor);
+            }, 0),
           },
         }));
       }

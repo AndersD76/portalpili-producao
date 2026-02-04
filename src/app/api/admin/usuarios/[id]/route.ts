@@ -144,7 +144,8 @@ export async function PUT(request: Request, context: RouteContext) {
     }
     if (perfil_id !== undefined) {
       updates.push(`perfil_id = $${paramIndex++}`);
-      values.push(perfil_id);
+      // Se perfil_id for 0, null ou vazio, enviar NULL para o banco
+      values.push(perfil_id && perfil_id > 0 ? perfil_id : null);
     }
     if (is_admin !== undefined) {
       updates.push(`is_admin = $${paramIndex++}`);
@@ -162,12 +163,11 @@ export async function PUT(request: Request, context: RouteContext) {
       );
     }
 
-    updates.push(`updated_at = NOW()`);
     values.push(id);
 
     const result = await query(
       `UPDATE usuarios SET ${updates.join(', ')} WHERE id = $${paramIndex}
-       RETURNING id, nome, email, id_funcionario, cargo, departamento, perfil_id, is_admin, ativo, updated_at`,
+       RETURNING id, nome, email, id_funcionario, cargo, departamento, perfil_id, is_admin, ativo`,
       values
     );
 
@@ -178,8 +178,9 @@ export async function PUT(request: Request, context: RouteContext) {
     });
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao atualizar usuário' },
+      { success: false, error: `Erro ao atualizar: ${errorMessage}` },
       { status: 500 }
     );
   }
@@ -191,7 +192,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
     // Soft delete - apenas desativa
     const result = await query(
-      `UPDATE usuarios SET ativo = false, updated_at = NOW() WHERE id = $1
+      `UPDATE usuarios SET ativo = false WHERE id = $1
        RETURNING id, nome`,
       [id]
     );
