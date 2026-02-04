@@ -506,6 +506,84 @@ export default function NovaPropostaPage() {
     }
   }, [form.cliente_id, clientes]);
 
+  // Helper function to get opcional price by codigo pattern
+  const getOpcionalPreco = useCallback((codigoPattern: string, tamanho?: number) => {
+    // Try exact match first
+    let opc = opcionais.find(o => o.codigo === codigoPattern);
+    if (opc) return opc.preco || 0;
+
+    // Try with tamanho suffix
+    if (tamanho) {
+      opc = opcionais.find(o => o.codigo === `${codigoPattern}_${tamanho}`);
+      if (opc) return opc.preco || 0;
+    }
+
+    // Try partial match
+    opc = opcionais.find(o => o.codigo.startsWith(codigoPattern));
+    return opc?.preco || 0;
+  }, [opcionais]);
+
+  // Auto-fill optional prices when tombador_tamanho changes
+  useEffect(() => {
+    if (form.produto === 'TOMBADOR' && form.tombador_tamanho && opcionais.length > 0) {
+      const tam = form.tombador_tamanho;
+
+      // Get prices for each opcional based on tamanho
+      const economizadorPreco = getOpcionalPreco('ECONOMIZADOR', tam) ||
+        (tam >= 26 ? 39000 : tam >= 18 ? 20000 : 0);
+      const calcoPreco = getOpcionalPreco('CALCO_MECANICO') || 5800;
+      const kitDescidaPreco = getOpcionalPreco('KIT_DESCIDA') || 12000;
+      const travamentoPreco = getOpcionalPreco('TRAVAMENTO_MOVEL') || 45000;
+      const enclausuramentoPreco = getOpcionalPreco('ENCLAUSURAMENTO') || 8500;
+      const grelhasPreco = getOpcionalPreco('GRELHA', tam) ||
+        (tam === 30 ? 55000 : tam === 26 ? 42000 : tam === 21 ? 35000 : 0);
+      const varandasPreco = getOpcionalPreco('VARANDA', tam) ||
+        (tam === 30 ? 42000 : tam === 26 ? 35000 : tam === 21 ? 28000 : 0);
+      const oleoPreco = getOpcionalPreco('OLEO', tam) ||
+        (tam >= 26 ? 20000 : tam >= 18 ? 11000 : 5600);
+      const guindastePreco = getOpcionalPreco('GUINDASTE') || 85000;
+
+      setForm(prev => ({
+        ...prev,
+        tombador_economizador_valor: economizadorPreco,
+        tombador_calco_valor: calcoPreco,
+        tombador_kit_descida_valor: kitDescidaPreco,
+        tombador_travamento_valor: travamentoPreco,
+        tombador_enclausuramento_valor: enclausuramentoPreco,
+        tombador_grelhas_valor: grelhasPreco,
+        tombador_varandas_valor: varandasPreco,
+        tombador_oleo_valor: oleoPreco,
+        tombador_guindaste_valor: guindastePreco,
+        // Auto-set economizador for 26/30m
+        tombador_economizador: tam >= 26 ? 'COM' : prev.tombador_economizador,
+        // Auto-set grelhas for 21-30m
+        tombador_grelhas: tam >= 21 ? 'COM' : prev.tombador_grelhas,
+        // Auto-set varandas for 26-30m
+        tombador_varandas: tam >= 26 ? 'COM' : prev.tombador_varandas,
+      }));
+    }
+  }, [form.produto, form.tombador_tamanho, opcionais, getOpcionalPreco]);
+
+  // Auto-fill optional prices when coletor_grau_rotacao changes
+  useEffect(() => {
+    if (form.produto === 'COLETOR' && form.coletor_grau_rotacao && opcionais.length > 0) {
+      const retornoGraoPreco = getOpcionalPreco('RETORNO_GRAO') || 18000;
+      const platibandaPreco = getOpcionalPreco('PLATIBANDA') || 12000;
+      const cadeiraPreco = getOpcionalPreco('CADEIRA_PLATIBANDA') || 8500;
+      const tuboPreco = getOpcionalPreco('TUBO_4POL') || 5500;
+      const oleoPreco = getOpcionalPreco('OLEO_COLETOR') || 1700;
+
+      setForm(prev => ({
+        ...prev,
+        coletor_retorno_grao_valor: retornoGraoPreco,
+        coletor_platibanda_valor: platibandaPreco,
+        coletor_cadeira_valor: cadeiraPreco,
+        coletor_tubo_valor: tuboPreco,
+        coletor_oleo_valor: oleoPreco,
+      }));
+    }
+  }, [form.produto, form.coletor_grau_rotacao, opcionais, getOpcionalPreco]);
+
   // Calculate price when product config changes
   useEffect(() => {
     let precoBase = 0;
