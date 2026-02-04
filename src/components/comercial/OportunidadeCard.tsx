@@ -9,11 +9,11 @@ interface OportunidadeCardProps {
     cliente_nome: string;
     cliente_fantasia?: string;
     vendedor_nome?: string;
-    tipo_produto: string;
+    produto: string;
     valor_estimado: number;
     probabilidade: number;
     estagio: string;
-    situacao: string;
+    status: string;
     data_previsao_fechamento?: string;
     total_atividades?: number;
     atividades_atrasadas?: number;
@@ -64,8 +64,8 @@ export default function OportunidadeCard({
     return 'bg-red-500';
   };
 
-  const getSituacaoColor = (situacao: string) => {
-    switch (situacao) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
       case 'ABERTA': return 'text-blue-600';
       case 'GANHA': return 'text-green-600';
       case 'PERDIDA': return 'text-red-600';
@@ -95,11 +95,11 @@ export default function OportunidadeCard({
       {/* Cabeçalho */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-red-600">{getProdutoIcon(oportunidade.tipo_produto)}</span>
-          <span className="text-xs font-medium text-gray-500">{oportunidade.tipo_produto}</span>
+          <span className="text-red-600">{getProdutoIcon(oportunidade.produto)}</span>
+          <span className="text-xs font-medium text-gray-500">{oportunidade.produto}</span>
         </div>
-        <span className={`text-xs font-semibold ${getSituacaoColor(oportunidade.situacao)}`}>
-          {oportunidade.situacao}
+        <span className={`text-xs font-semibold ${getStatusColor(oportunidade.status)}`}>
+          {oportunidade.status}
         </span>
       </div>
 

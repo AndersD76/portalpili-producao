@@ -171,9 +171,39 @@ export async function PUT(request: Request, context: RouteContext) {
       values
     );
 
+    const usuario = result?.rows[0];
+
+    // Se o departamento for COMERCIAL, criar/atualizar registro em crm_vendedores
+    if (usuario && (departamento === 'COMERCIAL' || usuario.departamento === 'COMERCIAL')) {
+      try {
+        const vendedorExistente = await query(
+          `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
+          [id]
+        );
+
+        if (vendedorExistente?.rows?.length) {
+          // Atualizar vendedor existente
+          await query(
+            `UPDATE crm_vendedores SET nome = $1, email = $2, cargo = $3, ativo = $4, updated_at = NOW() WHERE usuario_id = $5`,
+            [usuario.nome, usuario.email, usuario.cargo || 'VENDEDOR', usuario.ativo, id]
+          );
+        } else {
+          // Criar novo vendedor
+          await query(
+            `INSERT INTO crm_vendedores (usuario_id, nome, email, cargo, ativo) VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (email) DO UPDATE SET usuario_id = $1, nome = $2, cargo = $3, ativo = $4, updated_at = NOW()`,
+            [id, usuario.nome, usuario.email, usuario.cargo || 'VENDEDOR', usuario.ativo]
+          );
+        }
+      } catch (vendedorError) {
+        console.error('Erro ao sincronizar vendedor:', vendedorError);
+        // Não falhar a operação principal se a sincronização falhar
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: result?.rows[0],
+      data: usuario,
       message: 'Usuário atualizado com sucesso',
     });
   } catch (error) {

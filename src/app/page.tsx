@@ -28,6 +28,7 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userName, setUserName] = useState<string>('');
   const router = useRouter();
 
   // Verificar autenticação
@@ -36,6 +37,16 @@ export default function Home() {
     if (authenticated !== 'true') {
       router.push('/login');
       return;
+    }
+    // Buscar nome do usuário
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setUserName(user.nome || '');
+      } catch {
+        // Ignora erro de parse
+      }
     }
     setCheckingAuth(false);
   }, [router]);
@@ -265,15 +276,27 @@ export default function Home() {
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-gray-900">Portal Pili</h1>
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-              title="Sair"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-3">
+              {userName && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                    <span className="text-red-600 font-semibold text-sm">
+                      {userName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="hidden sm:inline font-medium">{userName.split(' ')[0]}</span>
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+                title="Sair"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </header>

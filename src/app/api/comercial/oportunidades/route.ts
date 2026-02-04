@@ -5,14 +5,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const estagio = searchParams.get('estagio');
-    const situacao = searchParams.get('situacao');
-    const vendedor_id = searchParams.get('vendedor_id');
+    const status = searchParams.get('status');
+    let vendedor_id = searchParams.get('vendedor_id');
+    const usuario_id = searchParams.get('usuario_id');
     const cliente_id = searchParams.get('cliente_id');
-    const tipo_produto = searchParams.get('tipo_produto');
+    const produto = searchParams.get('produto') || searchParams.get('tipo_produto');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
+
+    // Se usuario_id foi passado, buscar o vendedor_id correspondente
+    if (usuario_id && !vendedor_id) {
+      const vendedorResult = await query(
+        `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
+        [usuario_id]
+      );
+      if (vendedorResult?.rows?.length) {
+        vendedor_id = vendedorResult.rows[0].id;
+      }
+    }
 
     let sql = `
       SELECT
@@ -38,9 +50,9 @@ export async function GET(request: Request) {
       params.push(estagio);
     }
 
-    if (situacao) {
-      sql += ` AND o.situacao = $${paramIndex++}`;
-      params.push(situacao);
+    if (status) {
+      sql += ` AND o.status = $${paramIndex++}`;
+      params.push(status);
     }
 
     if (vendedor_id) {
@@ -53,9 +65,9 @@ export async function GET(request: Request) {
       params.push(cliente_id);
     }
 
-    if (tipo_produto) {
-      sql += ` AND o.tipo_produto = $${paramIndex++}`;
-      params.push(tipo_produto);
+    if (produto) {
+      sql += ` AND o.produto = $${paramIndex++}`;
+      params.push(produto);
     }
 
     if (search) {
@@ -88,7 +100,7 @@ export async function GET(request: Request) {
         COUNT(*) as quantidade,
         SUM(valor_estimado) as valor_total
       FROM crm_oportunidades
-      WHERE situacao = 'ABERTA'
+      WHERE status = 'ABERTA'
       GROUP BY estagio
     `);
 
@@ -101,9 +113,9 @@ export async function GET(request: Request) {
       countSql += ` AND o.estagio = $${countParamIndex++}`;
       countParams.push(estagio);
     }
-    if (situacao) {
-      countSql += ` AND o.situacao = $${countParamIndex++}`;
-      countParams.push(situacao);
+    if (status) {
+      countSql += ` AND o.status = $${countParamIndex++}`;
+      countParams.push(status);
     }
     if (vendedor_id) {
       countSql += ` AND o.vendedor_id = $${countParamIndex++}`;
@@ -165,7 +177,7 @@ export async function POST(request: Request) {
       `INSERT INTO crm_oportunidades (
         cliente_id, vendedor_id, titulo, descricao, tipo_produto,
         valor_estimado, probabilidade, data_previsao_fechamento,
-        origem, concorrentes, observacoes, estagio, situacao
+        origem, concorrentes, observacoes, estagio, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PROSPECCAO', 'ABERTA')
       RETURNING *`,
       [

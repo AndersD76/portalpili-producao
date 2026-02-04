@@ -11,11 +11,11 @@ interface Oportunidade {
   cliente_nome: string;
   cliente_fantasia?: string;
   vendedor_nome?: string;
-  tipo_produto: string;
+  produto: string;
   valor_estimado: number;
   probabilidade: number;
   estagio: string;
-  situacao: string;
+  status: string;
   data_previsao_fechamento?: string;
   total_atividades?: number;
   atividades_atrasadas?: number;
@@ -23,7 +23,7 @@ interface Oportunidade {
 }
 
 export default function PipelinePage() {
-  const [user, setUser] = useState<{ nome: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; nome: string; perfil?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
   const [filtroVendedor, setFiltroVendedor] = useState<string>('');
@@ -42,20 +42,33 @@ export default function PipelinePage() {
     }
 
     try {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      // Filtrar pelo vendedor logado por padrão (exceto admin/diretor)
+      if (parsedUser.perfil !== 'admin' && parsedUser.perfil !== 'diretor') {
+        setFiltroVendedor(String(parsedUser.id));
+      }
     } catch {
       router.push('/login');
       return;
     }
-
-    fetchOportunidades();
   }, [router]);
+
+  // Buscar oportunidades quando filtros mudarem
+  useEffect(() => {
+    if (user) {
+      fetchOportunidades();
+    }
+  }, [user, filtroVendedor, filtroProduto]);
 
   const fetchOportunidades = async () => {
     try {
       const params = new URLSearchParams();
-      if (filtroVendedor) params.append('vendedor_id', filtroVendedor);
-      if (filtroProduto) params.append('tipo_produto', filtroProduto);
+      // Enviar usuario_id para a API fazer o lookup do vendedor_id
+      if (filtroVendedor) {
+        params.append('usuario_id', filtroVendedor);
+      }
+      if (filtroProduto) params.append('produto', filtroProduto);
 
       const response = await fetch(`/api/comercial/oportunidades?${params.toString()}`);
       const result = await response.json();
@@ -106,7 +119,7 @@ export default function PipelinePage() {
   };
 
   const totalValor = oportunidades
-    .filter(o => o.situacao === 'ABERTA')
+    .filter(o => o.status === 'ABERTA')
     .reduce((sum, o) => sum + o.valor_estimado, 0);
 
   if (loading) {
@@ -139,7 +152,7 @@ export default function PipelinePage() {
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-gray-900">Pipeline de Vendas</h1>
                 <p className="text-xs text-gray-500 hidden sm:block">
-                  {oportunidades.filter(o => o.situacao === 'ABERTA').length} oportunidades • {formatCurrency(totalValor)}
+                  {oportunidades.filter(o => o.status === 'ABERTA').length} oportunidades • {formatCurrency(totalValor)}
                 </p>
               </div>
             </div>

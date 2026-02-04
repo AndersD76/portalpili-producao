@@ -9,11 +9,11 @@ interface Oportunidade {
   cliente_nome: string;
   cliente_fantasia?: string;
   vendedor_nome?: string;
-  tipo_produto: string;
+  produto: string;
   valor_estimado: number;
   probabilidade: number;
   estagio: string;
-  situacao: string;
+  status: string;
   data_previsao_fechamento?: string;
   total_atividades?: number;
   atividades_atrasadas?: number;
@@ -53,7 +53,7 @@ export default function PipelineKanban({
 
   const getOportunidadesPorEstagio = useCallback((estagio: string) => {
     return oportunidades.filter(
-      (o) => o.estagio === estagio && o.situacao === 'ABERTA'
+      (o) => o.estagio === estagio && o.status === 'ABERTA'
     );
   }, [oportunidades]);
 
