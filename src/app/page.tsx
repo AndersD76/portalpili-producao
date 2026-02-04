@@ -11,6 +11,8 @@ interface Stats {
   acoesPendentes: number;
   entregasEsteMes: number;
   entregasProximaSemana: number;
+  clientes: number;
+  propostas: number;
 }
 
 export default function Home() {
@@ -20,7 +22,9 @@ export default function Home() {
     ncsAbertas: 0,
     acoesPendentes: 0,
     entregasEsteMes: 0,
-    entregasProximaSemana: 0
+    entregasProximaSemana: 0,
+    clientes: 0,
+    propostas: 0
   });
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -79,6 +83,53 @@ export default function Home() {
             }));
           }
         }
+
+        // Buscar NCs
+        const ncsResponse = await fetch('/api/qualidade/nao-conformidade');
+        if (ncsResponse.ok) {
+          const ncsData = await ncsResponse.json();
+          if (ncsData.success && Array.isArray(ncsData.data)) {
+            const ncs = ncsData.data;
+            const ncsAbertas = ncs.filter((nc: { status?: string }) =>
+              nc.status === 'Aberta' || nc.status === 'aberta' || nc.status === 'ABERTA'
+            ).length;
+            setStats(prev => ({ ...prev, ncsAbertas }));
+          }
+        }
+
+        // Buscar Ações Corretivas
+        const acoesResponse = await fetch('/api/qualidade/acao-corretiva');
+        if (acoesResponse.ok) {
+          const acoesData = await acoesResponse.json();
+          if (acoesData.success && Array.isArray(acoesData.data)) {
+            const acoes = acoesData.data;
+            const acoesPendentes = acoes.filter((ac: { status?: string }) =>
+              ac.status === 'Pendente' || ac.status === 'pendente' || ac.status === 'PENDENTE' ||
+              ac.status === 'Em Andamento' || ac.status === 'em andamento' || ac.status === 'EM ANDAMENTO'
+            ).length;
+            setStats(prev => ({ ...prev, acoesPendentes }));
+          }
+        }
+
+        // Buscar Clientes CRM
+        const clientesResponse = await fetch('/api/comercial/clientes?limit=1');
+        if (clientesResponse.ok) {
+          const clientesData = await clientesResponse.json();
+          if (clientesData.success) {
+            const clientes = clientesData.pagination?.total || 0;
+            setStats(prev => ({ ...prev, clientes }));
+          }
+        }
+
+        // Buscar Propostas CRM
+        const propostasResponse = await fetch('/api/comercial/propostas?limit=1');
+        if (propostasResponse.ok) {
+          const propostasData = await propostasResponse.json();
+          if (propostasData.success) {
+            const propostas = propostasData.pagination?.total || 0;
+            setStats(prev => ({ ...prev, propostas }));
+          }
+        }
       } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
       } finally {
@@ -123,11 +174,27 @@ export default function Home() {
       ]
     },
     {
+      titulo: 'Comercial',
+      descricao: 'CRM, Pipeline de vendas e propostas',
+      href: '/comercial',
+      cor: 'from-red-500 to-red-700',
+      corHover: 'hover:from-red-600 hover:to-red-800',
+      icone: (
+        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+      stats: [
+        { label: 'Clientes', valor: loading ? '...' : String(stats.clientes) },
+        { label: 'Propostas', valor: loading ? '...' : String(stats.propostas) },
+      ]
+    },
+    {
       titulo: 'Dashboard',
       descricao: 'Visão geral e indicadores de desempenho',
       href: '/dashboard',
-      cor: 'from-red-500 to-red-700',
-      corHover: 'hover:from-red-600 hover:to-red-800',
+      cor: 'from-red-600 to-red-800',
+      corHover: 'hover:from-red-700 hover:to-red-900',
       icone: (
         <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -152,6 +219,23 @@ export default function Home() {
       stats: [
         { label: 'Este Mês', valor: loading ? '...' : String(stats.entregasEsteMes) },
         { label: 'Próx. Semana', valor: loading ? '...' : String(stats.entregasProximaSemana) },
+      ]
+    },
+    {
+      titulo: 'Admin',
+      descricao: 'Configurações do sistema e usuários',
+      href: '/admin',
+      cor: 'from-rose-600 to-rose-800',
+      corHover: 'hover:from-rose-700 hover:to-rose-900',
+      icone: (
+        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      stats: [
+        { label: 'Usuários', valor: '-' },
+        { label: 'Config', valor: '-' },
       ]
     },
   ];
@@ -179,8 +263,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">SIG</h1>
-              <p className="text-xs text-gray-500 hidden sm:block">Sistema Integrado de Gestão</p>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Portal Pili</h1>
             </div>
             <button
               onClick={handleLogout}
@@ -306,7 +389,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-500 text-sm">
-            SIG - Sistema Integrado de Gestão
+            Portal Pili v1.0
           </p>
         </div>
       </footer>

@@ -5,8 +5,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const oportunidade_id = searchParams.get('oportunidade_id');
-    const responsavel_id = searchParams.get('responsavel_id');
+    const vendedor_id = searchParams.get('vendedor_id') || searchParams.get('responsavel_id');
     const tipo = searchParams.get('tipo');
+    const status = searchParams.get('status');
     const concluida = searchParams.get('concluida');
     const atrasadas = searchParams.get('atrasadas');
     const page = parseInt(searchParams.get('page') || '1');
@@ -16,14 +17,18 @@ export async function GET(request: Request) {
     let sql = `
       SELECT
         a.*,
+        a.vendedor_id as responsavel_id,
+        a.data_agendada as data_limite,
+        CASE WHEN a.status = 'CONCLUIDA' THEN true ELSE false END as concluida,
         o.titulo as oportunidade_titulo,
         o.estagio as oportunidade_estagio,
         c.razao_social as cliente_nome,
-        v.nome as responsavel_nome
+        v.nome as responsavel_nome,
+        v.nome as vendedor_nome
       FROM crm_atividades a
       LEFT JOIN crm_oportunidades o ON a.oportunidade_id = o.id
-      LEFT JOIN crm_clientes c ON o.cliente_id = c.id
-      LEFT JOIN crm_vendedores v ON a.responsavel_id = v.id
+      LEFT JOIN crm_clientes c ON COALESCE(a.cliente_id, o.cliente_id) = c.id
+      LEFT JOIN crm_vendedores v ON a.vendedor_id = v.id
       WHERE 1=1
     `;
     const params: unknown[] = [];
@@ -34,9 +39,9 @@ export async function GET(request: Request) {
       params.push(oportunidade_id);
     }
 
-    if (responsavel_id) {
-      sql += ` AND a.responsavel_id = $${paramIndex++}`;
-      params.push(responsavel_id);
+    if (vendedor_id) {
+      sql += ` AND a.vendedor_id = $${paramIndex++}`;
+      params.push(vendedor_id);
     }
 
     if (tipo) {
@@ -44,19 +49,27 @@ export async function GET(request: Request) {
       params.push(tipo);
     }
 
-    if (concluida !== null) {
-      sql += ` AND a.concluida = $${paramIndex++}`;
-      params.push(concluida === 'true');
+    if (status) {
+      sql += ` AND a.status = $${paramIndex++}`;
+      params.push(status);
+    }
+
+    if (concluida !== null && concluida !== undefined) {
+      if (concluida === 'true') {
+        sql += ` AND a.status = 'CONCLUIDA'`;
+      } else if (concluida === 'false') {
+        sql += ` AND a.status != 'CONCLUIDA'`;
+      }
     }
 
     if (atrasadas === 'true') {
-      sql += ` AND a.concluida = false AND a.data_limite < NOW()`;
+      sql += ` AND a.status != 'CONCLUIDA' AND a.data_agendada < NOW()`;
     }
 
     sql += `
       ORDER BY
-        a.concluida ASC,
-        a.data_limite ASC
+        CASE WHEN a.status = 'CONCLUIDA' THEN 1 ELSE 0 END ASC,
+        a.data_agendada ASC
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
     params.push(limit, offset);
@@ -66,12 +79,12 @@ export async function GET(request: Request) {
     // Conta totais por status
     const totaisResult = await query(`
       SELECT
-        COUNT(*) FILTER (WHERE concluida = false) as pendentes,
-        COUNT(*) FILTER (WHERE concluida = true) as concluidas,
-        COUNT(*) FILTER (WHERE concluida = false AND data_limite < NOW()) as atrasadas,
-        COUNT(*) FILTER (WHERE concluida = false AND data_limite BETWEEN NOW() AND NOW() + INTERVAL '7 days') as proxima_semana
+        COUNT(*) FILTER (WHERE status != 'CONCLUIDA') as pendentes,
+        COUNT(*) FILTER (WHERE status = 'CONCLUIDA') as concluidas,
+        COUNT(*) FILTER (WHERE status != 'CONCLUIDA' AND data_agendada < NOW()) as atrasadas,
+        COUNT(*) FILTER (WHERE status != 'CONCLUIDA' AND data_agendada BETWEEN NOW() AND NOW() + INTERVAL '7 days') as proxima_semana
       FROM crm_atividades
-      ${responsavel_id ? `WHERE responsavel_id = ${responsavel_id}` : ''}
+      ${vendedor_id ? `WHERE vendedor_id = ${vendedor_id}` : ''}
     `);
 
     return NextResponse.json({
@@ -97,46 +110,53 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       oportunidade_id,
+      cliente_id,
       tipo,
       titulo,
       descricao,
+      data_agendada,
       data_limite,
+      vendedor_id,
       responsavel_id,
-      lembrete,
-      lembrete_minutos,
+      status = 'PENDENTE',
     } = body;
 
-    if (!oportunidade_id || !titulo || !tipo) {
+    const dataAtividade = data_agendada || data_limite;
+    const idVendedor = vendedor_id || responsavel_id;
+
+    if (!titulo || !tipo) {
       return NextResponse.json(
-        { success: false, error: 'Oportunidade, título e tipo são obrigatórios' },
+        { success: false, error: 'Título e tipo são obrigatórios' },
         { status: 400 }
       );
     }
 
     const result = await query(
       `INSERT INTO crm_atividades (
-        oportunidade_id, tipo, titulo, descricao, data_limite,
-        responsavel_id, lembrete, lembrete_minutos
+        oportunidade_id, cliente_id, tipo, titulo, descricao, data_agendada,
+        vendedor_id, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *`,
+      RETURNING *, vendedor_id as responsavel_id, data_agendada as data_limite`,
       [
-        oportunidade_id,
+        oportunidade_id || null,
+        cliente_id || null,
         tipo,
         titulo,
         descricao,
-        data_limite,
-        responsavel_id,
-        lembrete || false,
-        lembrete_minutos || 30,
+        dataAtividade,
+        idVendedor,
+        status,
       ]
     );
 
-    // Registra interação
-    await query(
-      `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
-       VALUES ($1, 'ANOTACAO', $2)`,
-      [oportunidade_id, `Atividade criada: ${titulo}`]
-    );
+    // Registra interação se há oportunidade
+    if (oportunidade_id) {
+      await query(
+        `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
+         VALUES ($1, 'ANOTACAO', $2)`,
+        [oportunidade_id, `Atividade criada: ${titulo}`]
+      ).catch(() => {}); // Ignora erros se a tabela não existir
+    }
 
     return NextResponse.json({
       success: true,

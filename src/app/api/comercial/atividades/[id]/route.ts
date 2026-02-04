@@ -11,16 +11,20 @@ export async function GET(
     const result = await query(
       `SELECT
         a.*,
+        a.vendedor_id as responsavel_id,
+        a.data_agendada as data_limite,
+        CASE WHEN a.status = 'CONCLUIDA' THEN true ELSE false END as concluida,
         o.titulo as oportunidade_titulo,
         o.estagio as oportunidade_estagio,
-        o.cliente_id,
+        COALESCE(a.cliente_id, o.cliente_id) as cliente_id,
         c.razao_social as cliente_nome,
         v.nome as responsavel_nome,
+        v.nome as vendedor_nome,
         v.email as responsavel_email
       FROM crm_atividades a
       LEFT JOIN crm_oportunidades o ON a.oportunidade_id = o.id
-      LEFT JOIN crm_clientes c ON o.cliente_id = c.id
-      LEFT JOIN crm_vendedores v ON a.responsavel_id = v.id
+      LEFT JOIN crm_clientes c ON COALESCE(a.cliente_id, o.cliente_id) = c.id
+      LEFT JOIN crm_vendedores v ON a.vendedor_id = v.id
       WHERE a.id = $1`,
       [id]
     );
@@ -57,18 +61,25 @@ export async function PUT(
       tipo,
       titulo,
       descricao,
+      data_agendada,
       data_limite,
+      vendedor_id,
       responsavel_id,
+      status,
       concluida,
-      resultado,
-      lembrete,
-      lembrete_minutos,
+      observacoes,
     } = body;
 
-    // Se está concluindo, registra data de conclusão
-    let conclusaoClause = '';
+    // Mapeia campos antigos para novos
+    const dataAtividade = data_agendada || data_limite;
+    const idVendedor = vendedor_id || responsavel_id;
+
+    // Mapeia concluida (boolean) para status (varchar)
+    let statusFinal = status;
     if (concluida === true) {
-      conclusaoClause = ', data_conclusao = NOW()';
+      statusFinal = 'CONCLUIDA';
+    } else if (concluida === false) {
+      statusFinal = 'PENDENTE';
     }
 
     const result = await query(
@@ -76,17 +87,15 @@ export async function PUT(
         tipo = COALESCE($2, tipo),
         titulo = COALESCE($3, titulo),
         descricao = COALESCE($4, descricao),
-        data_limite = COALESCE($5, data_limite),
-        responsavel_id = COALESCE($6, responsavel_id),
-        concluida = COALESCE($7, concluida),
-        resultado = COALESCE($8, resultado),
-        lembrete = COALESCE($9, lembrete),
-        lembrete_minutos = COALESCE($10, lembrete_minutos),
+        data_agendada = COALESCE($5, data_agendada),
+        vendedor_id = COALESCE($6, vendedor_id),
+        status = COALESCE($7, status),
+        observacoes = COALESCE($8, observacoes),
         updated_at = NOW()
-        ${conclusaoClause}
       WHERE id = $1
-      RETURNING *`,
-      [id, tipo, titulo, descricao, data_limite, responsavel_id, concluida, resultado, lembrete, lembrete_minutos]
+      RETURNING *, vendedor_id as responsavel_id, data_agendada as data_limite,
+        CASE WHEN status = 'CONCLUIDA' THEN true ELSE false END as concluida`,
+      [id, tipo, titulo, descricao, dataAtividade, idVendedor, statusFinal, observacoes]
     );
 
     if (!result?.rows[0]) {
@@ -96,17 +105,17 @@ export async function PUT(
       );
     }
 
-    // Se concluiu, registra interação
-    if (concluida === true) {
+    // Se concluiu, registra interação (se houver oportunidade)
+    if (statusFinal === 'CONCLUIDA' && result.rows[0].oportunidade_id) {
       await query(
         `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
          VALUES ($1, $2, $3)`,
         [
           result.rows[0].oportunidade_id,
           result.rows[0].tipo,
-          `Atividade concluída: ${result.rows[0].titulo}${resultado ? ` - ${resultado}` : ''}`,
+          `Atividade concluída: ${result.rows[0].titulo}`,
         ]
-      );
+      ).catch(() => {}); // Ignora erros se a tabela não existir
     }
 
     return NextResponse.json({

@@ -24,9 +24,10 @@ export async function GET(
           'id', a.id,
           'tipo', a.tipo,
           'titulo', a.titulo,
-          'data_limite', a.data_limite,
-          'concluida', a.concluida,
-          'data_conclusao', a.data_conclusao
+          'data_limite', a.data_agendada,
+          'data_agendada', a.data_agendada,
+          'concluida', a.status = 'CONCLUIDA',
+          'status', a.status
         )) FILTER (WHERE a.id IS NOT NULL) as atividades,
         json_agg(DISTINCT jsonb_build_object(
           'id', i.id,

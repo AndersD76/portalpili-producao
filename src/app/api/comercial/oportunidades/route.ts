@@ -22,8 +22,8 @@ export async function GET(request: Request) {
         c.cnpj as cliente_cnpj,
         v.nome as vendedor_nome,
         COUNT(DISTINCT a.id) as total_atividades,
-        COUNT(DISTINCT CASE WHEN a.concluida = false AND a.data_limite < NOW() THEN a.id END) as atividades_atrasadas,
-        MAX(a.data_limite) as proxima_atividade
+        COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,
+        MAX(a.data_agendada) as proxima_atividade
       FROM crm_oportunidades o
       LEFT JOIN crm_clientes c ON o.cliente_id = c.id
       LEFT JOIN crm_vendedores v ON o.vendedor_id = v.id
@@ -186,8 +186,8 @@ export async function POST(request: Request) {
     // Cria atividade inicial de qualificação
     await query(
       `INSERT INTO crm_atividades (
-        oportunidade_id, tipo, titulo, descricao, data_limite, responsavel_id
-      ) VALUES ($1, 'LIGACAO', 'Contato inicial de qualificação', 'Realizar primeiro contato para entender necessidades', NOW() + INTERVAL '2 days', $2)`,
+        oportunidade_id, tipo, titulo, descricao, data_agendada, vendedor_id, status
+      ) VALUES ($1, 'LIGACAO', 'Contato inicial de qualificação', 'Realizar primeiro contato para entender necessidades', NOW() + INTERVAL '2 days', $2, 'PENDENTE')`,
       [result?.rows[0]?.id, vendedor_id]
     );
 
