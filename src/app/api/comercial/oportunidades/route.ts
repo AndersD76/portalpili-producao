@@ -104,6 +104,9 @@ export async function GET(request: Request) {
       GROUP BY estagio
     `);
 
+    // Debug logging
+    console.log('Pipeline query result:', JSON.stringify(pipelineResult?.rows || [], null, 2));
+
     // Conta total para paginação
     let countSql = `SELECT COUNT(DISTINCT o.id) as total FROM crm_oportunidades o WHERE 1=1`;
     const countParams: unknown[] = [];
