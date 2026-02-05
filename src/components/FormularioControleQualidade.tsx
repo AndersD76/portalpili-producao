@@ -247,14 +247,18 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
   // Carregar opções das perguntas do banco de dados
   useEffect(() => {
+    let isMounted = true;
+
     const carregarPerguntasDB = async () => {
       try {
-        console.log('[CQ] Carregando perguntas dos setores A e B...');
-        // Carregar perguntas dos setores A e B
+        console.log('[CQ] Iniciando carregamento de perguntas dos setores A e B...');
+
         const [resSetorA, resSetorB] = await Promise.all([
           fetch('/api/qualidade/cq-config/perguntas-setor/A'),
           fetch('/api/qualidade/cq-config/perguntas-setor/B')
         ]);
+
+        if (!isMounted) return;
 
         const dataA = await resSetorA.json();
         const dataB = await resSetorB.json();
@@ -267,26 +271,35 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
         // Processar perguntas do setor A
         if (dataA.success && dataA.data?.perguntas) {
           dataA.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
-            opcoesMap[p.codigo.toUpperCase()] = p.opcoes || ['Conforme', 'Não conforme'];
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[p.codigo.toUpperCase()] = p.opcoes;
+            }
           });
         }
 
         // Processar perguntas do setor B
         if (dataB.success && dataB.data?.perguntas) {
           dataB.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
-            opcoesMap[p.codigo.toUpperCase()] = p.opcoes || ['Conforme', 'Não conforme'];
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[p.codigo.toUpperCase()] = p.opcoes;
+            }
           });
         }
 
-        console.log('[CQ] Mapa de opções carregado:', Object.keys(opcoesMap).length, 'perguntas');
-        console.log('[CQ] Exemplo CQ3-B:', opcoesMap['CQ3-B']);
-        setPerguntasOpcoes(opcoesMap);
+        console.log('[CQ] Total de perguntas com opções:', Object.keys(opcoesMap).length);
+        console.log('[CQ] CQ3-B opções:', JSON.stringify(opcoesMap['CQ3-B']));
+
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+        }
       } catch (err) {
-        console.log('[CQ] Erro ao carregar perguntas do banco:', err);
+        console.error('[CQ] ERRO ao carregar perguntas:', err);
       }
     };
 
     carregarPerguntasDB();
+
+    return () => { isMounted = false; };
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
