@@ -55,6 +55,11 @@ export default function Home() {
         const user = JSON.parse(userData);
         setUserName(user.nome || '');
         setUserId(user.id || null);
+        // Também verificar is_admin do localStorage
+        if (user.is_admin === true) {
+          setIsAdmin(true);
+        }
+        console.log('[Auth] Usuário carregado:', user.id, user.nome, 'is_admin:', user.is_admin);
       } catch {
         // Ignora erro de parse
       }
