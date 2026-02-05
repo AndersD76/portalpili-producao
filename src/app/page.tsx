@@ -34,8 +34,10 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loadingPermissoes, setLoadingPermissoes] = useState(true);
   const [userName, setUserName] = useState<string>('');
   const [userId, setUserId] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [permissoes, setPermissoes] = useState<Permissao[]>([]);
   const router = useRouter();
 
@@ -62,19 +64,27 @@ export default function Home() {
 
   // Buscar permissões do usuário
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setLoadingPermissoes(false);
+      return;
+    }
 
     async function fetchPermissoes() {
       try {
+        console.log('[Permissoes] Buscando permissões para userId:', userId);
         const response = await fetch(`/api/auth/permissoes?usuario_id=${userId}`);
         if (response.ok) {
           const data = await response.json();
+          console.log('[Permissoes] Resposta:', data);
           if (data.success) {
             setPermissoes(data.data || []);
+            setIsAdmin(data.isAdmin || false);
           }
         }
       } catch (error) {
         console.error('Erro ao buscar permissões:', error);
+      } finally {
+        setLoadingPermissoes(false);
       }
     }
 
@@ -290,8 +300,8 @@ export default function Home() {
 
   // Verifica se usuário pode acessar um módulo
   const podeAcessarModulo = (codigo: string): boolean => {
-    // Se não carregou permissões ainda, assume que pode acessar
-    if (permissoes.length === 0) return true;
+    // Admin tem acesso a tudo
+    if (isAdmin) return true;
 
     // Mapear href para código do módulo
     const codigoMap: Record<string, string> = {
@@ -306,11 +316,14 @@ export default function Home() {
     const moduloCodigo = codigoMap[codigo] || codigo.replace('/', '').toUpperCase();
     const perm = permissoes.find(p => p.codigo === moduloCodigo);
 
-    return perm?.pode_visualizar !== false;
+    // Se não encontrou a permissão, bloqueia (exceto se é admin)
+    if (!perm) return false;
+
+    return perm.pode_visualizar === true;
   };
 
-  // Tela de carregamento enquanto verifica autenticação
-  if (checkingAuth) {
+  // Tela de carregamento enquanto verifica autenticação ou permissões
+  if (checkingAuth || loadingPermissoes) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
         <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600"></div>
