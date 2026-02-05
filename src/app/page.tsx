@@ -15,6 +15,12 @@ interface Stats {
   propostas: number;
 }
 
+interface Permissao {
+  codigo: string;
+  nome: string;
+  pode_visualizar: boolean;
+}
+
 export default function Home() {
   const [stats, setStats] = useState<Stats>({
     opdsAtivas: 0,
@@ -29,6 +35,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userName, setUserName] = useState<string>('');
+  const [userId, setUserId] = useState<number | null>(null);
+  const [permissoes, setPermissoes] = useState<Permissao[]>([]);
   const router = useRouter();
 
   // Verificar autenticação
@@ -38,18 +46,40 @@ export default function Home() {
       router.push('/login');
       return;
     }
-    // Buscar nome do usuário
+    // Buscar dados do usuário
     const userData = localStorage.getItem('user_data');
     if (userData) {
       try {
         const user = JSON.parse(userData);
         setUserName(user.nome || '');
+        setUserId(user.id || null);
       } catch {
         // Ignora erro de parse
       }
     }
     setCheckingAuth(false);
   }, [router]);
+
+  // Buscar permissões do usuário
+  useEffect(() => {
+    if (!userId) return;
+
+    async function fetchPermissoes() {
+      try {
+        const response = await fetch(`/api/auth/permissoes?usuario_id=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setPermissoes(data.data || []);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar permissões:', error);
+      }
+    }
+
+    fetchPermissoes();
+  }, [userId]);
 
   useEffect(() => {
     if (checkingAuth) return;
@@ -258,6 +288,27 @@ export default function Home() {
     router.push('/login');
   };
 
+  // Verifica se usuário pode acessar um módulo
+  const podeAcessarModulo = (codigo: string): boolean => {
+    // Se não carregou permissões ainda, assume que pode acessar
+    if (permissoes.length === 0) return true;
+
+    // Mapear href para código do módulo
+    const codigoMap: Record<string, string> = {
+      '/producao': 'PRODUCAO',
+      '/qualidade': 'QUALIDADE',
+      '/comercial': 'COMERCIAL',
+      '/dashboard': 'PRODUCAO', // Dashboard usa permissão de produção
+      '/producao/calendario': 'PRODUCAO', // Calendário usa permissão de produção
+      '/admin': 'ADMIN',
+    };
+
+    const moduloCodigo = codigoMap[codigo] || codigo.replace('/', '').toUpperCase();
+    const perm = permissoes.find(p => p.codigo === moduloCodigo);
+
+    return perm?.pode_visualizar !== false;
+  };
+
   // Tela de carregamento enquanto verifica autenticação
   if (checkingAuth) {
     return (
@@ -304,7 +355,7 @@ export default function Home() {
       {/* Main Content - Cards de Módulos */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {modulos.map((modulo) => (
+          {modulos.filter(m => podeAcessarModulo(m.href)).map((modulo) => (
             <Link
               key={modulo.titulo}
               href={modulo.href}
