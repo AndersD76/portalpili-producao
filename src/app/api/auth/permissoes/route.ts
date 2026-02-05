@@ -80,11 +80,11 @@ export async function GET(request: Request) {
         nome: modulo.nome,
         rota: modulo.rota,
         icone: modulo.icone,
-        pode_visualizar: isAdmin || permPersonalizada?.pode_visualizar ?? permPerfil.visualizar ?? true,
-        pode_criar: isAdmin || permPersonalizada?.pode_criar ?? permPerfil.criar ?? false,
-        pode_editar: isAdmin || permPersonalizada?.pode_editar ?? permPerfil.editar ?? false,
-        pode_excluir: isAdmin || permPersonalizada?.pode_excluir ?? permPerfil.excluir ?? false,
-        pode_aprovar: isAdmin || permPersonalizada?.pode_aprovar ?? permPerfil.aprovar ?? false,
+        pode_visualizar: isAdmin || (permPersonalizada?.pode_visualizar ?? permPerfil.visualizar ?? true),
+        pode_criar: isAdmin || (permPersonalizada?.pode_criar ?? permPerfil.criar ?? false),
+        pode_editar: isAdmin || (permPersonalizada?.pode_editar ?? permPerfil.editar ?? false),
+        pode_excluir: isAdmin || (permPersonalizada?.pode_excluir ?? permPerfil.excluir ?? false),
+        pode_aprovar: isAdmin || (permPersonalizada?.pode_aprovar ?? permPerfil.aprovar ?? false),
       };
     }) || [];
 

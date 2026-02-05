@@ -546,6 +546,7 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
       )}
     </div>
   );
+  };
 
   // Loading inicial
   if (loadingDados) {
