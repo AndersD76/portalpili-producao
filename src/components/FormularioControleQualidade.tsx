@@ -14,6 +14,7 @@ interface FormularioControleQualidadeProps {
 export default function FormularioControleQualidade({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioControleQualidadeProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
@@ -291,9 +292,13 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
         if (isMounted) {
           setPerguntasOpcoes(opcoesMap);
+          setLoadingOpcoes(false);
         }
       } catch (err) {
         console.error('[CQ] ERRO ao carregar perguntas:', err);
+        if (isMounted) {
+          setLoadingOpcoes(false);
+        }
       }
     };
 
@@ -572,12 +577,14 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
   );
   };
 
-  // Loading inicial
-  if (loadingDados) {
+  // Loading inicial - aguarda dados E opções carregarem
+  if (loadingDados || loadingOpcoes) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-        <p className="text-gray-600">Carregando formulario...</p>
+        <p className="text-gray-600">
+          {loadingOpcoes ? 'Carregando opções...' : 'Carregando formulario...'}
+        </p>
       </div>
     );
   }
