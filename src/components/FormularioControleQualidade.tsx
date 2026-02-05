@@ -249,6 +249,7 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
   useEffect(() => {
     const carregarPerguntasDB = async () => {
       try {
+        console.log('[CQ] Carregando perguntas dos setores A e B...');
         // Carregar perguntas dos setores A e B
         const [resSetorA, resSetorB] = await Promise.all([
           fetch('/api/qualidade/cq-config/perguntas-setor/A'),
@@ -257,6 +258,9 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
         const dataA = await resSetorA.json();
         const dataB = await resSetorB.json();
+
+        console.log('[CQ] Resposta setor A:', dataA.success, dataA.data?.perguntas?.length || 0, 'perguntas');
+        console.log('[CQ] Resposta setor B:', dataB.success, dataB.data?.perguntas?.length || 0, 'perguntas');
 
         const opcoesMap: Record<string, string[]> = {};
 
@@ -274,9 +278,11 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
           });
         }
 
+        console.log('[CQ] Mapa de opções carregado:', Object.keys(opcoesMap).length, 'perguntas');
+        console.log('[CQ] Exemplo CQ3-B:', opcoesMap['CQ3-B']);
         setPerguntasOpcoes(opcoesMap);
       } catch (err) {
-        console.log('Erro ao carregar perguntas do banco:', err);
+        console.log('[CQ] Erro ao carregar perguntas do banco:', err);
       }
     };
 
@@ -444,6 +450,11 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
     const opcoes = opcoesDB || (hasNaoAplicavel
       ? ['Conforme', 'Não conforme', 'Não Aplicável']
       : ['Conforme', 'Não conforme']);
+
+    // Debug: log apenas para CQ3-B
+    if (codigo === 'CQ3-B') {
+      console.log('[CQ] renderCQField CQ3-B - opcoesDB:', opcoesDB, 'opcoes finais:', opcoes);
+    }
 
     return (
     <div className="border rounded-lg p-4 bg-white mb-4">
