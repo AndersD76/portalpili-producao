@@ -45,8 +45,9 @@ export async function GET(
     });
   } catch (error) {
     console.error('Erro ao buscar OPD:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao buscar OPD' },
+      { success: false, error: `Erro ao buscar OPD: ${errorMessage}` },
       { status: 500 }
     );
   }
@@ -298,8 +299,9 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Erro ao atualizar OPD:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao atualizar OPD' },
+      { success: false, error: `Erro ao atualizar OPD: ${errorMessage}` },
       { status: 500 }
     );
   }

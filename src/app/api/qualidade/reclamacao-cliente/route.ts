@@ -46,8 +46,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Erro ao buscar reclamações:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao buscar reclamações' },
+      { success: false, error: `Erro ao buscar reclamações: ${errorMessage}` },
       { status: 500 }
     );
   }

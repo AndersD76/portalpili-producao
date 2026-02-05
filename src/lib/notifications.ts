@@ -24,35 +24,32 @@ interface NotificationData {
  * Envia notificação push para todos os usuários ativos
  * Usar apenas no servidor (API routes)
  */
-export async function enviarNotificacaoPush(data: NotificationData): Promise<{ enviados: number; falhas: number }> {
+export async function enviarNotificacaoPush(data: NotificationData): Promise<{ enviados: number; falhas: number; erro?: string }> {
+  const startTime = Date.now();
+
   try {
     // Importar webpush diretamente para evitar problemas com fetch interno
     const webpush = (await import('web-push')).default;
-    const { Pool } = await import('pg');
-
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : false
-    });
+    const { query } = await import('@/lib/db');
 
     const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
     const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
     const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@portalpili.com.br';
 
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-      console.error('VAPID keys não configuradas');
-      return { enviados: 0, falhas: 0 };
+      console.warn('[Notificação] VAPID keys não configuradas - notificações push desabilitadas');
+      return { enviados: 0, falhas: 0, erro: 'VAPID keys não configuradas' };
     }
 
     webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
     // Buscar todas as subscriptions ativas
-    const result = await pool.query(
+    const result = await query(
       'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE active = true'
     );
 
-    if (result.rowCount === 0) {
-      await pool.end();
+    if (!result?.rowCount || result.rowCount === 0) {
+      console.log('[Notificação] Nenhuma subscription ativa encontrada');
       return { enviados: 0, falhas: 0 };
     }
 
@@ -68,6 +65,7 @@ export async function enviarNotificacaoPush(data: NotificationData): Promise<{ e
     let enviados = 0;
     let falhas = 0;
     const subscriptionsParaRemover: number[] = [];
+    const errosDetalhados: string[] = [];
 
     // Enviar para cada subscription
     const promises = result.rows.map(async (sub) => {
@@ -83,7 +81,8 @@ export async function enviarNotificacaoPush(data: NotificationData): Promise<{ e
         await webpush.sendNotification(pushSubscription, payload);
         enviados++;
       } catch (error: any) {
-        console.error(`Erro ao enviar para ${sub.endpoint}:`, error.message);
+        const errorMsg = `[Sub ${sub.id}] ${error.statusCode || 'ERR'}: ${error.message}`;
+        errosDetalhados.push(errorMsg);
         falhas++;
 
         if (error.statusCode === 404 || error.statusCode === 410) {
@@ -96,30 +95,65 @@ export async function enviarNotificacaoPush(data: NotificationData): Promise<{ e
 
     // Remover subscriptions inválidas
     if (subscriptionsParaRemover.length > 0) {
-      await pool.query(
-        'UPDATE push_subscriptions SET active = false WHERE id = ANY($1)',
-        [subscriptionsParaRemover]
-      );
+      try {
+        await query(
+          'UPDATE push_subscriptions SET active = false WHERE id = ANY($1)',
+          [subscriptionsParaRemover]
+        );
+        console.log(`[Notificação] ${subscriptionsParaRemover.length} subscriptions inválidas removidas`);
+      } catch (removeError: any) {
+        console.error('[Notificação] Erro ao remover subscriptions inválidas:', removeError.message);
+      }
     }
 
     // Registrar log
     try {
-      await pool.query(
-        `INSERT INTO notification_logs (tipo, referencia, titulo, mensagem, enviado_por, total_enviados, total_falhas)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [data.tipo, data.referencia || null, data.titulo, data.mensagem, data.enviado_por || 'Sistema', enviados, falhas]
+      await query(
+        `INSERT INTO notification_logs (tipo, referencia, titulo, mensagem, enviado_por, total_enviados, total_falhas, detalhes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          data.tipo,
+          data.referencia || null,
+          data.titulo,
+          data.mensagem,
+          data.enviado_por || 'Sistema',
+          enviados,
+          falhas,
+          errosDetalhados.length > 0 ? JSON.stringify(errosDetalhados.slice(0, 10)) : null
+        ]
       );
-    } catch (logError) {
-      console.warn('Erro ao registrar log de notificação:', logError);
+    } catch (logError: any) {
+      // Se falhar por coluna não existir, tentar sem a coluna detalhes
+      if (logError.message?.includes('detalhes')) {
+        try {
+          await query(
+            `INSERT INTO notification_logs (tipo, referencia, titulo, mensagem, enviado_por, total_enviados, total_falhas)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [data.tipo, data.referencia || null, data.titulo, data.mensagem, data.enviado_por || 'Sistema', enviados, falhas]
+          );
+        } catch {
+          console.warn('[Notificação] Erro ao registrar log (fallback)');
+        }
+      } else {
+        console.warn('[Notificação] Erro ao registrar log:', logError.message);
+      }
     }
 
-    await pool.end();
+    const duration = Date.now() - startTime;
+    console.log(`[Notificação] ${data.tipo}: ${enviados}/${result.rowCount} enviados em ${duration}ms`);
 
-    console.log(`Notificação enviada: ${enviados} sucessos, ${falhas} falhas`);
+    if (errosDetalhados.length > 0 && errosDetalhados.length <= 5) {
+      errosDetalhados.forEach(e => console.warn(`[Notificação] ${e}`));
+    } else if (errosDetalhados.length > 5) {
+      console.warn(`[Notificação] ${errosDetalhados.length} erros (mostrando 3):`);
+      errosDetalhados.slice(0, 3).forEach(e => console.warn(`  ${e}`));
+    }
+
     return { enviados, falhas };
-  } catch (error) {
-    console.error('Erro ao enviar notificação:', error);
-    return { enviados: 0, falhas: 0 };
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    console.error(`[Notificação] ERRO CRÍTICO após ${duration}ms:`, error.message);
+    return { enviados: 0, falhas: 0, erro: error.message };
   }
 }
 

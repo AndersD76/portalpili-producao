@@ -51,8 +51,9 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Erro ao buscar OPDs:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao buscar OPDs' },
+      { success: false, error: `Erro ao buscar OPDs: ${errorMessage}` },
       { status: 500 }
     );
   }
@@ -212,8 +213,9 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar OPD:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao criar OPD' },
+      { success: false, error: `Erro ao criar OPD: ${errorMessage}` },
       { status: 500 }
     );
   }
