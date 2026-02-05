@@ -33,6 +33,12 @@ export default function DetalhesNCPage() {
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<NaoConformidade>>({});
+  const [analisandoIA, setAnalisandoIA] = useState(false);
+  const [analiseIA, setAnaliseIA] = useState<{
+    analise: string;
+    ncs_similares: Array<{ numero: string; descricao: string; causas?: string }>;
+    insights: string;
+  } | null>(null);
 
   useEffect(() => {
     const authenticated = localStorage.getItem('authenticated');
@@ -57,6 +63,29 @@ export default function DetalhesNCPage() {
       console.error('Erro ao buscar NC:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAnalisarCausasIA = async () => {
+    if (!nc) return;
+    setAnalisandoIA(true);
+    try {
+      const response = await fetch('/api/qualidade/ia/analisar-causas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nc_id: nc.id })
+      });
+      const result = await response.json();
+      if (result.success) {
+        setAnaliseIA(result.data);
+      } else {
+        alert(result.error || 'Erro ao analisar causas');
+      }
+    } catch (error) {
+      console.error('Erro ao analisar causas:', error);
+      alert('Erro ao conectar com o serviço de IA');
+    } finally {
+      setAnalisandoIA(false);
     }
   };
 
@@ -796,6 +825,49 @@ export default function DetalhesNCPage() {
                 </div>
               </div>
 
+              {/* ANÁLISE DAS CAUSAS - EDIÇÃO */}
+              <div>
+                <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                  <h3 className="text-lg font-semibold text-gray-900">ANÁLISE DAS CAUSAS</h3>
+                  <button
+                    type="button"
+                    onClick={handleAnalisarCausasIA}
+                    disabled={analisandoIA}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {analisandoIA ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Analisando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span>Analisar com IA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Causas Identificadas</label>
+                  <textarea
+                    value={analiseIA?.analise || editData.causas || ''}
+                    onChange={(e) => setEditData({ ...editData, causas: e.target.value })}
+                    rows={4}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="Clique em 'Analisar com IA' para gerar uma análise automática das causas ou digite manualmente..."
+                  />
+                </div>
+                {analiseIA?.insights && (
+                  <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                    <p className="text-sm font-medium text-purple-800 mb-1">Insights da IA:</p>
+                    <p className="text-sm text-purple-700">{analiseIA.insights}</p>
+                  </div>
+                )}
+              </div>
+
               {/* CLASSIFICAÇÃO E DISPOSIÇÃO */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">CLASSIFICAÇÃO E DISPOSIÇÃO</h3>
@@ -954,6 +1026,77 @@ export default function DetalhesNCPage() {
                       <p className="font-medium">{formatDate(nc.prazo_acoes) || formatDate(nc.data_contencao) || '-'}</p>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* ANÁLISE DAS CAUSAS */}
+              <div>
+                <div className="flex items-center justify-between mb-4 pb-2 border-b">
+                  <h3 className="text-lg font-semibold text-gray-900">ANÁLISE DAS CAUSAS</h3>
+                  {nc.status !== 'FECHADA' && (
+                    <button
+                      onClick={handleAnalisarCausasIA}
+                      disabled={analisandoIA}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                    >
+                      {analisandoIA ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Analisando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          <span>Analisar com IA</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Causas</p>
+                    <div className="bg-gray-50 p-3 rounded-lg whitespace-pre-wrap min-h-[60px]">
+                      {analiseIA?.analise || nc.causas || '-'}
+                    </div>
+                  </div>
+
+                  {analiseIA && (
+                    <>
+                      {analiseIA.ncs_similares && analiseIA.ncs_similares.length > 0 && (
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-sm font-medium text-blue-800 mb-2 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            NCs Similares Encontradas ({analiseIA.ncs_similares.length})
+                          </p>
+                          <div className="space-y-2">
+                            {analiseIA.ncs_similares.slice(0, 3).map((ncSimilar, idx) => (
+                              <div key={idx} className="text-sm text-blue-700 bg-white p-2 rounded border border-blue-100">
+                                <strong>{ncSimilar.numero}</strong>: {ncSimilar.descricao?.substring(0, 100)}...
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {analiseIA.insights && (
+                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                          <p className="text-sm font-medium text-purple-800 mb-2 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            Insights da IA
+                          </p>
+                          <p className="text-sm text-purple-700 whitespace-pre-wrap">{analiseIA.insights}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 

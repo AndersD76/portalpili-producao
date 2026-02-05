@@ -14,6 +14,12 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
   const [isLoading, setIsLoading] = useState(true);
   const [showBanner, setShowBanner] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Marcar como montado (client-side only)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Registrar Service Worker
   useEffect(() => {
@@ -202,8 +208,12 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
     }
   }
 
-  // Não renderizar nada se não suportar
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  // Não renderizar nada se não montado (SSR) ou se não suportar
+  if (!isMounted) {
+    return null;
+  }
+
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     return null;
   }
 
@@ -257,14 +267,17 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
 export function NotificationBell() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if ('Notification' in window) {
+    setIsMounted(true);
+
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
     }
 
     // Verificar subscription
-    if ('serviceWorker' in navigator) {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
         reg.pushManager.getSubscription().then((sub) => {
           setIsSubscribed(!!sub);
@@ -272,6 +285,11 @@ export function NotificationBell() {
       });
     }
   }, []);
+
+  // Não renderizar nada se não montado (SSR)
+  if (!isMounted) {
+    return null;
+  }
 
   const handleClick = async () => {
     if (isSubscribed) {

@@ -62,6 +62,8 @@ export interface NaoConformidade {
   // Classificação
   gravidade: GravidadeNaoConformidade;
   tipo: TipoNaoConformidade;
+  // Análise de Causas
+  causas?: string | null;
   // Disposição
   disposicao: DisposicaoNaoConformidade;
   responsavel_liberacao: string | null;
