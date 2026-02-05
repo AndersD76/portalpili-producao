@@ -22,6 +22,8 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
   // Mapa de opções das perguntas carregadas do banco (código -> opções)
   const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  // Mapa de tipo de resposta (código -> tipoResposta)
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     // CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA (não requer imagem)
@@ -268,30 +270,40 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
         console.log('[CQ] Resposta setor B:', dataB.success, dataB.data?.perguntas?.length || 0, 'perguntas');
 
         const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
 
         // Processar perguntas do setor A
         if (dataA.success && dataA.data?.perguntas) {
-          dataA.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
+          dataA.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
             if (p.opcoes && Array.isArray(p.opcoes)) {
-              opcoesMap[p.codigo.toUpperCase()] = p.opcoes;
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+            if (p.tipoResposta) {
+              tipoRespostaMap[codigoUpper] = p.tipoResposta;
             }
           });
         }
 
         // Processar perguntas do setor B
         if (dataB.success && dataB.data?.perguntas) {
-          dataB.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
+          dataB.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
             if (p.opcoes && Array.isArray(p.opcoes)) {
-              opcoesMap[p.codigo.toUpperCase()] = p.opcoes;
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+            if (p.tipoResposta) {
+              tipoRespostaMap[codigoUpper] = p.tipoResposta;
             }
           });
         }
 
         console.log('[CQ] Total de perguntas com opções:', Object.keys(opcoesMap).length);
-        console.log('[CQ] CQ3-B opções:', JSON.stringify(opcoesMap['CQ3-B']));
+        console.log('[CQ] CQ3-B opções:', JSON.stringify(opcoesMap['CQ3-B']), 'tipo:', tipoRespostaMap['CQ3-B']);
 
         if (isMounted) {
           setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
           setLoadingOpcoes(false);
         }
       } catch (err) {
@@ -463,16 +475,20 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
     // Extrair código da pergunta do fieldName (ex: cq3b -> CQ3-B)
     const codigo = fieldName.toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
 
-    // Buscar opções do banco de dados, ou usar fallback
+    // Buscar opções e tipo de resposta do banco de dados
     const opcoesDB = perguntasOpcoes[codigo];
+    const tipoResposta = perguntasTipoResposta[codigo] || 'select';
     const opcoes = opcoesDB || (hasNaoAplicavel
       ? ['Conforme', 'Não conforme', 'Não Aplicável']
       : ['Conforme', 'Não conforme']);
 
     // Debug: log apenas para CQ3-B
     if (codigo === 'CQ3-B') {
-      console.log('[CQ] renderCQField CQ3-B - opcoesDB:', opcoesDB, 'opcoes finais:', opcoes);
+      console.log('[CQ] renderCQField CQ3-B - opcoesDB:', opcoesDB, 'tipoResposta:', tipoResposta, 'opcoes finais:', opcoes);
     }
+
+    // Verificar se é texto livre
+    const isTextoLivre = tipoResposta === 'texto_livre' || tipoResposta === 'texto';
 
     return (
     <div className="border rounded-lg p-4 bg-white mb-4">
@@ -484,18 +500,30 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
       <div className="mb-3">
         <label className="block text-sm font-semibold mb-2">Condição *</label>
-        <select
-          name={`${fieldName}_status`}
-          value={(formData as any)[`${fieldName}_status`]}
-          onChange={handleChange}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-        >
-          <option value="">Selecione</option>
-          {opcoes.map((opcao) => (
-            <option key={opcao} value={opcao}>{opcao}</option>
-          ))}
-        </select>
+        {isTextoLivre ? (
+          <input
+            type="text"
+            name={`${fieldName}_status`}
+            value={(formData as any)[`${fieldName}_status`] || ''}
+            onChange={handleChange}
+            required
+            placeholder="Digite o valor medido..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+          />
+        ) : (
+          <select
+            name={`${fieldName}_status`}
+            value={(formData as any)[`${fieldName}_status`]}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+          >
+            <option value="">Selecione</option>
+            {opcoes.map((opcao) => (
+              <option key={opcao} value={opcao}>{opcao}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {hasImage && (
