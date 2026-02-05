@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { query } from '@/lib/db';
 import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
 
 // GET - Listar post-its de uma OPD
 export async function GET(
@@ -16,7 +11,7 @@ export async function GET(
     const { opd: opdParam } = await params;
     const opd = decodeURIComponent(opdParam);
 
-    const result = await pool.query(
+    const result = await query(
       `SELECT * FROM postits
        WHERE opd = $1
        ORDER BY prazo ASC, criado_em DESC`,
@@ -55,7 +50,7 @@ export async function POST(
       );
     }
 
-    const result = await pool.query(
+    const result = await query(
       `INSERT INTO postits (opd, descricao, responsavel, prazo, criado_por, status)
        VALUES ($1, $2, $3, $4, $5, 'pendente')
        RETURNING *`,
@@ -101,7 +96,7 @@ export async function PUT(
       );
     }
 
-    const result = await pool.query(
+    const result = await query(
       `UPDATE postits
        SET descricao = COALESCE($1, descricao),
            responsavel = COALESCE($2, responsavel),
@@ -150,7 +145,7 @@ export async function DELETE(
       );
     }
 
-    const result = await pool.query(
+    const result = await query(
       'DELETE FROM postits WHERE id = $1 RETURNING *',
       [id]
     );

@@ -71,12 +71,21 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
-    // Conta total para paginação
-    const countResult = await query(
-      `SELECT COUNT(*) as total FROM crm_propostas WHERE 1=1
-       ${situacao ? `AND situacao = '${situacao}'` : ''}
-       ${vendedor_id ? `AND vendedor_id = ${vendedor_id}` : ''}`
-    );
+    // Conta total para paginação (com parâmetros seguros)
+    let countSql = 'SELECT COUNT(*) as total FROM crm_propostas WHERE 1=1';
+    const countParams: unknown[] = [];
+    let countParamIndex = 1;
+
+    if (situacao) {
+      countSql += ` AND situacao = $${countParamIndex++}`;
+      countParams.push(situacao);
+    }
+    if (vendedor_id) {
+      countSql += ` AND vendedor_id = $${countParamIndex++}`;
+      countParams.push(vendedor_id);
+    }
+
+    const countResult = await query(countSql, countParams);
     const total = parseInt(countResult?.rows[0]?.total || '0');
 
     return NextResponse.json({

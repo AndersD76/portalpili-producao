@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface NotificationManagerProps {
@@ -268,6 +269,8 @@ export function NotificationBell() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -302,24 +305,38 @@ export function NotificationBell() {
       return;
     }
 
-    // Solicitar permissão
-    const perm = await Notification.requestPermission();
-    setPermission(perm);
+    setIsLoading(true);
 
-    if (perm === 'granted') {
-      // Trigger subscribe via NotificationManager
-      window.location.reload();
+    try {
+      // Solicitar permissão
+      const perm = await Notification.requestPermission();
+      setPermission(perm);
+
+      if (perm === 'granted') {
+        // Usar router.refresh() ao invés de window.location.reload()
+        // para atualizar os dados sem recarregar a página completamente
+        router.refresh();
+        toast.success('Permissão concedida! Ativando notificações...');
+      }
+    } catch (error) {
+      console.error('Erro ao solicitar permissão:', error);
+      toast.error('Erro ao solicitar permissão de notificações');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <button
       onClick={handleClick}
+      disabled={isLoading}
       className={`p-2 rounded-lg transition ${
         isSubscribed
           ? 'text-green-600 hover:bg-green-50'
           : permission === 'denied'
           ? 'text-gray-400 cursor-not-allowed'
+          : isLoading
+          ? 'text-gray-400 cursor-wait'
           : 'text-gray-600 hover:text-red-600 hover:bg-gray-100'
       }`}
       title={
@@ -327,12 +344,21 @@ export function NotificationBell() {
           ? 'Notificações ativas'
           : permission === 'denied'
           ? 'Notificações bloqueadas'
+          : isLoading
+          ? 'Ativando...'
           : 'Ativar notificações'
       }
     >
-      <svg className="w-5 h-5" fill={isSubscribed ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
+      {isLoading ? (
+        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      ) : (
+        <svg className="w-5 h-5" fill={isSubscribed ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      )}
     </button>
   );
 }

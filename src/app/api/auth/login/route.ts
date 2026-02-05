@@ -3,10 +3,23 @@ import pool from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'seu-secret-key-aqui-mude-em-producao';
+// JWT_SECRET deve estar configurado em produção
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('[AUTH] ALERTA: JWT_SECRET não configurado! Configure a variável de ambiente.');
+}
 
 export async function POST(request: Request) {
   try {
+    // Verificar se JWT_SECRET está configurado
+    if (!JWT_SECRET) {
+      console.error('[AUTH] JWT_SECRET não configurado - login desabilitado');
+      return NextResponse.json(
+        { success: false, error: 'Erro de configuração do servidor' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { id_funcionario, senha } = body;
 
