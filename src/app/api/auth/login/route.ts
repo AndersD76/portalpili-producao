@@ -27,7 +27,9 @@ export async function POST(request: Request) {
         senha_hash,
         cargo,
         departamento,
-        ativo
+        ativo,
+        is_admin,
+        perfil_id
       FROM usuarios
       WHERE id_funcionario = $1 AND ativo = TRUE
     `, [id_funcionario]);
@@ -59,7 +61,9 @@ export async function POST(request: Request) {
         nome: usuario.nome,
         email: usuario.email,
         cargo: usuario.cargo,
-        departamento: usuario.departamento
+        departamento: usuario.departamento,
+        is_admin: usuario.is_admin,
+        perfil_id: usuario.perfil_id
       },
       JWT_SECRET,
       { expiresIn: '8h' }
