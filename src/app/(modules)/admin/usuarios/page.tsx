@@ -11,6 +11,7 @@ interface Modulo {
 }
 
 interface Permissao {
+  modulo_id: number;
   modulo: string;
   modulo_nome: string;
   visualizar: boolean;
@@ -153,23 +154,30 @@ export default function AdminUsuariosPage() {
 
       // Atualiza permissões personalizadas
       if (usuarioEditando.permissoes) {
-        const permissoesFormatadas = usuarioEditando.permissoes.map(p => {
-          const modulo = modulos.find(m => m.codigo === p.modulo);
-          return {
-            modulo_id: modulo?.id,
-            visualizar: p.visualizar,
-            criar: p.criar,
-            editar: p.editar,
-            excluir: p.excluir,
-            aprovar: p.aprovar,
-          };
-        }).filter(p => p.modulo_id);
+        const permissoesFormatadas = usuarioEditando.permissoes.map(p => ({
+          modulo_id: p.modulo_id,
+          visualizar: p.visualizar,
+          criar: p.criar,
+          editar: p.editar,
+          excluir: p.excluir,
+          aprovar: p.aprovar,
+        })).filter(p => p.modulo_id);
 
-        await fetch(`/api/admin/usuarios/${usuarioEditando.id}/permissoes`, {
+        console.log('[Permissoes] Salvando:', JSON.stringify(permissoesFormatadas));
+
+        const resPerms = await fetch(`/api/admin/usuarios/${usuarioEditando.id}/permissoes`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ permissoes: permissoesFormatadas }),
         });
+
+        const dataPerms = await resPerms.json();
+        console.log('[Permissoes] Resposta:', dataPerms);
+
+        if (!dataPerms.success) {
+          setMensagem({ tipo: 'erro', texto: dataPerms.error || 'Erro ao salvar permissões' });
+          return;
+        }
       }
 
       setMensagem({ tipo: 'sucesso', texto: 'Usuário atualizado com sucesso!' });

@@ -118,9 +118,14 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Soft delete - apenas desativa
+    // Remover referências em outras tabelas primeiro
+    await query(`UPDATE crm_oportunidades SET vendedor_id = NULL WHERE vendedor_id = $1`, [id]);
+    await query(`UPDATE crm_clientes SET vendedor_responsavel_id = NULL WHERE vendedor_responsavel_id = $1`, [id]);
+    await query(`DELETE FROM crm_metas WHERE vendedor_id = $1`, [id]);
+
+    // Excluir vendedor permanentemente
     const result = await query(
-      `UPDATE crm_vendedores SET ativo = false, updated_at = NOW() WHERE id = $1 RETURNING id`,
+      `DELETE FROM crm_vendedores WHERE id = $1 RETURNING id`,
       [id]
     );
 
@@ -133,12 +138,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Vendedor desativado com sucesso',
+      message: 'Vendedor excluído com sucesso',
     });
   } catch (error) {
-    console.error('Erro ao desativar vendedor:', error);
+    console.error('Erro ao excluir vendedor:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao desativar vendedor' },
+      { success: false, error: 'Erro ao excluir vendedor' },
       { status: 500 }
     );
   }
