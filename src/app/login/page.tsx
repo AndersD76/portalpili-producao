@@ -26,11 +26,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Adicionar prefixo USER se o usuário digitou apenas números
-      let idParaLogin = idFuncionario.trim().toUpperCase();
-      if (/^\d+$/.test(idParaLogin)) {
-        idParaLogin = 'USER' + idParaLogin;
-      }
+      // Usar o ID como digitado pelo usuário
+      const idParaLogin = idFuncionario.trim();
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
