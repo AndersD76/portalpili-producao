@@ -14,6 +14,8 @@ interface ComercialStats {
     fechada: { quantidade: number; valor: number };
     perdida: { quantidade: number; valor: number };
     suspenso: { quantidade: number; valor: number };
+    substituido: { quantidade: number; valor: number };
+    teste: { quantidade: number; valor: number };
   };
   clientes: {
     total: number;
@@ -45,6 +47,8 @@ export default function ComercialPage() {
       fechada: { quantidade: 0, valor: 0 },
       perdida: { quantidade: 0, valor: 0 },
       suspenso: { quantidade: 0, valor: 0 },
+      substituido: { quantidade: 0, valor: 0 },
+      teste: { quantidade: 0, valor: 0 },
     },
     clientes: { total: 0, ativos: 0, prospectos: 0 },
     propostas: { total: 0, abertas: 0, valorTotal: 0 },
@@ -105,6 +109,8 @@ export default function ComercialPage() {
           fechada: { quantidade: 0, valor: 0 },
           perdida: { quantidade: 0, valor: 0 },
           suspenso: { quantidade: 0, valor: 0 },
+          substituido: { quantidade: 0, valor: 0 },
+          teste: { quantidade: 0, valor: 0 },
         };
         pipeline.forEach((p: { estagio: string; quantidade: string; valor_total: string }) => {
           const key = p.estagio.toLowerCase() as keyof typeof newPipeline;
@@ -273,7 +279,7 @@ export default function ComercialPage() {
               Ver Kanban →
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2 mb-4">
             {[
               { key: 'prospeccao', label: 'Prospecção', cor: 'bg-gray-500' },
               { key: 'qualificacao', label: 'Qualificação', cor: 'bg-blue-500' },
@@ -283,6 +289,8 @@ export default function ComercialPage() {
               { key: 'fechada', label: 'Fechada', cor: 'bg-green-500' },
               { key: 'perdida', label: 'Perdida', cor: 'bg-red-500' },
               { key: 'suspenso', label: 'Suspenso', cor: 'bg-yellow-500' },
+              { key: 'substituido', label: 'Substituído', cor: 'bg-indigo-500' },
+              { key: 'teste', label: 'Teste', cor: 'bg-pink-500' },
             ].map((estagio) => {
               const data = stats.pipeline[estagio.key as keyof typeof stats.pipeline];
               return (

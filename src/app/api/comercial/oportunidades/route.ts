@@ -93,15 +93,27 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
-    // Conta totais para dashboard do pipeline
+    // Conta totais para dashboard do pipeline (todos os estágios)
     const pipelineResult = await query(`
       SELECT
         estagio,
         COUNT(*) as quantidade,
-        SUM(valor_estimado) as valor_total
+        COALESCE(SUM(valor_estimado), 0) as valor_total
       FROM crm_oportunidades
-      WHERE status = 'ABERTA'
       GROUP BY estagio
+      ORDER BY
+        CASE estagio
+          WHEN 'PROSPECCAO' THEN 1
+          WHEN 'QUALIFICACAO' THEN 2
+          WHEN 'PROPOSTA' THEN 3
+          WHEN 'EM_ANALISE' THEN 4
+          WHEN 'EM_NEGOCIACAO' THEN 5
+          WHEN 'FECHADA' THEN 6
+          WHEN 'PERDIDA' THEN 7
+          WHEN 'SUSPENSO' THEN 8
+          WHEN 'SUBSTITUIDO' THEN 9
+          WHEN 'TESTE' THEN 10
+        END
     `);
 
     // Debug logging
