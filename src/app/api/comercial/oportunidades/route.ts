@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         o.*,
         c.razao_social as cliente_nome,
         c.nome_fantasia as cliente_fantasia,
-        c.cnpj as cliente_cnpj,
+        c.cpf_cnpj as cliente_cnpj,
         v.nome as vendedor_nome,
         COUNT(DISTINCT a.id) as total_atividades,
         COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     }
 
     sql += `
-      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cnpj, v.nome
+      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, v.nome
       ORDER BY
         CASE o.estagio
           WHEN 'FECHAMENTO' THEN 1
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
           WHEN 'QUALIFICACAO' THEN 4
           WHEN 'PROSPECCAO' THEN 5
         END,
-        o.valor_estimado DESC
+        o.valor_estimado DESC NULLS LAST
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
     params.push(limit, offset);
