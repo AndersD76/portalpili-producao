@@ -17,6 +17,7 @@ import {
   AcoesFinalizadasAC,
   SituacaoFinalAC
 } from '@/types/qualidade';
+import AssistenteIAQualidade from '@/components/qualidade/AssistenteIAQualidade';
 
 export default function DetalhesAcaoCorretivaPage() {
   const router = useRouter();
@@ -1301,6 +1302,24 @@ export default function DetalhesAcaoCorretivaPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Assistente IA para análise de causas e ações corretivas */}
+      {acao && (
+        <AssistenteIAQualidade
+          contexto={{
+            nc_numero: acao.numero,
+            nc_descricao: acao.descricao_problema,
+            tipo_origem: acao.origem_tipo,
+            origem_descricao: acao.origem_descricao || undefined,
+          }}
+          sugestoes={[
+            'Analisar causas desta NC',
+            'Sugerir ações corretivas',
+            'Verificar eficácia das ações',
+            'Identificar padrões similares',
+          ]}
+        />
       )}
     </div>
   );

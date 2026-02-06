@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AssistenteIA from '@/components/comercial/AssistenteIA';
 
 // Types
 interface Cliente {
@@ -1229,6 +1230,20 @@ export default function NovaPropostaPage() {
           </div>
         </div>
       </form>
+
+      {/* Assistente IA para ajudar no preenchimento */}
+      <AssistenteIA
+        contexto={{
+          cliente: form.cliente_razao_social || undefined,
+          proposta_id: undefined,
+        }}
+        sugestoes={[
+          'Qual o melhor produto para este cliente?',
+          'Sugerir opcionais para tombador',
+          'Como calcular frete CIF?',
+          'Dicas para negociação',
+        ]}
+      />
     </div>
   );
 }

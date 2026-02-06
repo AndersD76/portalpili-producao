@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ProcessoOrigem, PROCESSOS_ORIGEM } from '@/types/qualidade';
+import AssistenteIAQualidade from '@/components/qualidade/AssistenteIAQualidade';
 
 function NovaAcaoCorretivaForm() {
   const router = useRouter();
@@ -294,6 +295,16 @@ export default function NovaAcaoCorretivaPage() {
           <NovaAcaoCorretivaForm />
         </Suspense>
       </main>
+
+      {/* Assistente IA para análise de causas e ações corretivas */}
+      <AssistenteIAQualidade
+        sugestoes={[
+          'Analisar causas da NC',
+          'Sugerir ações corretivas',
+          'Identificar causas raiz',
+          'Exemplos de ações eficazes',
+        ]}
+      />
     </div>
   );
 }
