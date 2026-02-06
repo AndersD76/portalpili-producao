@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { verificarPermissao } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(request: Request, context: RouteContext) {
+  // Verificar permissão de visualização no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await context.params;
 
@@ -69,6 +74,10 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function PUT(request: Request, context: RouteContext) {
+  // Verificar permissão de edição no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await context.params;
     const body = await request.json();
@@ -217,6 +226,10 @@ export async function PUT(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
+  // Verificar permissão de exclusão no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await context.params;
 

@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ numero: string; id: string }> }
 ) {
+  // Verificar permissão de edição
+  const auth = await verificarPermissao('PRODUCAO', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { numero, id } = await params;
     const body = await request.json();

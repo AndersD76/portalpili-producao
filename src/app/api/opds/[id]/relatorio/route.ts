@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verificar permissão de visualização
+  const auth = await verificarPermissao('PRODUCAO', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 

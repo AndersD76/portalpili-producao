@@ -45,6 +45,20 @@ interface Usuario {
   permissoes?: Permissao[];
 }
 
+// Lista padronizada de departamentos
+const DEPARTAMENTOS_PADRAO = [
+  'COMERCIAL',
+  'COMPRAS',
+  'DIREÇÃO',
+  'ENGENHARIA',
+  'LOGÍSTICA',
+  'PCP',
+  'PRODUÇÃO',
+  'QUALIDADE',
+  'RECURSOS HUMANOS',
+  'ADMINISTRAÇÃO',
+] as const;
+
 export default function AdminUsuariosPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -342,7 +356,7 @@ export default function AdminUsuariosPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
             >
               <option value="">Todos Departamentos</option>
-              {departamentos.map(d => (
+              {DEPARTAMENTOS_PADRAO.map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
@@ -517,12 +531,16 @@ export default function AdminUsuariosPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
-                  <input
-                    type="text"
+                  <select
                     value={usuarioEditando.departamento || ''}
                     onChange={(e) => setUsuarioEditando({ ...usuarioEditando, departamento: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  />
+                  >
+                    <option value="">Selecione um departamento</option>
+                    {DEPARTAMENTOS_PADRAO.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Perfil de Acesso</label>

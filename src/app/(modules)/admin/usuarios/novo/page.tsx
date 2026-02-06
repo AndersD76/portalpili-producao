@@ -10,6 +10,20 @@ interface Perfil {
   descricao: string;
 }
 
+// Lista padronizada de departamentos
+const DEPARTAMENTOS_PADRAO = [
+  'COMERCIAL',
+  'COMPRAS',
+  'DIREÇÃO',
+  'ENGENHARIA',
+  'LOGÍSTICA',
+  'PCP',
+  'PRODUÇÃO',
+  'QUALIDADE',
+  'RECURSOS HUMANOS',
+  'ADMINISTRAÇÃO',
+] as const;
+
 export default function NovoUsuarioPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -243,14 +257,17 @@ export default function NovoUsuarioPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
-                  <input
-                    type="text"
+                  <select
                     name="departamento"
                     value={formData.departamento}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="Ex: COMERCIAL"
-                  />
+                  >
+                    <option value="">Selecione um departamento</option>
+                    {DEPARTAMENTOS_PADRAO.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

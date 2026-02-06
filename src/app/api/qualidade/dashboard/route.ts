@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  // Verificar permissão de visualização
+  const auth = await verificarPermissao('QUALIDADE', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const filtroLocal = searchParams.get('local');

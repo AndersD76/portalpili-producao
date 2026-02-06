@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { ATIVIDADES_PADRAO, SUBTAREFAS_PRODUCAO_TOMBADOR, SUBTAREFAS_PRODUCAO_COLETOR } from '@/lib/atividadesPadrao';
+import { verificarPermissao } from '@/lib/auth';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -27,6 +28,10 @@ function getOrdemAtividade(atividade: string): number {
 }
 
 export async function GET(request: NextRequest) {
+  // Verificar permissão de visualização
+  const auth = await verificarPermissao('PRODUCAO', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const filtroOPD = searchParams.get('opd');

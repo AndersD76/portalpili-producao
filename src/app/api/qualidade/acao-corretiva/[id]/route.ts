@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 // GET - Buscar ação corretiva por ID
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verificar permissão de visualização
+  const auth = await verificarPermissao('QUALIDADE', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
@@ -39,6 +44,10 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verificar permissão de edição
+  const auth = await verificarPermissao('QUALIDADE', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   const client = await pool.connect();
 
   try {
@@ -141,6 +150,10 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verificar permissão de exclusão
+  const auth = await verificarPermissao('QUALIDADE', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   const client = await pool.connect();
 
   try {

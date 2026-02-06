@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -7,6 +8,10 @@ interface RouteContext {
 
 // Atualiza permissões de um usuário
 export async function PUT(request: Request, context: RouteContext) {
+  // Verificar permissão de edição no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id: usuarioId } = await context.params;
     const body = await request.json();
@@ -105,6 +110,10 @@ export async function PUT(request: Request, context: RouteContext) {
 
 // Remove todas permissões personalizadas (volta ao perfil padrão)
 export async function DELETE(request: Request, context: RouteContext) {
+  // Verificar permissão de exclusão no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id: usuarioId } = await context.params;
 

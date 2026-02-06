@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  // Verificar permissão de visualização no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { searchParams } = new URL(request.url);
     const ativo = searchParams.get('ativo');
@@ -131,6 +136,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Verificar permissão de criação no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const body = await request.json();
     const {

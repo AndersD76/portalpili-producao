@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ numero: string }> }
 ) {
+  // Verificar permissão de visualização
+  const auth = await verificarPermissao('PRODUCAO', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { numero } = await params;
 
@@ -60,6 +65,10 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ numero: string }> }
 ) {
+  // Verificar permissão de criação
+  const auth = await verificarPermissao('PRODUCAO', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { numero } = await params;
     const body = await request.json();

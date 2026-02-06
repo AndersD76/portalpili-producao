@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { consultarCNPJ, enriquecerCliente } from '@/lib/comercial';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  // Verificar permissão de visualização
+  const auth = await verificarPermissao('COMERCIAL', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -103,6 +108,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Verificar permissão de criação
+  const auth = await verificarPermissao('COMERCIAL', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const body = await request.json();
     const {

@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET() {
+  // Verificar permissão de visualização no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const result = await query(
       `SELECT
@@ -32,6 +37,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // Verificar permissão de criação no módulo ADMIN
+  const auth = await verificarPermissao('ADMIN', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const body = await request.json();
     const { nome, descricao, nivel, permissoes_padrao } = body;
