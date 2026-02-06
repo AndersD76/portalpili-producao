@@ -19,6 +19,9 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
 
+  // Mapa de opcoes das perguntas carregadas do banco (codigo -> opcoes)
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+
   const [formData, setFormData] = useState({
     // T1 - PREPARAÇÃO (6 itens)
     cq1t1_status: '', // RESPINGOS DE SOLDA
@@ -86,6 +89,31 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opcoes das perguntas do banco de dados
+  useEffect(() => {
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/T');
+        const data = await response.json();
+
+        if (data.success && data.data?.perguntas) {
+          const opcoesMap: Record<string, string[]> = {};
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+          });
+          setPerguntasOpcoes(opcoesMap);
+        }
+      } catch (err) {
+        console.error('[FormularioPintura] Erro ao carregar perguntas:', err);
+      }
+    };
+
+    carregarPerguntasDB();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -203,24 +231,35 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
     }
   };
 
-  const renderCQField = (label: string, fieldName: string, criterio: string, hasNaoAplicavel = false) => (
-    <div className="border rounded-lg p-4 bg-white mb-3">
-      <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
-      <p className="text-sm text-blue-700 mb-2">Critérios: {criterio}</p>
-      <select
-        name={`${fieldName}_status`}
-        value={(formData as any)[`${fieldName}_status`]}
-        onChange={handleChange}
-        required
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-      >
-        <option value="">Selecione</option>
-        <option value="Conforme">Conforme</option>
-        <option value="Não conforme">Não conforme</option>
-        {hasNaoAplicavel && <option value="Não Aplicável">Não Aplicável</option>}
-      </select>
-    </div>
-  );
+  const renderCQField = (label: string, fieldName: string, criterio: string, hasNaoAplicavel = false) => {
+    // Extrair codigo da pergunta do fieldName (ex: cq1t1 -> CQ1-T1, cq1t2 -> CQ1-T2)
+    const codigo = fieldName.toUpperCase().replace(/^(CQ\d+)(T\d?)$/, '$1-$2');
+
+    // Buscar opcoes do banco de dados ou usar fallback
+    const opcoesDB = perguntasOpcoes[codigo];
+    const opcoes = opcoesDB || (hasNaoAplicavel
+      ? ['Conforme', 'Não conforme', 'Não Aplicável']
+      : ['Conforme', 'Não conforme']);
+
+    return (
+      <div className="border rounded-lg p-4 bg-white mb-3">
+        <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
+        <p className="text-sm text-blue-700 mb-2">Critérios: {criterio}</p>
+        <select
+          name={`${fieldName}_status`}
+          value={(formData as any)[`${fieldName}_status`]}
+          onChange={handleChange}
+          required
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+        >
+          <option value="">Selecione</option>
+          {opcoes.map((opcao) => (
+            <option key={opcao} value={opcao}>{opcao}</option>
+          ))}
+        </select>
+      </div>
+    );
+  };
 
   const renderTextField = (label: string, fieldName: string) => (
     <div className="border rounded-lg p-4 bg-white mb-3">
@@ -307,8 +346,9 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 mb-3"
           >
             <option value="">Selecione</option>
-            <option value="Conforme">Conforme</option>
-            <option value="Não conforme">Não conforme</option>
+            {(perguntasOpcoes['CQ11-T2'] || ['Conforme', 'Não conforme']).map((opcao) => (
+              <option key={opcao} value={opcao}>{opcao}</option>
+            ))}
           </select>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
             <input

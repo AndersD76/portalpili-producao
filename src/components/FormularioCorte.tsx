@@ -19,6 +19,9 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
 
+  // Mapa de opcoes das perguntas carregadas do banco (codigo -> opcoes)
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+
   const [formData, setFormData] = useState({
     // CQ1-A: MEDIDA TOTAL DE CORTE DA VIGA (não requer imagem)
     cq1a_status: '',
@@ -73,6 +76,31 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opcoes das perguntas do banco de dados
+  useEffect(() => {
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/A');
+        const data = await response.json();
+
+        if (data.success && data.data?.perguntas) {
+          const opcoesMap: Record<string, string[]> = {};
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+          });
+          setPerguntasOpcoes(opcoesMap);
+        }
+      } catch (err) {
+        console.error('[FormularioCorte] Erro ao carregar perguntas:', err);
+      }
+    };
+
+    carregarPerguntasDB();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -213,7 +241,17 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
     criterio: string,
     hasNaoAplicavel = false,
     hasImage = false
-  ) => (
+  ) => {
+    // Extrair codigo da pergunta do fieldName (ex: cq1a -> CQ1-A)
+    const codigo = fieldName.toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+
+    // Buscar opcoes do banco de dados ou usar fallback
+    const opcoesDB = perguntasOpcoes[codigo];
+    const opcoes = opcoesDB || (hasNaoAplicavel
+      ? ['Conforme', 'Não conforme', 'Não Aplicável']
+      : ['Conforme', 'Não conforme']);
+
+    return (
     <div className="border rounded-lg p-4 bg-white mb-4">
       <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
       <div className="text-sm text-gray-600 mb-3 space-y-1">
@@ -231,9 +269,9 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
         >
           <option value="">Selecione</option>
-          <option value="Conforme">Conforme</option>
-          <option value="Não conforme">Não conforme</option>
-          {hasNaoAplicavel && <option value="Não Aplicável">Não Aplicável</option>}
+          {opcoes.map((opcao) => (
+            <option key={opcao} value={opcao}>{opcao}</option>
+          ))}
         </select>
       </div>
 
@@ -312,6 +350,7 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
       )}
     </div>
   );
+  };
 
   // Loading inicial
   if (loadingDados) {

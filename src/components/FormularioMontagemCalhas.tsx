@@ -55,6 +55,9 @@ export default function FormularioMontagemCalhas({
   const [savingDraft, setSavingDraft] = useState(false);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
 
+  // Mapa de opcoes das perguntas carregadas do banco (codigo -> opcoes)
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+
   // Carregar dados existentes (rascunho ou formulário anterior)
   useEffect(() => {
     const carregarDadosExistentes = async () => {
@@ -95,6 +98,31 @@ export default function FormularioMontagemCalhas({
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opcoes das perguntas do banco de dados
+  useEffect(() => {
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/H');
+        const data = await response.json();
+
+        if (data.success && data.data?.perguntas) {
+          const opcoesMap: Record<string, string[]> = {};
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+          });
+          setPerguntasOpcoes(opcoesMap);
+        }
+      } catch (err) {
+        console.error('[FormularioMontagemCalhas] Erro ao carregar perguntas:', err);
+      }
+    };
+
+    carregarPerguntasDB();
+  }, []);
 
   const getUsuario = () => {
     const userDataString = localStorage.getItem('user_data');
@@ -195,9 +223,19 @@ export default function FormularioMontagemCalhas({
   const renderCheckpoint = (
     id: string,
     title: string,
-    description: string
+    description: string,
+    hasNaoAplicavel = false
   ) => {
     const statusField = `${id}_status`;
+
+    // Extrair codigo da pergunta do id (ex: cq1h -> CQ1-H)
+    const codigo = id.toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+
+    // Buscar opcoes do banco de dados ou usar fallback
+    const opcoesDB = perguntasOpcoes[codigo];
+    const opcoes = opcoesDB || (hasNaoAplicavel
+      ? ['Conforme', 'Não conforme', 'Não Aplicável']
+      : ['Conforme', 'Não conforme']);
 
     return (
       <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
@@ -215,8 +253,9 @@ export default function FormularioMontagemCalhas({
             required
           >
             <option value="">Selecione...</option>
-            <option value="Conforme">Conforme</option>
-            <option value="Não conforme">Não conforme</option>
+            {opcoes.map((opcao) => (
+              <option key={opcao} value={opcao}>{opcao}</option>
+            ))}
           </select>
         </div>
       </div>

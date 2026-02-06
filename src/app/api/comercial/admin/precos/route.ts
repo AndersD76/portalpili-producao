@@ -24,8 +24,14 @@ export async function GET(request: Request) {
 
       case 'base':
         sql = `
-          SELECT pb.id, pb.produto, pb.tipo, pb.tamanho, pb.modelo,
-                 pb.descricao, pb.preco, pb.ativo, pb.qt_cilindros, pb.qt_motores, pb.qt_oleo,
+          SELECT pb.id,
+                 pb.produto as tipo_produto,
+                 pb.tipo as modelo,
+                 pb.tamanho as comprimento,
+                 pb.descricao,
+                 pb.preco,
+                 pb.ativo,
+                 pb.qt_cilindros, pb.qt_motores, pb.qt_oleo,
                  pb.angulo_inclinacao, pb.ordem_exibicao, pb.created_at, pb.updated_at,
                  pc.nome as categoria_nome
           FROM crm_precos_base pb
@@ -46,7 +52,9 @@ export async function GET(request: Request) {
       case 'opcoes':
         sql = `
           SELECT po.id, po.categoria_id, po.codigo, po.nome, po.descricao,
-                 po.preco_tipo, po.preco, po.ativo,
+                 po.preco_tipo as tipo_valor,
+                 COALESCE(po.preco, 0) as valor,
+                 po.ativo,
                  po.produto, po.ordem_exibicao, pc.nome as categoria_nome
           FROM crm_precos_opcoes po
           LEFT JOIN crm_precos_categorias pc ON po.categoria_id = pc.id
