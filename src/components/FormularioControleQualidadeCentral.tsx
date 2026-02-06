@@ -14,10 +14,16 @@ interface FormularioControleQualidadeCentralProps {
 export default function FormularioControleQualidadeCentral({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioControleQualidadeCentralProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+
+  // Mapa de opções das perguntas carregadas do banco (código -> opções)
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  // Mapa de tipo de resposta (código -> tipoResposta)
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     // CQ1-C: MOTOR LIVRE COM PESO DA BOMBA
@@ -121,6 +127,51 @@ export default function FormularioControleQualidadeCentral({ opd, cliente, ativi
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor C)
+  useEffect(() => {
+    let isMounted = true;
+
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/C');
+
+        if (!isMounted) return;
+
+        const data = await response.json();
+
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+            if (p.tipoResposta) {
+              tipoRespostaMap[codigoUpper] = p.tipoResposta;
+            }
+          });
+        }
+
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-Central] ERRO ao carregar perguntas:', err);
+        if (isMounted) {
+          setLoadingOpcoes(false);
+        }
+      }
+    };
+
+    carregarPerguntasDB();
+
+    return () => { isMounted = false; };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -260,7 +311,19 @@ export default function FormularioControleQualidadeCentral({ opd, cliente, ativi
     description: string,
     criterio: string,
     hasImage = false
-  ) => (
+  ) => {
+    // Extrair código da pergunta do fieldName (ex: cq3c -> CQ3-C)
+    const codigo = fieldName.toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+
+    // Buscar opções e tipo de resposta do banco de dados
+    const opcoesDB = perguntasOpcoes[codigo];
+    const tipoResposta = perguntasTipoResposta[codigo] || 'select';
+    const opcoes = opcoesDB || ['Conforme', 'Não conforme'];
+
+    // Verificar se é texto livre
+    const isTextoLivre = tipoResposta === 'texto_livre' || tipoResposta === 'texto';
+
+    return (
     <div className="border rounded-lg p-4 bg-white mb-4">
       <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
       <div className="text-sm text-gray-600 mb-3 space-y-1">
@@ -270,17 +333,30 @@ export default function FormularioControleQualidadeCentral({ opd, cliente, ativi
 
       <div className="mb-3">
         <label className="block text-sm font-semibold mb-2">Condição *</label>
-        <select
-          name={`${fieldName}_status`}
-          value={(formData as any)[`${fieldName}_status`]}
-          onChange={handleChange}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-        >
-          <option value="">Selecione</option>
-          <option value="Conforme">Conforme</option>
-          <option value="Não conforme">Não conforme</option>
-        </select>
+        {isTextoLivre ? (
+          <input
+            type="text"
+            name={`${fieldName}_status`}
+            value={(formData as any)[`${fieldName}_status`] || ''}
+            onChange={handleChange}
+            required
+            placeholder="Digite o valor medido..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+          />
+        ) : (
+          <select
+            name={`${fieldName}_status`}
+            value={(formData as any)[`${fieldName}_status`]}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+          >
+            <option value="">Selecione</option>
+            {opcoes.map((opcao) => (
+              <option key={opcao} value={opcao}>{opcao}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {hasImage && (
@@ -321,13 +397,16 @@ export default function FormularioControleQualidadeCentral({ opd, cliente, ativi
       )}
     </div>
   );
+  };
 
   // Loading inicial
-  if (loadingDados) {
+  if (loadingDados || loadingOpcoes) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-        <p className="text-gray-600">Carregando formulario...</p>
+        <p className="text-gray-600">
+          {loadingOpcoes ? 'Carregando opções...' : 'Carregando formulario...'}
+        </p>
       </div>
     );
   }

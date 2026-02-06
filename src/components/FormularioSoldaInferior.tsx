@@ -14,9 +14,12 @@ interface FormularioSoldaInferiorProps {
 export default function FormularioSoldaInferior({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioSoldaInferiorProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     cq1q_status: '', // MONTAGEM CONFORME PROJETO

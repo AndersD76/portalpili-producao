@@ -14,9 +14,12 @@ interface FormularioColetorColunaSuperiorProps {
 export default function FormularioColetorColunaSuperior({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioColetorColunaSuperiorProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     cq1fc_status: '', // FIXADORES DAS MANGUEIRAS HIDRÁULICAS (2 EM UM LADO E 3 OUTRO)
@@ -74,6 +77,37 @@ export default function FormularioColetorColunaSuperior({ opd, cliente, atividad
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor Fc)
+  useEffect(() => {
+    let isMounted = true;
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/Fc');
+        if (!isMounted) return;
+        const data = await response.json();
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) opcoesMap[codigoUpper] = p.opcoes;
+            if (p.tipoResposta) tipoRespostaMap[codigoUpper] = p.tipoResposta;
+          });
+        }
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-SectorFc] ERRO ao carregar perguntas:', err);
+        if (isMounted) setLoadingOpcoes(false);
+      }
+    };
+    carregarPerguntasDB();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

@@ -93,9 +93,15 @@ export default function FormularioControleQualidadeSolda({
 
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+
+  // Mapa de opções das perguntas carregadas do banco (código -> opções)
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  // Mapa de tipo de resposta (código -> tipoResposta)
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const fileInputRefs = {
     cq2d: useRef<HTMLInputElement>(null),
@@ -155,6 +161,48 @@ export default function FormularioControleQualidadeSolda({
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor D - Solda)
+  useEffect(() => {
+    let isMounted = true;
+
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/D');
+        if (!isMounted) return;
+
+        const data = await response.json();
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+            if (p.tipoResposta) {
+              tipoRespostaMap[codigoUpper] = p.tipoResposta;
+            }
+          });
+        }
+
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-Solda] ERRO ao carregar perguntas:', err);
+        if (isMounted) {
+          setLoadingOpcoes(false);
+        }
+      }
+    };
+
+    carregarPerguntasDB();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleFileChange = async (field: string, files: FileList | null) => {
     if (files && files.length > 0) {
@@ -333,6 +381,19 @@ export default function FormularioControleQualidadeSolda({
     const statusField = `${id}_status`;
     const imageField = `${id}_imagem`;
 
+    // Extrair código da pergunta (ex: cq3d -> CQ3-D)
+    const codigo = id.toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+
+    // Buscar opções e tipo de resposta do banco de dados
+    const opcoesDB = perguntasOpcoes[codigo];
+    const tipoResposta = perguntasTipoResposta[codigo] || 'select';
+    const opcoes = opcoesDB || (hasThreeOptions
+      ? ['Conforme', 'Não conforme', 'Não Aplicável']
+      : ['Conforme', 'Não conforme']);
+
+    // Verificar se é texto livre
+    const isTextoLivre = tipoResposta === 'texto_livre' || tipoResposta === 'texto';
+
     return (
       <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
         <h4 className="font-bold text-lg mb-3 text-gray-900">{title}</h4>
@@ -343,17 +404,28 @@ export default function FormularioControleQualidadeSolda({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Status *
             </label>
-            <select
-              value={formData[statusField as keyof typeof formData] as string}
-              onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              required
-            >
-              <option value="">Selecione...</option>
-              <option value="Conforme">Conforme</option>
-              <option value="Não conforme">Não conforme</option>
-              {hasThreeOptions && <option value="Não Aplicável">Não Aplicável</option>}
-            </select>
+            {isTextoLivre ? (
+              <input
+                type="text"
+                value={formData[statusField as keyof typeof formData] as string || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+                placeholder="Digite o valor medido..."
+              />
+            ) : (
+              <select
+                value={formData[statusField as keyof typeof formData] as string}
+                onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+              >
+                <option value="">Selecione...</option>
+                {opcoes.map((opcao) => (
+                  <option key={opcao} value={opcao}>{opcao}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {hasImage && (
@@ -427,11 +499,13 @@ export default function FormularioControleQualidadeSolda({
   };
 
   // Loading inicial
-  if (loadingDados) {
+  if (loadingDados || loadingOpcoes) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
-        <p className="text-gray-600">Carregando formulario...</p>
+        <p className="text-gray-600">
+          {loadingOpcoes ? 'Carregando opções...' : 'Carregando formulario...'}
+        </p>
       </div>
     );
   }

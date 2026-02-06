@@ -61,8 +61,11 @@ export default function FormularioMontagemSoldaInferior({
 
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   // Carregar dados existentes (rascunho ou formulário anterior)
   useEffect(() => {
@@ -104,6 +107,37 @@ export default function FormularioMontagemSoldaInferior({
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor F)
+  useEffect(() => {
+    let isMounted = true;
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/F');
+        if (!isMounted) return;
+        const data = await response.json();
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) opcoesMap[codigoUpper] = p.opcoes;
+            if (p.tipoResposta) tipoRespostaMap[codigoUpper] = p.tipoResposta;
+          });
+        }
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-SetorF] ERRO ao carregar perguntas:', err);
+        if (isMounted) setLoadingOpcoes(false);
+      }
+    };
+    carregarPerguntasDB();
+    return () => { isMounted = false; };
+  }, []);
 
   const getUsuario = () => {
     const userDataString = localStorage.getItem('user_data');
@@ -208,6 +242,11 @@ export default function FormularioMontagemSoldaInferior({
     description: string
   ) => {
     const statusField = `${id}_status`;
+    // Extrair código da pergunta (ex: cq1f -> CQ1-F)
+    const match = id.match(/^cq(\d+)([a-z])$/i);
+    const codigoPergunta = match ? `CQ${match[1]}-${match[2].toUpperCase()}` : id.toUpperCase();
+    const tipoResposta = perguntasTipoResposta[codigoPergunta];
+    const opcoes = perguntasOpcoes[codigoPergunta] || ['Conforme', 'Não conforme'];
 
     return (
       <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
@@ -218,23 +257,35 @@ export default function FormularioMontagemSoldaInferior({
           <label className="block text-sm font-semibold text-gray-700 mb-2">
             Status *
           </label>
-          <select
-            value={formData[statusField as keyof typeof formData] as string}
-            onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            required
-          >
-            <option value="">Selecione...</option>
-            <option value="Conforme">Conforme</option>
-            <option value="Não conforme">Não conforme</option>
-          </select>
+          {tipoResposta === 'texto_livre' || tipoResposta === 'texto' ? (
+            <input
+              type="text"
+              value={formData[statusField as keyof typeof formData] as string}
+              onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Digite a resposta..."
+              required
+            />
+          ) : (
+            <select
+              value={formData[statusField as keyof typeof formData] as string}
+              onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              required
+            >
+              <option value="">Selecione...</option>
+              {opcoes.map((opcao) => (
+                <option key={opcao} value={opcao}>{opcao}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
     );
   };
 
   // Loading inicial
-  if (loadingDados) {
+  if (loadingDados || loadingOpcoes) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>

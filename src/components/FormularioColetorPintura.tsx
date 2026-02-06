@@ -14,9 +14,12 @@ interface FormularioColetorPinturaProps {
 export default function FormularioColetorPintura({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioColetorPinturaProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     cq1hc_status: '', // ISOLAMENTO DOS COMPONENTES
@@ -72,6 +75,37 @@ export default function FormularioColetorPintura({ opd, cliente, atividadeId, on
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor Hc)
+  useEffect(() => {
+    let isMounted = true;
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/Hc');
+        if (!isMounted) return;
+        const data = await response.json();
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) opcoesMap[codigoUpper] = p.opcoes;
+            if (p.tipoResposta) tipoRespostaMap[codigoUpper] = p.tipoResposta;
+          });
+        }
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-SectorHc] ERRO ao carregar perguntas:', err);
+        if (isMounted) setLoadingOpcoes(false);
+      }
+    };
+    carregarPerguntasDB();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

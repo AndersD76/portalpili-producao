@@ -14,9 +14,12 @@ interface FormularioPedestaisProps {
 export default function FormularioPedestais({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioPedestaisProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     cq1o_status: '', // CONDIÇÕES FISICAS DA CAIXA
@@ -67,6 +70,37 @@ export default function FormularioPedestais({ opd, cliente, atividadeId, onSubmi
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor O)
+  useEffect(() => {
+    let isMounted = true;
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/O');
+        if (!isMounted) return;
+        const data = await response.json();
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) opcoesMap[codigoUpper] = p.opcoes;
+            if (p.tipoResposta) tipoRespostaMap[codigoUpper] = p.tipoResposta;
+          });
+        }
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-SetorO] ERRO ao carregar perguntas:', err);
+        if (isMounted) setLoadingOpcoes(false);
+      }
+    };
+    carregarPerguntasDB();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -154,26 +188,45 @@ export default function FormularioPedestais({ opd, cliente, atividadeId, onSubmi
     }
   };
 
-  const renderCQField = (label: string, fieldName: string, criterio: string) => (
-    <div className="border rounded-lg p-4 bg-white mb-3">
-      <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
-      <p className="text-sm text-blue-700 mb-2">Critérios: {criterio}</p>
-      <select
-        name={`${fieldName}_status`}
-        value={(formData as any)[`${fieldName}_status`]}
-        onChange={handleChange}
-        required
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-      >
-        <option value="">Selecione</option>
-        <option value="Conforme">Conforme</option>
-        <option value="Não conforme">Não conforme</option>
-      </select>
-    </div>
-  );
+  const renderCQField = (label: string, fieldName: string, criterio: string) => {
+    const codigoUpper = fieldName.toUpperCase();
+    const tipoResposta = perguntasTipoResposta[codigoUpper];
+    const opcoes = perguntasOpcoes[codigoUpper] || ['Conforme', 'Não conforme'];
+
+    return (
+      <div className="border rounded-lg p-4 bg-white mb-3">
+        <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
+        <p className="text-sm text-blue-700 mb-2">Criterios: {criterio}</p>
+        {tipoResposta === 'texto_livre' || tipoResposta === 'texto' ? (
+          <input
+            type="text"
+            name={`${fieldName}_status`}
+            value={(formData as any)[`${fieldName}_status`]}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            placeholder="Digite aqui..."
+          />
+        ) : (
+          <select
+            name={`${fieldName}_status`}
+            value={(formData as any)[`${fieldName}_status`]}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+          >
+            <option value="">Selecione</option>
+            {opcoes.map((opcao) => (
+              <option key={opcao} value={opcao}>{opcao}</option>
+            ))}
+          </select>
+        )}
+      </div>
+    );
+  };
 
   // Loading inicial
-  if (loadingDados) {
+  if (loadingDados || loadingOpcoes) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>

@@ -14,9 +14,12 @@ interface FormularioColetorTuboColetaProps {
 export default function FormularioColetorTuboColeta({ opd, cliente, atividadeId, onSubmit, onCancel }: FormularioColetorTuboColetaProps) {
   const [loading, setLoading] = useState(false);
   const [loadingDados, setLoadingDados] = useState(true);
+  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+  const [perguntasTipoResposta, setPerguntasTipoResposta] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     cq1dc_status: '', // BOCAL USINADO CORRETAMENTE (PADRÃO 30mm)
@@ -66,6 +69,37 @@ export default function FormularioColetorTuboColeta({ opd, cliente, atividadeId,
 
     carregarDadosExistentes();
   }, [atividadeId, opd]);
+
+  // Carregar opções das perguntas do banco de dados (Setor Dc)
+  useEffect(() => {
+    let isMounted = true;
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/Dc');
+        if (!isMounted) return;
+        const data = await response.json();
+        const opcoesMap: Record<string, string[]> = {};
+        const tipoRespostaMap: Record<string, string> = {};
+        if (data.success && data.data?.perguntas) {
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[]; tipoResposta?: string }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) opcoesMap[codigoUpper] = p.opcoes;
+            if (p.tipoResposta) tipoRespostaMap[codigoUpper] = p.tipoResposta;
+          });
+        }
+        if (isMounted) {
+          setPerguntasOpcoes(opcoesMap);
+          setPerguntasTipoResposta(tipoRespostaMap);
+          setLoadingOpcoes(false);
+        }
+      } catch (err) {
+        console.error('[CQ-SectorDc] ERRO ao carregar perguntas:', err);
+        if (isMounted) setLoadingOpcoes(false);
+      }
+    };
+    carregarPerguntasDB();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
