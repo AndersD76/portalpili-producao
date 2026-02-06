@@ -15,6 +15,35 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
+    // IMPORTANTE: Buscar pipeline PRIMEIRO (sem filtros) para garantir dados no dashboard
+    let pipelineData: { estagio: string; quantidade: string; valor_total: string }[] = [];
+    try {
+      const pipelineResult = await query(`
+        SELECT
+          estagio,
+          COUNT(*) as quantidade,
+          COALESCE(SUM(valor_estimado), 0) as valor_total
+        FROM crm_oportunidades
+        GROUP BY estagio
+        ORDER BY
+          CASE estagio
+            WHEN 'PROSPECCAO' THEN 1
+            WHEN 'QUALIFICACAO' THEN 2
+            WHEN 'PROPOSTA' THEN 3
+            WHEN 'EM_ANALISE' THEN 4
+            WHEN 'EM_NEGOCIACAO' THEN 5
+            WHEN 'FECHADA' THEN 6
+            WHEN 'PERDIDA' THEN 7
+            WHEN 'SUSPENSO' THEN 8
+            WHEN 'SUBSTITUIDO' THEN 9
+            WHEN 'TESTE' THEN 10
+          END
+      `);
+      pipelineData = pipelineResult?.rows || [];
+    } catch (pipelineError) {
+      console.error('Erro ao buscar pipeline:', pipelineError);
+    }
+
     // Se usuario_id foi passado, buscar o vendedor_id correspondente
     if (usuario_id && !vendedor_id) {
       const vendedorResult = await query(
@@ -93,31 +122,9 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
-    // Conta totais para dashboard do pipeline (todos os estágios)
-    const pipelineResult = await query(`
-      SELECT
-        estagio,
-        COUNT(*) as quantidade,
-        COALESCE(SUM(valor_estimado), 0) as valor_total
-      FROM crm_oportunidades
-      GROUP BY estagio
-      ORDER BY
-        CASE estagio
-          WHEN 'PROSPECCAO' THEN 1
-          WHEN 'QUALIFICACAO' THEN 2
-          WHEN 'PROPOSTA' THEN 3
-          WHEN 'EM_ANALISE' THEN 4
-          WHEN 'EM_NEGOCIACAO' THEN 5
-          WHEN 'FECHADA' THEN 6
-          WHEN 'PERDIDA' THEN 7
-          WHEN 'SUSPENSO' THEN 8
-          WHEN 'SUBSTITUIDO' THEN 9
-          WHEN 'TESTE' THEN 10
-        END
-    `);
-
+    // Pipeline já foi buscado no início da função (pipelineData)
     // Debug logging
-    console.log('Pipeline query result:', JSON.stringify(pipelineResult?.rows || [], null, 2));
+    console.log('Pipeline data:', JSON.stringify(pipelineData, null, 2));
 
     // Conta total para paginação
     let countSql = `SELECT COUNT(DISTINCT o.id) as total FROM crm_oportunidades o WHERE 1=1`;
@@ -147,7 +154,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       data: result?.rows || [],
-      pipeline: pipelineResult?.rows || [],
+      pipeline: pipelineData,
       pagination: {
         page,
         limit,
