@@ -19,6 +19,9 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
 
+  // Mapa de opções das perguntas carregadas do banco (código -> opções)
+  const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
+
   const [formData, setFormData] = useState({
     // CQ1-B: MEDIDA DA MONTAGEM INICIAL
     cq1b_status: '',
@@ -225,6 +228,31 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
     carregarDadosExistentes();
   }, [atividadeId, opd]);
 
+  // Carregar opções das perguntas do banco de dados
+  useEffect(() => {
+    const carregarPerguntasDB = async () => {
+      try {
+        const response = await fetch('/api/qualidade/cq-config/perguntas-setor/B');
+        const data = await response.json();
+
+        if (data.success && data.data?.perguntas) {
+          const opcoesMap: Record<string, string[]> = {};
+          data.data.perguntas.forEach((p: { codigo: string; opcoes: string[] }) => {
+            const codigoUpper = p.codigo.toUpperCase();
+            if (p.opcoes && Array.isArray(p.opcoes)) {
+              opcoesMap[codigoUpper] = p.opcoes;
+            }
+          });
+          setPerguntasOpcoes(opcoesMap);
+        }
+      } catch (err) {
+        console.error('[FormularioMontagem] Erro ao carregar perguntas:', err);
+      }
+    };
+
+    carregarPerguntasDB();
+  }, []);
+
   const getUsuario = () => {
     const userDataString = localStorage.getItem('user_data');
     if (userDataString) {
@@ -359,7 +387,17 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
     criterio: string,
     hasNaoAplicavel = false,
     hasImage = false
-  ) => (
+  ) => {
+    // Extrair código da pergunta do fieldName (ex: cq3b -> CQ3-B)
+    const codigo = fieldName.toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+
+    // Buscar opções do banco de dados ou usar fallback
+    const opcoesDB = perguntasOpcoes[codigo];
+    const opcoes = opcoesDB || (hasNaoAplicavel
+      ? ['Conforme', 'Não conforme', 'Não Aplicável']
+      : ['Conforme', 'Não conforme']);
+
+    return (
     <div className="border rounded-lg p-4 bg-white mb-4">
       <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
       <div className="text-sm text-gray-600 mb-3 space-y-1">
@@ -377,9 +415,9 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
         >
           <option value="">Selecione</option>
-          <option value="Conforme">Conforme</option>
-          <option value="Não conforme">Não conforme</option>
-          {hasNaoAplicavel && <option value="Não Aplicável">Não Aplicável</option>}
+          {opcoes.map((opcao) => (
+            <option key={opcao} value={opcao}>{opcao}</option>
+          ))}
         </select>
       </div>
 
@@ -458,6 +496,7 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
       )}
     </div>
   );
+  };
 
   // Loading inicial
   if (loadingDados) {
