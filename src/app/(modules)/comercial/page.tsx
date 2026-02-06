@@ -9,8 +9,11 @@ interface ComercialStats {
     prospeccao: { quantidade: number; valor: number };
     qualificacao: { quantidade: number; valor: number };
     proposta: { quantidade: number; valor: number };
-    negociacao: { quantidade: number; valor: number };
-    fechamento: { quantidade: number; valor: number };
+    em_analise: { quantidade: number; valor: number };
+    em_negociacao: { quantidade: number; valor: number };
+    fechada: { quantidade: number; valor: number };
+    perdida: { quantidade: number; valor: number };
+    suspenso: { quantidade: number; valor: number };
   };
   clientes: {
     total: number;
@@ -37,8 +40,11 @@ export default function ComercialPage() {
       prospeccao: { quantidade: 0, valor: 0 },
       qualificacao: { quantidade: 0, valor: 0 },
       proposta: { quantidade: 0, valor: 0 },
-      negociacao: { quantidade: 0, valor: 0 },
-      fechamento: { quantidade: 0, valor: 0 },
+      em_analise: { quantidade: 0, valor: 0 },
+      em_negociacao: { quantidade: 0, valor: 0 },
+      fechada: { quantidade: 0, valor: 0 },
+      perdida: { quantidade: 0, valor: 0 },
+      suspenso: { quantidade: 0, valor: 0 },
     },
     clientes: { total: 0, ativos: 0, prospectos: 0 },
     propostas: { total: 0, abertas: 0, valorTotal: 0 },
@@ -94,8 +100,11 @@ export default function ComercialPage() {
           prospeccao: { quantidade: 0, valor: 0 },
           qualificacao: { quantidade: 0, valor: 0 },
           proposta: { quantidade: 0, valor: 0 },
-          negociacao: { quantidade: 0, valor: 0 },
-          fechamento: { quantidade: 0, valor: 0 },
+          em_analise: { quantidade: 0, valor: 0 },
+          em_negociacao: { quantidade: 0, valor: 0 },
+          fechada: { quantidade: 0, valor: 0 },
+          perdida: { quantidade: 0, valor: 0 },
+          suspenso: { quantidade: 0, valor: 0 },
         };
         pipeline.forEach((p: { estagio: string; quantidade: string; valor_total: string }) => {
           const key = p.estagio.toLowerCase() as keyof typeof newPipeline;
@@ -264,13 +273,16 @@ export default function ComercialPage() {
               Ver Kanban →
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 mb-4">
             {[
               { key: 'prospeccao', label: 'Prospecção', cor: 'bg-gray-500' },
               { key: 'qualificacao', label: 'Qualificação', cor: 'bg-blue-500' },
               { key: 'proposta', label: 'Proposta', cor: 'bg-purple-500' },
-              { key: 'negociacao', label: 'Negociação', cor: 'bg-orange-500' },
-              { key: 'fechamento', label: 'Fechamento', cor: 'bg-green-500' },
+              { key: 'em_analise', label: 'Em Análise', cor: 'bg-cyan-500' },
+              { key: 'em_negociacao', label: 'Negociação', cor: 'bg-orange-500' },
+              { key: 'fechada', label: 'Fechada', cor: 'bg-green-500' },
+              { key: 'perdida', label: 'Perdida', cor: 'bg-red-500' },
+              { key: 'suspenso', label: 'Suspenso', cor: 'bg-yellow-500' },
             ].map((estagio) => {
               const data = stats.pipeline[estagio.key as keyof typeof stats.pipeline];
               return (

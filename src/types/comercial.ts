@@ -31,8 +31,13 @@ export type OportunidadeEstagio =
   | 'PROSPECCAO'
   | 'QUALIFICACAO'
   | 'PROPOSTA'
-  | 'NEGOCIACAO'
-  | 'FECHAMENTO';
+  | 'EM_ANALISE'
+  | 'EM_NEGOCIACAO'
+  | 'FECHADA'
+  | 'PERDIDA'
+  | 'SUSPENSO'
+  | 'SUBSTITUIDO'
+  | 'TESTE';
 
 export type OportunidadeStatus = 'ABERTA' | 'GANHA' | 'PERDIDA' | 'CANCELADA';
 
@@ -941,9 +946,14 @@ export const ESTAGIOS_PIPELINE: Array<{
 }> = [
   { id: 'PROSPECCAO', nome: 'Prospecção', probabilidade: 10, cor: '#94a3b8' },
   { id: 'QUALIFICACAO', nome: 'Qualificação', probabilidade: 25, cor: '#60a5fa' },
-  { id: 'PROPOSTA', nome: 'Proposta Enviada', probabilidade: 50, cor: '#fbbf24' },
-  { id: 'NEGOCIACAO', nome: 'Negociação', probabilidade: 75, cor: '#fb923c' },
-  { id: 'FECHAMENTO', nome: 'Fechamento', probabilidade: 90, cor: '#22c55e' },
+  { id: 'PROPOSTA', nome: 'Proposta', probabilidade: 40, cor: '#a78bfa' },
+  { id: 'EM_ANALISE', nome: 'Em Análise', probabilidade: 50, cor: '#06b6d4' },
+  { id: 'EM_NEGOCIACAO', nome: 'Em Negociação', probabilidade: 70, cor: '#fb923c' },
+  { id: 'FECHADA', nome: 'Fechada', probabilidade: 100, cor: '#22c55e' },
+  { id: 'PERDIDA', nome: 'Perdida', probabilidade: 0, cor: '#ef4444' },
+  { id: 'SUSPENSO', nome: 'Suspenso', probabilidade: 30, cor: '#eab308' },
+  { id: 'SUBSTITUIDO', nome: 'Substituído', probabilidade: 0, cor: '#6b7280' },
+  { id: 'TESTE', nome: 'Teste', probabilidade: 0, cor: '#8b5cf6' },
 ];
 
 export const SITUACOES_PROPOSTA: Array<{

@@ -30,8 +30,11 @@ const ESTAGIOS = [
   { id: 'PROSPECCAO', nome: 'Prospecção', cor: 'bg-gray-500' },
   { id: 'QUALIFICACAO', nome: 'Qualificação', cor: 'bg-blue-500' },
   { id: 'PROPOSTA', nome: 'Proposta', cor: 'bg-purple-500' },
-  { id: 'NEGOCIACAO', nome: 'Negociação', cor: 'bg-orange-500' },
-  { id: 'FECHAMENTO', nome: 'Fechamento', cor: 'bg-green-500' },
+  { id: 'EM_ANALISE', nome: 'Em Análise', cor: 'bg-cyan-500' },
+  { id: 'EM_NEGOCIACAO', nome: 'Negociação', cor: 'bg-orange-500' },
+  { id: 'FECHADA', nome: 'Fechada', cor: 'bg-green-500' },
+  { id: 'PERDIDA', nome: 'Perdida', cor: 'bg-red-500' },
+  { id: 'SUSPENSO', nome: 'Suspenso', cor: 'bg-yellow-500' },
 ];
 
 export default function PipelineKanban({
@@ -52,6 +55,12 @@ export default function PipelineKanban({
   };
 
   const getOportunidadesPorEstagio = useCallback((estagio: string) => {
+    // Estágios finais mostram independente do status
+    const estagiosFinais = ['FECHADA', 'PERDIDA', 'SUSPENSO'];
+    if (estagiosFinais.includes(estagio)) {
+      return oportunidades.filter((o) => o.estagio === estagio);
+    }
+    // Estágios ativos mostram apenas status ABERTA
     return oportunidades.filter(
       (o) => o.estagio === estagio && o.status === 'ABERTA'
     );
