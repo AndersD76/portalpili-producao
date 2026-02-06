@@ -441,6 +441,7 @@ export function CampoConformidade({
   criterio,
   temNaoAplicavel = false,
   required = true,
+  opcoes,
 }: {
   label: string;
   valor: string;
@@ -449,7 +450,13 @@ export function CampoConformidade({
   criterio?: string;
   temNaoAplicavel?: boolean;
   required?: boolean;
+  opcoes?: string[];
 }) {
+  // Usar opcoes passadas ou fallback para opcoes padrão
+  const opcoesFinais = opcoes || (temNaoAplicavel
+    ? ['Conforme', 'Não conforme', 'Não Aplicável']
+    : ['Conforme', 'Não conforme']);
+
   return (
     <div className="border rounded-lg p-4 bg-white mb-3">
       <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
@@ -462,9 +469,9 @@ export function CampoConformidade({
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
       >
         <option value="">Selecione</option>
-        <option value="Conforme">Conforme</option>
-        <option value="Não conforme">Não conforme</option>
-        {temNaoAplicavel && <option value="Não Aplicável">Não Aplicável</option>}
+        {opcoesFinais.map((opcao) => (
+          <option key={opcao} value={opcao}>{opcao}</option>
+        ))}
       </select>
     </div>
   );
