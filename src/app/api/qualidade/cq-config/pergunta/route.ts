@@ -43,13 +43,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const opcoesValue = Array.isArray(opcoes) ? opcoes : ['Conforme', 'Não conforme'];
+
     const result = await client.query(`
       INSERT INTO cq_perguntas (
         setor_id, codigo, descricao, etapa, avaliacao, medida_critica,
         metodo_verificacao, instrumento, criterios_aceitacao, opcoes,
         requer_imagem, imagem_descricao, tipo_resposta, ordem
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13, $14)
       RETURNING *
     `, [
       setor_id,
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
       metodo_verificacao || null,
       instrumento || null,
       criterios_aceitacao || null,
-      JSON.stringify(opcoes || ['Conforme', 'Não conforme']),
+      JSON.stringify(opcoesValue),
       requer_imagem || false,
       imagem_descricao || null,
       tipo_resposta || 'selecao',

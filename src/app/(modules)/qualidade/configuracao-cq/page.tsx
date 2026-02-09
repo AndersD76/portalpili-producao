@@ -321,7 +321,8 @@ export default function ConfiguracaoCQPage() {
   };
 
   const handleOpcoesChange = (value: string) => {
-    const opcoes = value.split(',').map(o => o.trim()).filter(o => o);
+    // Aceitar vírgula ou ponto-e-vírgula como separador
+    const opcoes = value.split(/[,;]/).map(o => o.trim()).filter(o => o);
     setPerguntaForm(prev => ({ ...prev, opcoes }));
   };
 
@@ -706,7 +707,7 @@ export default function ConfiguracaoCQPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Opções (separadas por vírgula)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Opções (separadas por vírgula ou ponto-e-vírgula)</label>
                 <input
                   type="text"
                   value={perguntaForm.opcoes.join(', ')}

@@ -62,10 +62,11 @@ export async function PUT(
       }
     }
 
-    // Tratar opcoes separadamente (precisa ser JSON)
+    // Tratar opcoes separadamente (precisa ser JSON/JSONB)
     if (body.opcoes !== undefined) {
-      fields.push(`opcoes = $${paramIndex}`);
-      values.push(JSON.stringify(body.opcoes));
+      fields.push(`opcoes = $${paramIndex}::jsonb`);
+      const opcoesValue = Array.isArray(body.opcoes) ? body.opcoes : ['Conforme', 'Não conforme'];
+      values.push(JSON.stringify(opcoesValue));
       paramIndex++;
     }
 
