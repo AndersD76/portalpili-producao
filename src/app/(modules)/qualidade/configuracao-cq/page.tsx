@@ -72,6 +72,7 @@ export default function ConfiguracaoCQPage() {
     tipo_resposta: 'selecao',
     ordem: 0
   });
+  const [opcoesTexto, setOpcoesTexto] = useState('Conforme, Não conforme');
 
   useEffect(() => {
     const authenticated = localStorage.getItem('authenticated');
@@ -205,6 +206,7 @@ export default function ConfiguracaoCQPage() {
     setSelectedSetorId(setorId);
     if (pergunta) {
       setEditingPergunta(pergunta);
+      const opcoes = pergunta.opcoes || ['Conforme', 'Não conforme'];
       setPerguntaForm({
         codigo: pergunta.codigo,
         descricao: pergunta.descricao,
@@ -214,12 +216,13 @@ export default function ConfiguracaoCQPage() {
         metodo_verificacao: pergunta.metodoVerificacao || '',
         instrumento: pergunta.instrumento || '',
         criterios_aceitacao: pergunta.criteriosAceitacao || '',
-        opcoes: pergunta.opcoes || ['Conforme', 'Não conforme'],
+        opcoes,
         requer_imagem: pergunta.requerImagem || false,
         imagem_descricao: pergunta.imagemDescricao || '',
         tipo_resposta: pergunta.tipoResposta || 'selecao',
         ordem: pergunta.ordem || 0
       });
+      setOpcoesTexto(opcoes.join('; '));
     } else {
       setEditingPergunta(null);
       const setor = setores.find(s => s.id === setorId);
@@ -240,6 +243,7 @@ export default function ConfiguracaoCQPage() {
         tipo_resposta: 'selecao',
         ordem: nextOrdem
       });
+      setOpcoesTexto('Conforme; Não conforme');
     }
     setShowPerguntaModal(true);
   };
@@ -321,9 +325,12 @@ export default function ConfiguracaoCQPage() {
   };
 
   const handleOpcoesChange = (value: string) => {
-    // Aceitar vírgula ou ponto-e-vírgula como separador
+    setOpcoesTexto(value);
+    // Parsear opcoes do texto (aceita virgula ou ponto-e-virgula)
     const opcoes = value.split(/[,;]/).map(o => o.trim()).filter(o => o);
-    setPerguntaForm(prev => ({ ...prev, opcoes }));
+    if (opcoes.length > 0) {
+      setPerguntaForm(prev => ({ ...prev, opcoes }));
+    }
   };
 
   if (loading) {
@@ -707,12 +714,12 @@ export default function ConfiguracaoCQPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Opções (separadas por vírgula ou ponto-e-vírgula)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Opções (separadas por ; ou ,)</label>
                 <input
                   type="text"
-                  value={perguntaForm.opcoes.join(', ')}
+                  value={opcoesTexto}
                   onChange={(e) => handleOpcoesChange(e.target.value)}
-                  placeholder="Conforme, Não conforme, Não Aplicável"
+                  placeholder="Conforme; Não conforme; Não Aplicável"
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
