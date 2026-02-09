@@ -1,24 +1,26 @@
-// Script para importar usuarios do PDF para o banco de dados
+/**
+ * Script para importar usuarios do PDF "USUARIOS PORTAL PILI"
+ * para o banco de dados do Portal Pili
+ */
+
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-require('dotenv').config({ path: '.env.local' });
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString: 'postgresql://neondb_owner:npg_pCqSLW9j2hKQ@ep-crimson-heart-ahcg1r28-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require'
 });
 
-// Lista de usuarios do PDF
+// Dados do PDF - ID, Nome, Senha
 const USUARIOS_PDF = [
   { id: 1, nome: 'ALEXANDRE DE OLIVEIRA', senha: '24001999' },
   { id: 2, nome: 'NAUINI FISCH PILI', senha: '24002998' },
   { id: 3, nome: 'ALEJANDRO RAFAEL DAMAS PEREZ', senha: '24003997' },
   { id: 4, nome: 'ALISSON DANIEL RECH', senha: '24004996' },
   { id: 5, nome: 'ANDERSON MARCOS BEZ', senha: '24005995' },
-  { id: 6, nome: 'ANDERSON NOGUEIRAPOZZO', senha: '24006994' },
+  { id: 6, nome: 'ANDERSON NOGUEIRA POZZO', senha: '24006994' },
   { id: 7, nome: 'ANDRE GIOVANI BORGES DOS SANTOS', senha: '24007993' },
   { id: 8, nome: 'ARMANDO JOSEA STUDILLO FARIAS', senha: '24008992' },
-  { id: 9, nome: 'BRANDALI FATIMADA ROSA PENA PAINS', senha: '24009991' },
+  { id: 9, nome: 'BRANDALI FATIMA DA ROSA PENA PAINS', senha: '24009991' },
   { id: 10, nome: 'BRENDOW DE CASTRO FALCAO', senha: '24010990' },
   { id: 11, nome: 'BRENO EDUARDO CHIAPETTI SOUZA', senha: '24011899' },
   { id: 12, nome: 'BRUNO SILVEIRA BORGES', senha: '24012898' },
@@ -37,7 +39,7 @@ const USUARIOS_PDF = [
   { id: 25, nome: 'EDUARDO DOS SANTOS SOUZA', senha: '24025875' },
   { id: 26, nome: 'EDUARDO GUILHERME SANTOS', senha: '24026874' },
   { id: 27, nome: 'EZEQUIEL MATEUS BORBA', senha: '24027873' },
-  { id: 28, nome: 'FERNANDO CAVALETT DACRUZ', senha: '24028872' },
+  { id: 28, nome: 'FERNANDO CAVALETT DA CRUZ', senha: '24028872' },
   { id: 29, nome: 'FRANCISCO ROMARIO LOPES MECCA', senha: '24029871' },
   { id: 30, nome: 'FRANKLIN RAFAEL HERNANDEZ PENALVER', senha: '24030870' },
   { id: 31, nome: 'GILBERTO JOSE KRASUCKI', senha: '24031869' },
@@ -47,7 +49,7 @@ const USUARIOS_PDF = [
   { id: 35, nome: 'ITAMAR PADILHA', senha: '24035865' },
   { id: 36, nome: 'JOAO LUIZ CERESAJERSAK', senha: '24036864' },
   { id: 37, nome: 'JOAO RICARDO PINHEIRO DE LIMA', senha: '24037863' },
-  { id: 38, nome: 'JOICE MARIADA ROSA', senha: '24038862' },
+  { id: 38, nome: 'JOICE MARIA DA ROSA', senha: '24038862' },
   { id: 39, nome: 'JOSE FABIO TORRES DA SILVA', senha: '24039861' },
   { id: 40, nome: 'JUAN PABLO PICOLI', senha: '24040860' },
   { id: 41, nome: 'JULIO CESAR BASTOS CHAVES SLEUMER', senha: '24041859' },
@@ -59,7 +61,7 @@ const USUARIOS_PDF = [
   { id: 47, nome: 'LUCIA SAURIN', senha: '24047853' },
   { id: 48, nome: 'LUIS ALBERTO ROOS', senha: '24048852' },
   { id: 49, nome: 'LUIS FERNANDO CHAVES BARBOSA', senha: '24049851' },
-  { id: 50, nome: 'LUIS ALGIMIRO TORRES CANDURIN', senha: '24050850' },
+  { id: 50, nome: 'LUISALGIMIRO TORRES CANDURIN', senha: '24050850' },
   { id: 51, nome: 'LUIZ DEMBINSKI', senha: '24051849' },
   { id: 52, nome: 'MANUEL AGUSTIN SALAZAR HERNANDEZ', senha: '24052848' },
   { id: 53, nome: 'MARCELO COSTAMILAN', senha: '24053847' },
@@ -96,107 +98,114 @@ const USUARIOS_PDF = [
   { id: 84, nome: 'CRISTIANE CARDOSO', senha: '2408416' },
   { id: 85, nome: 'MATHEUS ALVES', senha: '24085815' },
   { id: 86, nome: 'KETLIN VITORIA SEMENUK FLORES', senha: '24086814' },
-  { id: 100, nome: 'DANIEL ANDERS', senha: '123456789' }
+  { id: 100, nome: 'DANIEL ANDERS', senha: '123456789' },
 ];
 
-// IDs dos vendedores (externos/comercial)
-const VENDEDORES_IDS = [14, 15, 23, 31, 32, 48, 57, 58, 63, 65, 67, 73, 75, 76, 77, 78, 79, 80, 81, 83];
+// Gerar email a partir do nome
+function gerarEmail(nome) {
+  const nomeLimpo = nome.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z\s]/g, '');
+  const partes = nomeLimpo.split(/\s+/).filter(p => p);
+  if (partes.length >= 2) {
+    return `${partes[0]}.${partes[partes.length - 1]}@pili.ind.br`;
+  }
+  return `${partes[0]}@pili.ind.br`;
+}
 
 async function importarUsuarios() {
   const client = await pool.connect();
-  try {
-    console.log('=== Importando Usuarios do PDF ===\n');
-    console.log('Total de usuarios:', USUARIOS_PDF.length);
 
-    let inseridos = 0;
+  try {
+    console.log('='.repeat(68));
+    console.log('    IMPORTANDO USUARIOS DO PDF PARA O PORTAL PILI');
+    console.log('='.repeat(68));
+
+    // Verificar usuarios existentes
+    const existentes = await client.query('SELECT id, nome, email, id_funcionario FROM usuarios');
+    console.log(`\nUsuarios existentes no banco: ${existentes.rows.length}`);
+    existentes.rows.forEach(r => console.log(`  ID ${r.id} - ${r.nome} (${r.email}) func:${r.id_funcionario || '-'}`));
+
+    // Mapa de emails e id_funcionario existentes
+    const emailsExistentes = new Set(existentes.rows.map(r => r.email.toLowerCase()));
+    const funcsExistentes = new Set(existentes.rows.map(r => r.id_funcionario).filter(Boolean));
+    const nomesExistentes = new Map();
+    existentes.rows.forEach(r => {
+      nomesExistentes.set(r.nome.toUpperCase().trim(), r.id);
+    });
+
+    await client.query('BEGIN');
+
+    let criados = 0;
     let atualizados = 0;
+    const emailsUsados = new Set(emailsExistentes);
 
     for (const user of USUARIOS_PDF) {
-      // Gerar hash da senha
-      const senhaHash = await bcrypt.hash(user.senha, 10);
-      const isVendedor = VENDEDORES_IDS.includes(user.id);
-      const email = user.nome.toLowerCase().replace(/\s+/g, '.').normalize('NFD').replace(/[\u0300-\u036f]/g, '') + '@pili.ind.br';
+      const idFunc = String(user.id);
 
-      // Verificar se usuario existe pelo id_funcionario
-      const existe = await client.query(
-        'SELECT id FROM usuarios WHERE id_funcionario = $1',
-        [user.id.toString()]
-      );
+      // Hash da senha
+      const hash = await bcrypt.hash(user.senha, 10);
 
-      if (existe.rows.length > 0) {
-        // Atualizar
-        await client.query(`
-          UPDATE usuarios SET
-            nome = $1,
-            senha_hash = $2,
-            password = $2,
-            is_vendedor = $3,
-            ativo = true,
-            active = true
-          WHERE id_funcionario = $4
-        `, [user.nome, senhaHash, isVendedor, user.id.toString()]);
+      // Verificar se id_funcionario ja existe
+      if (funcsExistentes.has(idFunc)) {
+        await client.query(
+          'UPDATE usuarios SET password = $1, senha_hash = $1, nome = $2 WHERE id_funcionario = $3',
+          [hash, user.nome, idFunc]
+        );
         atualizados++;
-        console.log('  [ATUALIZADO] ID:', user.id, '-', user.nome, isVendedor ? '(VENDEDOR)' : '');
-      } else {
-        // Inserir
-        await client.query(`
-          INSERT INTO usuarios (
-            nome, email, senha_hash, password, id_funcionario,
-            is_vendedor, ativo, active, created_at
-          ) VALUES ($1, $2, $3, $3, $4, $5, true, true, NOW())
-        `, [user.nome, email, senhaHash, user.id.toString(), isVendedor]);
-        inseridos++;
-        console.log('  [INSERIDO] ID:', user.id, '-', user.nome, isVendedor ? '(VENDEDOR)' : '');
+        console.log(`  [ATUALIZADO] ID ${user.id} - ${user.nome}`);
+        continue;
       }
+
+      // Verificar se nome ja existe (ex: DANIEL ANDERS)
+      if (nomesExistentes.has(user.nome.toUpperCase().trim())) {
+        const existId = nomesExistentes.get(user.nome.toUpperCase().trim());
+        await client.query(
+          'UPDATE usuarios SET password = $1, senha_hash = $1, id_funcionario = $2 WHERE id = $3',
+          [hash, idFunc, existId]
+        );
+        atualizados++;
+        console.log(`  [ATUALIZADO] ID ${user.id} - ${user.nome} (por nome, db_id=${existId})`);
+        continue;
+      }
+
+      // Gerar email unico
+      let email = gerarEmail(user.nome);
+      let suffix = 1;
+      while (emailsUsados.has(email.toLowerCase())) {
+        const base = gerarEmail(user.nome);
+        email = base.replace('@', `${suffix}@`);
+        suffix++;
+      }
+      emailsUsados.add(email.toLowerCase());
+
+      // Inserir usuario
+      await client.query(`
+        INSERT INTO usuarios (nome, email, password, senha_hash, role, active, ativo, id_funcionario, created_at)
+        VALUES ($1, $2, $3, $3, 'user', true, true, $4, NOW())
+      `, [user.nome, email, hash, idFunc]);
+
+      criados++;
+      console.log(`  [CRIADO] ID ${user.id} - ${user.nome} (${email})`);
     }
 
-    console.log('\n=== Resumo ===');
-    console.log('  Inseridos:', inseridos);
-    console.log('  Atualizados:', atualizados);
-    console.log('  Total:', USUARIOS_PDF.length);
+    await client.query('COMMIT');
 
-    // Sincronizar vendedores com crm_vendedores
-    console.log('\n=== Sincronizando Vendedores com CRM ===');
+    console.log('\n' + '='.repeat(68));
+    console.log(`Criados: ${criados}`);
+    console.log(`Atualizados: ${atualizados}`);
 
-    const vendedoresResult = await client.query(
-      'SELECT id, nome, id_funcionario FROM usuarios WHERE is_vendedor = true'
-    );
+    // Verificar total final
+    const total = await client.query('SELECT COUNT(*) as total FROM usuarios');
+    console.log(`Total de usuarios no banco: ${total.rows[0].total}`);
+    console.log('='.repeat(68));
+    console.log('    IMPORTACAO CONCLUIDA!');
+    console.log('='.repeat(68));
 
-    let vendedoresSincronizados = 0;
-    for (const vendedor of vendedoresResult.rows) {
-      // Verificar se existe no CRM
-      const existeCrm = await client.query(
-        'SELECT id FROM crm_vendedores WHERE usuario_id = $1',
-        [vendedor.id]
-      );
-
-      if (existeCrm.rows.length === 0) {
-        // Criar vendedor no CRM
-        const email = vendedor.nome.toLowerCase().replace(/\s+/g, '.').normalize('NFD').replace(/[\u0300-\u036f]/g, '') + '@pili.ind.br';
-        await client.query(`
-          INSERT INTO crm_vendedores (usuario_id, nome, email, ativo, created_at, updated_at)
-          VALUES ($1, $2, $3, true, NOW(), NOW())
-          ON CONFLICT (email) DO UPDATE SET usuario_id = $1, nome = $2
-        `, [vendedor.id, vendedor.nome, email]);
-        vendedoresSincronizados++;
-        console.log('  Vendedor sincronizado:', vendedor.nome);
-      }
-    }
-
-    console.log('  Vendedores sincronizados:', vendedoresSincronizados);
-
-    // Verificar resultado final
-    const totalUsuarios = await client.query('SELECT COUNT(*) as total FROM usuarios');
-    const totalVendedores = await client.query('SELECT COUNT(*) as total FROM usuarios WHERE is_vendedor = true');
-    const totalCrmVendedores = await client.query('SELECT COUNT(*) as total FROM crm_vendedores WHERE usuario_id IS NOT NULL');
-
-    console.log('\n=== Estado Final ===');
-    console.log('  Total usuarios:', totalUsuarios.rows[0].total);
-    console.log('  Usuarios vendedores:', totalVendedores.rows[0].total);
-    console.log('  Vendedores CRM vinculados:', totalCrmVendedores.rows[0].total);
-
-  } catch (error) {
-    console.error('Erro:', error);
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('ERRO:', e.message);
+    console.error(e.stack);
   } finally {
     client.release();
     await pool.end();
