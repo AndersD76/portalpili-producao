@@ -1,9 +1,42 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+
+// ==================== TIPOS ====================
+
+interface Oportunidade {
+  id: number;
+  titulo: string;
+  cliente_nome: string;
+  cliente_fantasia?: string;
+  cliente_cnpj?: string;
+  vendedor_nome?: string;
+  vendedor_id?: number;
+  tipo_produto?: string;
+  valor_estimado: number;
+  probabilidade: number;
+  estagio: string;
+  status: string;
+  data_previsao_fechamento?: string;
+  total_atividades?: number;
+  atividades_atrasadas?: number;
+  proxima_atividade?: string;
+  created_at: string;
+  origem?: string;
+}
+
+interface Vendedor {
+  id: number;
+  nome: string;
+  email: string;
+  total_oportunidades: number;
+  oportunidades_ganhas: number;
+  valor_total_ganho: number;
+  total_clientes: number;
+}
 
 interface PipelineEstagio {
   estagio: string;
@@ -11,63 +44,67 @@ interface PipelineEstagio {
   valor_total: number;
 }
 
-// Mapeamento de cores e labels para estágios conhecidos
-const ESTAGIO_CONFIG: Record<string, { label: string; cor: string; ordem: number }> = {
-  EM_NEGOCIACAO: { label: 'Negociação', cor: 'bg-orange-500', ordem: 1 },
-  PROSPECCAO: { label: 'Prospecção', cor: 'bg-blue-500', ordem: 2 },
-  FECHADA: { label: 'Fechada', cor: 'bg-green-500', ordem: 3 },
-  PERDIDA: { label: 'Perdida', cor: 'bg-red-500', ordem: 4 },
-  TESTE: { label: 'Teste', cor: 'bg-pink-500', ordem: 5 },
-  SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', ordem: 6 },
-  SUSPENSO: { label: 'Suspenso', cor: 'bg-yellow-600', ordem: 7 },
-  PROPOSTA: { label: 'Proposta', cor: 'bg-purple-500', ordem: 8 },
-  EM_ANALISE: { label: 'Em Análise', cor: 'bg-cyan-500', ordem: 9 },
-  QUALIFICACAO: { label: 'Qualificação', cor: 'bg-teal-500', ordem: 10 },
+// ==================== CONFIGURAÇÃO ====================
+
+const ESTAGIO_CONFIG: Record<string, { label: string; cor: string; corHex: string; ordem: number }> = {
+  EM_NEGOCIACAO: { label: 'Negociação', cor: 'bg-orange-500', corHex: '#f97316', ordem: 1 },
+  PROSPECCAO: { label: 'Prospecção', cor: 'bg-blue-500', corHex: '#3b82f6', ordem: 2 },
+  FECHADA: { label: 'Fechada', cor: 'bg-green-500', corHex: '#22c55e', ordem: 3 },
+  PERDIDA: { label: 'Perdida', cor: 'bg-red-500', corHex: '#ef4444', ordem: 4 },
+  TESTE: { label: 'Teste', cor: 'bg-pink-500', corHex: '#ec4899', ordem: 5 },
+  SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', corHex: '#6366f1', ordem: 6 },
+  SUSPENSO: { label: 'Suspenso', cor: 'bg-yellow-600', corHex: '#ca8a04', ordem: 7 },
+  PROPOSTA: { label: 'Proposta', cor: 'bg-purple-500', corHex: '#a855f7', ordem: 8 },
+  EM_ANALISE: { label: 'Em Análise', cor: 'bg-cyan-500', corHex: '#06b6d4', ordem: 9 },
+  QUALIFICACAO: { label: 'Qualificação', cor: 'bg-teal-500', corHex: '#14b8a6', ordem: 10 },
 };
 
 const AUTO_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutos
 
+// ==================== COMPONENTE PRINCIPAL ====================
+
 export default function ComercialPage() {
+  // Estado
   const [loading, setLoading] = useState(true);
-  const [estagios, setEstagios] = useState<Array<{ key: string; label: string; cor: string; quantidade: number; valor: number }>>([]);
+  const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [pipeline, setPipeline] = useState<PipelineEstagio[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [ultimoSync, setUltimoSync] = useState<string | null>(null);
   const syncTriggered = useRef(false);
+
+  // Filtros
+  const [filtroVendedor, setFiltroVendedor] = useState<string | null>(null);
+  const [filtroEstagio, setFiltroEstagio] = useState<string>('');
+  const [filtroProb, setFiltroProb] = useState<string>('');
+  const [filtroBusca, setFiltroBusca] = useState<string>('');
+  const [ordenacao, setOrdenacao] = useState<string>('prob');
+
   const router = useRouter();
   const { user, authenticated, loading: authLoading, logout } = useAuth();
 
-  const fetchPipeline = useCallback(async () => {
+  // ==================== FETCH ====================
+
+  const fetchAll = useCallback(async () => {
     try {
-      const response = await fetch('/api/comercial/oportunidades');
-      if (response.ok) {
-        const data = await response.json();
-        const pipelineData: PipelineEstagio[] = data.pipeline || [];
+      const [opRes, vendRes] = await Promise.all([
+        fetch('/api/comercial/oportunidades?limit=2000'),
+        fetch('/api/comercial/vendedores?ativo=true'),
+      ]);
 
-        // Construir estágios dinamicamente a partir dos dados
-        const items = pipelineData
-          .filter(p => parseInt(String(p.quantidade)) > 0)
-          .map(p => {
-            const config = ESTAGIO_CONFIG[p.estagio] || {
-              label: p.estagio.replace(/_/g, ' '),
-              cor: 'bg-gray-500',
-              ordem: 99,
-            };
-            return {
-              key: p.estagio,
-              label: config.label,
-              cor: config.cor,
-              ordem: config.ordem,
-              quantidade: parseInt(String(p.quantidade)) || 0,
-              valor: parseFloat(String(p.valor_total)) || 0,
-            };
-          })
-          .sort((a, b) => a.ordem - b.ordem);
+      if (opRes.ok) {
+        const opData = await opRes.json();
+        setOportunidades(opData.data || []);
+        setPipeline(opData.pipeline || []);
+      }
 
-        setEstagios(items);
+      if (vendRes.ok) {
+        const vendData = await vendRes.json();
+        setVendedores(vendData.data || []);
       }
     } catch (error) {
-      console.error('Erro ao buscar pipeline:', error);
+      console.error('Erro ao buscar dados:', error);
     } finally {
       setLoading(false);
     }
@@ -100,11 +137,11 @@ export default function ComercialPage() {
       if (data.success) {
         if (!silent) {
           setSyncResult({
-            message: `Sync concluído: ${data.novas} novas, ${data.atualizadas} atualizadas, ${data.erros} erros`,
+            message: `Sync: ${data.novas} novas, ${data.atualizadas} atualizadas, ${data.erros} erros`,
             type: 'success',
           });
         }
-        await fetchPipeline();
+        await fetchAll();
         await fetchSyncStatus();
       } else if (!silent) {
         setSyncResult({ message: data.error || 'Erro no sync', type: 'error' });
@@ -116,9 +153,9 @@ export default function ComercialPage() {
     } finally {
       setSyncing(false);
     }
-  }, [fetchPipeline, fetchSyncStatus]);
+  }, [fetchAll, fetchSyncStatus]);
 
-  // Carregamento inicial: buscar dados + auto-sync se necessário
+  // Init
   useEffect(() => {
     if (authLoading) return;
     if (!authenticated) {
@@ -127,160 +164,387 @@ export default function ComercialPage() {
     }
 
     const init = async () => {
-      // Buscar pipeline e status do sync em paralelo
-      const [, lastSync] = await Promise.all([fetchPipeline(), fetchSyncStatus()]);
-
-      // Auto-sync se nunca sincronizou ou último sync > 30min atrás
+      const [, lastSync] = await Promise.all([fetchAll(), fetchSyncStatus()]);
       if (!syncTriggered.current) {
         syncTriggered.current = true;
         const needsSync = !lastSync || (Date.now() - new Date(lastSync).getTime() > AUTO_SYNC_INTERVAL);
         if (needsSync) {
-          runSync(true); // sync silencioso em background
+          runSync(true);
         }
       }
     };
 
     init();
-  }, [authLoading, authenticated, router, fetchPipeline, fetchSyncStatus, runSync]);
+  }, [authLoading, authenticated, router, fetchAll, fetchSyncStatus, runSync]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+  // ==================== FILTROS & RESUMO ====================
+
+  const listaFiltrada = useMemo(() => {
+    let lista = [...oportunidades];
+
+    if (filtroVendedor) {
+      lista = lista.filter(o => o.vendedor_nome === filtroVendedor);
+    }
+    if (filtroEstagio) {
+      lista = lista.filter(o => o.estagio === filtroEstagio);
+    }
+    if (filtroProb === 'alta') lista = lista.filter(o => o.probabilidade >= 70);
+    else if (filtroProb === 'media') lista = lista.filter(o => o.probabilidade >= 40 && o.probabilidade < 70);
+    else if (filtroProb === 'baixa') lista = lista.filter(o => o.probabilidade < 40);
+
+    if (filtroBusca) {
+      const busca = filtroBusca.toLowerCase();
+      lista = lista.filter(o =>
+        (o.cliente_nome || '').toLowerCase().includes(busca) ||
+        (o.titulo || '').toLowerCase().includes(busca) ||
+        (o.cliente_cnpj || '').includes(busca)
+      );
+    }
+
+    // Ordenação
+    if (ordenacao === 'prob') lista.sort((a, b) => b.probabilidade - a.probabilidade);
+    else if (ordenacao === 'valor') lista.sort((a, b) => b.valor_estimado - a.valor_estimado);
+    else if (ordenacao === 'recente') lista.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return lista;
+  }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, ordenacao]);
+
+  const resumo = useMemo(() => {
+    const ativas = oportunidades.filter(o => o.status === 'ABERTA');
+    const ganhas = oportunidades.filter(o => o.estagio === 'FECHADA');
+    const perdidas = oportunidades.filter(o => o.estagio === 'PERDIDA');
+    const totalDecididas = ganhas.length + perdidas.length;
+    const taxa = totalDecididas > 0 ? Math.round((ganhas.length / totalDecididas) * 100) : 0;
+    const valorPipeline = ativas.reduce((s, o) => s + (o.valor_estimado || 0), 0);
+    const valorGanho = ganhas.reduce((s, o) => s + (o.valor_estimado || 0), 0);
+
+    return {
+      total: oportunidades.length,
+      ativas: ativas.length,
+      valorPipeline,
+      ganhos: ganhas.length,
+      valorGanho,
+      taxa,
+    };
+  }, [oportunidades]);
+
+  // Estágios dinâmicos (só os que existem nos dados)
+  const estagiosAtivos = useMemo(() => {
+    return pipeline
+      .filter(p => parseInt(String(p.quantidade)) > 0)
+      .map(p => {
+        const config = ESTAGIO_CONFIG[p.estagio] || { label: p.estagio, cor: 'bg-gray-500', corHex: '#6b7280', ordem: 99 };
+        return {
+          key: p.estagio,
+          label: config.label,
+          cor: config.cor,
+          corHex: config.corHex,
+          quantidade: parseInt(String(p.quantidade)) || 0,
+          valor: parseFloat(String(p.valor_total)) || 0,
+        };
+      })
+      .sort((a, b) => (ESTAGIO_CONFIG[a.key]?.ordem || 99) - (ESTAGIO_CONFIG[b.key]?.ordem || 99));
+  }, [pipeline]);
+
+  // Vendedores com métricas de oportunidades
+  const vendedoresComMetricas = useMemo(() => {
+    return vendedores.map(v => {
+      const ops = oportunidades.filter(o => o.vendedor_nome === v.nome);
+      const ativas = ops.filter(o => o.status === 'ABERTA');
+      const valor = ativas.reduce((s, o) => s + (o.valor_estimado || 0), 0);
+      return { ...v, opsAtivas: ativas.length, opsTotal: ops.length, valorAtivo: valor };
+    }).sort((a, b) => b.valorAtivo - a.valorAtivo);
+  }, [vendedores, oportunidades]);
+
+  // ==================== HELPERS ====================
+
+  const fmt = (value: number) => {
+    if (value >= 1000000) return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+    if (value >= 1000) return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
   };
 
-  const totalOportunidades = estagios.reduce((sum, e) => sum + e.quantidade, 0);
-  const totalValor = estagios.reduce((sum, e) => sum + e.valor, 0);
+  const fmtFull = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+  };
 
-  // Calcular grid columns baseado na quantidade de estágios
-  const gridCols = estagios.length <= 4 ? 'grid-cols-2 sm:grid-cols-4'
-    : estagios.length <= 6 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
-    : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7';
+  const diasNoFunil = (createdAt: string) => {
+    const diff = Date.now() - new Date(createdAt).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const getProbColor = (prob: number) => {
+    if (prob >= 70) return { bg: '#dcfce7', text: '#166534' };
+    if (prob >= 40) return { bg: '#fef3c7', text: '#92400e' };
+    return { bg: '#fee2e2', text: '#991b1b' };
+  };
+
+  // ==================== LOADING ====================
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f2f5]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Sincronizando planilha...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-[#4361ee] mx-auto"></div>
+          <p className="mt-4 text-gray-500 text-sm">Carregando pipeline...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Voltar aos Módulos"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Pipeline Comercial</h1>
-                {user && (
-                  <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>
-                )}
-              </div>
-            </div>
+  // ==================== RENDER ====================
 
-            <div className="flex items-center gap-2">
-              {syncing && (
-                <span className="text-xs text-gray-400 hidden sm:inline">Sincronizando...</span>
-              )}
-              <button
-                onClick={() => runSync(false)}
-                disabled={syncing}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                  syncing
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-                }`}
-                title="Sincronizar com Google Sheets"
-              >
-                <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden sm:inline">{syncing ? 'Sincronizando...' : 'Sync'}</span>
-              </button>
-              <button
-                onClick={logout}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Sair"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            </div>
-          </div>
+  return (
+    <div className="min-h-screen bg-[#f0f2f5] text-[#333] text-[13px]">
+      {/* ===== HEADER ===== */}
+      <header className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] text-white px-5 py-3 flex justify-between items-center shadow-md">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-white/70 hover:text-white transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </Link>
+          <h1 className="text-[16px] font-semibold">CRM PILI - Pipeline Comercial</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {syncing && <span className="text-xs text-white/60">Sincronizando...</span>}
+          <button
+            onClick={() => runSync(false)}
+            disabled={syncing}
+            className="px-3 py-[7px] rounded-[5px] text-xs font-medium bg-white/10 text-white hover:bg-white/20 transition disabled:opacity-50"
+          >
+            <span className={syncing ? 'animate-spin inline-block' : ''}>&#x21BB;</span> Sincronizar
+          </button>
+          <button
+            onClick={logout}
+            className="px-3 py-[7px] rounded-[5px] text-xs font-medium bg-white/10 text-white hover:bg-white/20 transition"
+            title="Sair"
+          >
+            Sair
+          </button>
         </div>
       </header>
 
-      {/* Sync Result Banner */}
+      {/* Sync banner */}
       {syncResult && (
-        <div className={`mx-4 sm:mx-auto max-w-7xl mt-4 px-4 py-3 rounded-lg text-sm font-medium ${
+        <div className={`mx-5 mt-3 px-4 py-2 rounded-lg text-xs font-medium ${
           syncResult.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
         }`}>
           {syncResult.message}
-          <button onClick={() => setSyncResult(null)} className="float-right font-bold opacity-60 hover:opacity-100">x</button>
+          <button onClick={() => setSyncResult(null)} className="float-right font-bold opacity-60 hover:opacity-100 ml-2">x</button>
         </div>
       )}
 
-      {/* Pipeline */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          {/* Título + Último sync */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Pipeline de Vendas</h2>
-            {ultimoSync && (
-              <span className="text-xs text-gray-400">
-                Atualizado: {new Date(ultimoSync).toLocaleString('pt-BR')}
-              </span>
-            )}
-          </div>
-
-          {/* Estágios - dinâmicos a partir dos dados da planilha */}
-          <div className={`grid ${gridCols} gap-3 mb-6`}>
-            {estagios.map((estagio) => (
-              <Link
-                key={estagio.key}
-                href={`/comercial/pipeline?estagio=${estagio.key}`}
-                className="text-center group"
-              >
-                <div className={`${estagio.cor} text-white rounded-lg p-3 sm:p-4 mb-2 group-hover:opacity-90 transition shadow-sm`}>
-                  <div className="text-2xl sm:text-3xl font-bold">{estagio.quantidade}</div>
-                  <div className="text-xs opacity-80 mt-1">{formatCurrency(estagio.valor)}</div>
-                </div>
-                <div className="text-xs font-medium text-gray-600">{estagio.label}</div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Totais */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-4 border-t">
-            <div>
-              <span className="text-gray-600">Total:</span>
-              <span className="font-bold text-gray-900 ml-2">{totalOportunidades} oportunidades</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Valor:</span>
-              <span className="font-bold text-green-600 ml-2">{formatCurrency(totalValor)}</span>
-            </div>
-          </div>
+      {/* ===== RESUMO BAR ===== */}
+      <div className="flex gap-5 px-5 py-3 bg-white border-b border-[#e0e0e0] flex-wrap">
+        <div className="flex items-center gap-[6px]">
+          <span className="font-bold text-[16px]">{resumo.total}</span>
+          <span className="text-[11px] text-[#888]">propostas</span>
         </div>
-      </main>
+        <div className="flex items-center gap-[6px]">
+          <span className="font-bold text-[16px] text-[#4361ee]">{fmt(resumo.valorPipeline)}</span>
+          <span className="text-[11px] text-[#888]">pipeline</span>
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <span className="font-bold text-[16px] text-[#16a34a]">{resumo.ganhos}</span>
+          <span className="text-[11px] text-[#888]">ganhos</span>
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <span className="font-bold text-[16px]">{resumo.taxa}%</span>
+          <span className="text-[11px] text-[#888]">conversão</span>
+        </div>
+        {ultimoSync && (
+          <div className="ml-auto text-[11px] text-[#aaa]">
+            Sync: {new Date(ultimoSync).toLocaleString('pt-BR')}
+          </div>
+        )}
+      </div>
+
+      {/* ===== FILTROS ===== */}
+      <div className="flex gap-4 px-5 py-3 bg-white border-b border-[#e0e0e0] flex-wrap items-center shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center gap-[6px]">
+          <label className="text-[11px] text-[#666] font-medium">Etapa:</label>
+          <select
+            value={filtroEstagio}
+            onChange={e => setFiltroEstagio(e.target.value)}
+            className="px-[10px] py-[6px] border border-[#ddd] rounded text-xs"
+          >
+            <option value="">Todas</option>
+            {estagiosAtivos.map(e => (
+              <option key={e.key} value={e.key}>{e.label} ({e.quantidade})</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <label className="text-[11px] text-[#666] font-medium">Prob:</label>
+          <select
+            value={filtroProb}
+            onChange={e => setFiltroProb(e.target.value)}
+            className="px-[10px] py-[6px] border border-[#ddd] rounded text-xs"
+          >
+            <option value="">Todas</option>
+            <option value="alta">Alta (70%+)</option>
+            <option value="media">Média (40-69%)</option>
+            <option value="baixa">Baixa (&lt;40%)</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <label className="text-[11px] text-[#666] font-medium">Ordenar:</label>
+          <select
+            value={ordenacao}
+            onChange={e => setOrdenacao(e.target.value)}
+            className="px-[10px] py-[6px] border border-[#ddd] rounded text-xs"
+          >
+            <option value="prob">Maior Probabilidade</option>
+            <option value="valor">Maior Valor</option>
+            <option value="recente">Mais Recente</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-[6px]">
+          <label className="text-[11px] text-[#666] font-medium">Buscar:</label>
+          <input
+            type="text"
+            value={filtroBusca}
+            onChange={e => setFiltroBusca(e.target.value)}
+            placeholder="Cliente ou CNPJ"
+            className="px-[10px] py-[6px] border border-[#ddd] rounded text-xs w-40"
+          />
+        </div>
+      </div>
+
+      {/* ===== MAIN: SIDEBAR + CARDS ===== */}
+      <div className="flex" style={{ height: 'calc(100vh - 200px)' }}>
+        {/* SIDEBAR VENDEDORES */}
+        <aside className="w-60 bg-white border-r border-[#e0e0e0] overflow-y-auto flex-shrink-0 hidden md:block">
+          <div className="px-4 py-3 font-semibold text-xs text-[#666] border-b border-[#eee] bg-[#fafafa]">
+            VENDEDORES
+          </div>
+          {/* Todos */}
+          <div
+            className={`px-4 py-3 border-b border-[#f0f0f0] cursor-pointer transition hover:bg-[#f5f7fa] ${
+              !filtroVendedor ? 'bg-[#e8f0fe] border-l-[3px] border-l-[#4361ee]' : ''
+            }`}
+            onClick={() => setFiltroVendedor(null)}
+          >
+            <div className="font-semibold text-[13px]">Todos</div>
+            <div className="text-[11px] text-[#888]">
+              {oportunidades.length} propostas
+            </div>
+          </div>
+          {vendedoresComMetricas.map(v => (
+            <div
+              key={v.id}
+              className={`px-4 py-3 border-b border-[#f0f0f0] cursor-pointer transition hover:bg-[#f5f7fa] ${
+                filtroVendedor === v.nome ? 'bg-[#e8f0fe] border-l-[3px] border-l-[#4361ee]' : ''
+              }`}
+              onClick={() => setFiltroVendedor(filtroVendedor === v.nome ? null : v.nome)}
+            >
+              <div className="font-semibold text-[13px] truncate">{v.nome}</div>
+              <div className="text-[11px] text-[#888]">
+                <span className="text-[#4361ee] font-semibold">{fmt(v.valorAtivo)}</span>
+                {' | '}{v.opsAtivas} ativas
+              </div>
+            </div>
+          ))}
+        </aside>
+
+        {/* AREA DE PROPOSTAS */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {/* Header da área */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-[15px] font-semibold">
+              {filtroVendedor || 'Todas as Propostas'}
+              <span className="text-[#888] font-normal ml-2 text-[13px]">({listaFiltrada.length})</span>
+            </h2>
+          </div>
+
+          {/* GRID DE CARDS */}
+          {listaFiltrada.length === 0 ? (
+            <div className="text-center py-10 text-[#888]">
+              Nenhuma proposta encontrada
+            </div>
+          ) : (
+            <div className="grid gap-[14px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' }}>
+              {listaFiltrada.map(op => {
+                const dias = diasNoFunil(op.created_at);
+                const probColor = getProbColor(op.probabilidade);
+                const estagioConfig = ESTAGIO_CONFIG[op.estagio];
+                const isUrgente = (op.atividades_atrasadas || 0) > 0;
+                const altaProb = op.probabilidade >= 70;
+
+                return (
+                  <Link
+                    key={op.id}
+                    href={`/comercial/pipeline?estagio=${op.estagio}`}
+                    className={`bg-white rounded-xl p-4 border border-[#e8e8e8] transition-all duration-200 hover:shadow-lg hover:-translate-y-[3px] relative ${
+                      isUrgente ? 'border-l-4 border-l-[#e74c3c]' : altaProb ? 'border-l-4 border-l-[#27ae60]' : ''
+                    }`}
+                  >
+                    {/* Header: número + probabilidade */}
+                    <div className="flex justify-between items-start mb-[10px]">
+                      <span className="text-[11px] text-[#888] font-medium">
+                        #{op.id} | {dias}d no funil
+                      </span>
+                      <span
+                        className="px-[10px] py-1 rounded-[14px] text-[11px] font-bold shadow-sm"
+                        style={{ background: probColor.bg, color: probColor.text }}
+                      >
+                        {op.probabilidade}%
+                      </span>
+                    </div>
+
+                    {/* Cliente */}
+                    <div className="font-semibold text-[15px] mb-[6px] truncate">
+                      {op.cliente_nome}
+                    </div>
+
+                    {/* Produto */}
+                    <div className="text-[13px] text-[#1a1a2e] font-semibold mb-1 leading-tight">
+                      {op.tipo_produto || op.titulo}
+                    </div>
+
+                    {/* Valor */}
+                    <div className="text-[20px] font-bold text-[#4361ee] mb-[10px]">
+                      {fmtFull(op.valor_estimado)}
+                    </div>
+
+                    {/* Etapa badge */}
+                    {estagioConfig && (
+                      <span
+                        className="inline-block px-3 py-1 rounded-[5px] text-[10px] font-semibold text-white mb-[10px]"
+                        style={{ background: estagioConfig.corHex }}
+                      >
+                        {estagioConfig.label}
+                      </span>
+                    )}
+
+                    {/* Info */}
+                    <div className="text-[11px] text-[#666] mb-[6px]">
+                      {op.tipo_produto && <span className="mr-3">{op.tipo_produto}</span>}
+                      {op.created_at && <span>{new Date(op.created_at).toLocaleDateString('pt-BR')}</span>}
+                    </div>
+
+                    {/* Alertas */}
+                    {isUrgente && (
+                      <div className="flex flex-wrap gap-[5px] mt-[10px]">
+                        <span className="px-2 py-[3px] rounded text-[9px] font-semibold bg-[#fee2e2] text-[#b91c1c]">
+                          {op.atividades_atrasadas} ATRASADA(S)
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Footer */}
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-[#f0f0f0]">
+                      <span className="text-[11px] text-[#888]">{op.vendedor_nome || '-'}</span>
+                      <span className="text-[10px] text-[#888]">{op.status}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
