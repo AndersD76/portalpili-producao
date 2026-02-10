@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ModalPoliticaQualidade from '@/components/ModalPoliticaQualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const [idFuncionario, setIdFuncionario] = useState('');
@@ -11,14 +12,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPoliticaModal, setShowPoliticaModal] = useState(false);
   const router = useRouter();
+  const { authenticated, loading: authLoading, login: authLogin } = useAuth();
 
   useEffect(() => {
-    // Redirecionar se já estiver autenticado
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated === 'true') {
+    // Redirecionar se já estiver autenticado (via AuthContext, não localStorage direto)
+    if (!authLoading && authenticated) {
       router.push('/');
     }
-  }, [router]);
+  }, [authLoading, authenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,9 +44,8 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (data.success && data.user) {
-        // Salvar dados do usuário no localStorage
-        localStorage.setItem('user_data', JSON.stringify(data.user));
-        localStorage.setItem('authenticated', 'true');
+        // Atualizar AuthContext + localStorage atomicamente
+        authLogin(data.user);
 
         // Mostrar modal de política da qualidade
         setShowPoliticaModal(true);
@@ -67,6 +67,15 @@ export default function LoginPage() {
     // Redirecionar para página de módulos após fechar o modal
     router.push('/');
   };
+
+  // Enquanto verifica autenticação, não mostrar formulário (evita flash)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">

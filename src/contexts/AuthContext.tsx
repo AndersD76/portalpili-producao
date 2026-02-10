@@ -36,6 +36,7 @@ interface AuthContextType {
   podeAcessarModulo: (codigoOuRota: string) => boolean;
   podeExecutarAcao: (moduloCodigo: string, acao: 'visualizar' | 'criar' | 'editar' | 'excluir' | 'aprovar') => boolean;
   recarregarPermissoes: () => Promise<void>;
+  login: (userData: UserData) => void;
   logout: () => void;
 }
 
@@ -48,6 +49,7 @@ const AuthContext = createContext<AuthContextType>({
   podeAcessarModulo: () => false,
   podeExecutarAcao: () => false,
   recarregarPermissoes: async () => {},
+  login: () => {},
   logout: () => {},
 });
 
@@ -209,6 +211,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchPermissoes(true);
   }, [fetchPermissoes]);
 
+  const login = useCallback((userData: UserData) => {
+    localStorage.setItem('user_data', JSON.stringify(userData));
+    localStorage.setItem('authenticated', 'true');
+    setUser(userData);
+    setAuthenticated(true);
+    setLoading(true); // Keep loading until permissoes are fetched
+    if (userData.is_admin === true) {
+      setIsAdmin(true);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('authenticated');
     localStorage.removeItem('user_data');
@@ -231,6 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       podeAcessarModulo,
       podeExecutarAcao,
       recarregarPermissoes,
+      login,
       logout,
     }}>
       {children}
