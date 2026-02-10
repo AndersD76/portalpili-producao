@@ -82,12 +82,18 @@ export default function ComercialPage() {
 
   // ==================== DATA FETCHING ====================
 
+  // Use refs to avoid re-creating callbacks on auth state changes
+  const userRef = useRef(user);
+  const isAdminRef = useRef(isAdmin);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
+
   const fetchAll = useCallback(async () => {
     try {
       // Non-admin: filter by own usuario_id
-      const opUrl = isAdmin
+      const opUrl = isAdminRef.current
         ? '/api/comercial/oportunidades?limit=2000'
-        : `/api/comercial/oportunidades?limit=2000&usuario_id=${user?.id || ''}`;
+        : `/api/comercial/oportunidades?limit=2000&usuario_id=${userRef.current?.id || ''}`;
       const [opRes, vendRes] = await Promise.all([
         fetch(opUrl),
         fetch('/api/comercial/vendedores?ativo=true'),
@@ -106,7 +112,7 @@ export default function ComercialPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, user]);
+  }, []);
 
   const fetchSyncStatus = useCallback(async (): Promise<string | null> => {
     try {
@@ -151,9 +157,15 @@ export default function ComercialPage() {
     }
   }, [fetchAll, fetchSyncStatus]);
 
+  // Auth redirect - separate effect with minimal deps
   useEffect(() => {
     if (authLoading) return;
-    if (!authenticated) { router.push('/login'); return; }
+    if (!authenticated) { router.push('/login'); }
+  }, [authLoading, authenticated, router]);
+
+  // Data loading - only runs once user is authenticated
+  useEffect(() => {
+    if (authLoading || !authenticated || !user) return;
     const init = async () => {
       const [, lastSync] = await Promise.all([fetchAll(), fetchSyncStatus()]);
       if (!syncTriggered.current) {
@@ -164,7 +176,7 @@ export default function ComercialPage() {
       }
     };
     init();
-  }, [authLoading, authenticated, router, fetchAll, fetchSyncStatus, runSync]);
+  }, [authLoading, authenticated, user, fetchAll, fetchSyncStatus, runSync]);
 
   // ==================== COMPUTED ====================
 
