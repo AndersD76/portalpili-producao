@@ -109,11 +109,17 @@ export async function GET(request: Request) {
       GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, v.nome
       ORDER BY
         CASE o.estagio
-          WHEN 'FECHAMENTO' THEN 1
-          WHEN 'NEGOCIACAO' THEN 2
-          WHEN 'PROPOSTA' THEN 3
-          WHEN 'QUALIFICACAO' THEN 4
-          WHEN 'PROSPECCAO' THEN 5
+          WHEN 'EM_NEGOCIACAO' THEN 1
+          WHEN 'PROSPECCAO' THEN 2
+          WHEN 'FECHADA' THEN 3
+          WHEN 'PERDIDA' THEN 4
+          WHEN 'TESTE' THEN 5
+          WHEN 'SUBSTITUIDO' THEN 6
+          WHEN 'SUSPENSO' THEN 7
+          WHEN 'PROPOSTA' THEN 8
+          WHEN 'EM_ANALISE' THEN 9
+          WHEN 'QUALIFICACAO' THEN 10
+          ELSE 99
         END,
         o.valor_estimado DESC NULLS LAST
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}

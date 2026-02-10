@@ -27,16 +27,13 @@ interface PipelineKanbanProps {
 }
 
 const ESTAGIOS = [
-  { id: 'PROSPECCAO', nome: 'Prospecção', cor: 'bg-gray-500' },
-  { id: 'QUALIFICACAO', nome: 'Qualificação', cor: 'bg-blue-500' },
-  { id: 'PROPOSTA', nome: 'Proposta', cor: 'bg-purple-500' },
-  { id: 'EM_ANALISE', nome: 'Em Análise', cor: 'bg-cyan-500' },
-  { id: 'TESTE', nome: 'Teste', cor: 'bg-teal-500' },
   { id: 'EM_NEGOCIACAO', nome: 'Negociação', cor: 'bg-orange-500' },
+  { id: 'PROSPECCAO', nome: 'Prospecção', cor: 'bg-blue-500' },
   { id: 'FECHADA', nome: 'Fechada', cor: 'bg-green-500' },
   { id: 'PERDIDA', nome: 'Perdida', cor: 'bg-red-500' },
-  { id: 'SUSPENSO', nome: 'Suspenso', cor: 'bg-yellow-500' },
-  { id: 'SUBSTITUIDO', nome: 'Substituído', cor: 'bg-slate-500' },
+  { id: 'TESTE', nome: 'Teste', cor: 'bg-pink-500' },
+  { id: 'SUBSTITUIDO', nome: 'Substituído', cor: 'bg-indigo-500' },
+  { id: 'SUSPENSO', nome: 'Suspenso', cor: 'bg-yellow-600' },
 ];
 
 export default function PipelineKanban({
@@ -47,13 +44,19 @@ export default function PipelineKanban({
   const [draggedItem, setDraggedItem] = useState<Oportunidade | null>(null);
   const [dragOverEstagio, setDragOverEstagio] = useState<string | null>(null);
 
-  const formatCurrency = (value: number) => {
+  const toNum = (v: unknown): number => {
+    if (v === null || v === undefined) return 0;
+    const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const formatCurrency = (value: unknown) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(toNum(value));
   };
 
   const getOportunidadesPorEstagio = useCallback((estagio: string) => {
@@ -72,7 +75,7 @@ export default function PipelineKanban({
     const ops = getOportunidadesPorEstagio(estagio);
     return {
       quantidade: ops.length,
-      valor: ops.reduce((sum, o) => sum + o.valor_estimado, 0),
+      valor: ops.reduce((sum, o) => sum + toNum(o.valor_estimado), 0),
     };
   }, [getOportunidadesPorEstagio]);
 

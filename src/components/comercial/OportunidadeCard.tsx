@@ -30,12 +30,18 @@ export default function OportunidadeCard({
   onClick,
   draggable = false,
 }: OportunidadeCardProps) {
-  const formatCurrency = (value: number) => {
+  const toNum = (v: unknown): number => {
+    if (v === null || v === undefined) return 0;
+    const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const formatCurrency = (value: unknown) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 0,
-    }).format(value);
+    }).format(toNum(value));
   };
 
   const formatDate = (dateString?: string) => {

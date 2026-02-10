@@ -61,6 +61,7 @@ export default function PipelinePage() {
       }
       if (filtroProduto) params.append('produto', filtroProduto);
 
+      params.append('limit', '2000');
       const response = await fetch(`/api/comercial/oportunidades?${params.toString()}`);
       const result = await response.json();
 
@@ -101,17 +102,23 @@ export default function PipelinePage() {
     router.push(`/comercial/oportunidades/${oportunidade.id}`);
   };
 
-  const formatCurrency = (value: number) => {
+  const toNum = (v: unknown): number => {
+    if (v === null || v === undefined) return 0;
+    const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const formatCurrency = (value: unknown) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
       minimumFractionDigits: 0,
-    }).format(value);
+    }).format(toNum(value));
   };
 
   const totalValor = oportunidades
     .filter(o => o.status === 'ABERTA')
-    .reduce((sum, o) => sum + o.valor_estimado, 0);
+    .reduce((sum, o) => sum + toNum(o.valor_estimado), 0);
 
   if (loading) {
     return (
