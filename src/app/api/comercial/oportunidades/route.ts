@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  const auth = await verificarPermissao('COMERCIAL', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { searchParams } = new URL(request.url);
     const estagio = searchParams.get('estagio');
@@ -64,7 +68,9 @@ export async function GET(request: Request) {
         v.nome as vendedor_nome,
         COUNT(DISTINCT a.id) as total_atividades,
         COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,
-        MAX(a.data_agendada) as proxima_atividade
+        MAX(a.data_agendada) as proxima_atividade,
+        (SELECT i.created_at FROM crm_interacoes i WHERE i.oportunidade_id = o.id ORDER BY i.created_at DESC LIMIT 1) as ultimo_contato,
+        (SELECT i.descricao FROM crm_interacoes i WHERE i.oportunidade_id = o.id ORDER BY i.created_at DESC LIMIT 1) as ultimo_contato_desc
       FROM crm_oportunidades o
       LEFT JOIN crm_clientes c ON o.cliente_id = c.id
       LEFT JOIN crm_vendedores v ON o.vendedor_id = v.id
@@ -178,6 +184,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await verificarPermissao('COMERCIAL', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const body = await request.json();
     const {
@@ -203,9 +212,9 @@ export async function POST(request: Request) {
 
     const result = await query(
       `INSERT INTO crm_oportunidades (
-        cliente_id, vendedor_id, titulo, descricao, tipo_produto,
+        cliente_id, vendedor_id, titulo, descricao, produto,
         valor_estimado, probabilidade, data_previsao_fechamento,
-        origem, concorrentes, observacoes, estagio, status
+        fonte, concorrente, observacoes, estagio, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PROSPECCAO', 'ABERTA')
       RETURNING *`,
       [

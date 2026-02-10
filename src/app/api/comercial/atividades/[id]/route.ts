@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
@@ -53,6 +57,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -136,6 +143,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 

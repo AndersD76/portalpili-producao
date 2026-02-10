@@ -17,6 +17,8 @@ interface OportunidadeCardProps {
     data_previsao_fechamento?: string;
     total_atividades?: number;
     atividades_atrasadas?: number;
+    ultimo_contato?: string;
+    ultimo_contato_desc?: string;
     created_at: string;
   };
   onMove?: (novoEstagio: string) => void;
@@ -162,6 +164,23 @@ export default function OportunidadeCard({
           </span>
         )}
       </div>
+
+      {/* Último Contato */}
+      {oportunidade.ultimo_contato && (
+        <div className="mt-2 pt-2 border-t">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>{formatDate(oportunidade.ultimo_contato)}</span>
+          </div>
+          {oportunidade.ultimo_contato_desc && (
+            <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1 pl-4">
+              {oportunidade.ultimo_contato_desc}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs text-gray-400">

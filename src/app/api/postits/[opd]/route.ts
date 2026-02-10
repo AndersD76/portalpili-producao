@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
+import { verificarPermissao } from '@/lib/auth';
 
 // GET - Listar post-its de uma OPD
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ opd: string }> }
 ) {
+  const auth = await verificarPermissao('PRODUCAO', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { opd: opdParam } = await params;
     const opd = decodeURIComponent(opdParam);
@@ -36,6 +40,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ opd: string }> }
 ) {
+  const auth = await verificarPermissao('PRODUCAO', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { opd: opdParam } = await params;
     const opd = decodeURIComponent(opdParam);
@@ -84,6 +91,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ opd: string }> }
 ) {
+  const auth = await verificarPermissao('PRODUCAO', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     await params; // Just to comply with the signature
     const body = await request.json();
@@ -133,6 +143,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ opd: string }> }
 ) {
+  const auth = await verificarPermissao('PRODUCAO', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     await params; // Just to comply with the signature
     const { searchParams } = new URL(request.url);

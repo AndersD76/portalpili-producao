@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
+import { verificarPermissao } from '@/lib/auth';
 
 // GET - Listar reclamações de clientes
 export async function GET(request: Request) {
+  const auth = await verificarPermissao('QUALIDADE', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -56,6 +60,9 @@ export async function GET(request: Request) {
 
 // POST - Criar reclamação de cliente
 export async function POST(request: Request) {
+  const auth = await verificarPermissao('QUALIDADE', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   const client = await pool.connect();
 
   try {

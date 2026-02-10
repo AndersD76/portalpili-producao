@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 // GET - Listar todos os setores com suas perguntas
 export async function GET(request: Request) {
+  const auth = await verificarPermissao('QUALIDADE', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get('includeInactive') === 'true';

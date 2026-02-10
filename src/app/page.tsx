@@ -334,58 +334,38 @@ export default function Home() {
         </div>
 
         {/* Ações Rápidas */}
-        <div className="mt-12">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Ações Rápidas</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              href="/producao"
-              className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
-            >
-              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <span className="font-medium text-gray-700">Nova OPD</span>
-            </Link>
+        {(() => {
+          const acoes = [
+            { href: '/producao', label: 'Nova OPD', modulo: '/producao', icon: 'M12 4v16m8-8H4' },
+            { href: '/qualidade/nao-conformidade/nova', label: 'Registrar NC', modulo: '/qualidade', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
+            { href: '/qualidade/reclamacao-cliente/nova', label: 'Reclamação', modulo: '/qualidade', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
+            { href: '/qualidade/acao-corretiva/nova', label: 'Ação Corretiva', modulo: '/qualidade', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+          ].filter(a => podeAcessarModulo(a.modulo));
 
-            <Link
-              href="/qualidade/nao-conformidade/nova"
-              className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
-            >
-              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <span className="font-medium text-gray-700">Registrar NC</span>
-            </Link>
+          if (acoes.length === 0) return null;
 
-            <Link
-              href="/qualidade/reclamacao-cliente/nova"
-              className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
-            >
-              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
+          return (
+            <div className="mt-12">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Ações Rápidas</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {acoes.map(acao => (
+                  <Link
+                    key={acao.href}
+                    href={acao.href}
+                    className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
+                  >
+                    <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={acao.icon} />
+                      </svg>
+                    </div>
+                    <span className="font-medium text-gray-700">{acao.label}</span>
+                  </Link>
+                ))}
               </div>
-              <span className="font-medium text-gray-700">Reclamação</span>
-            </Link>
-
-            <Link
-              href="/qualidade/acao-corretiva/nova"
-              className="flex items-center space-x-3 bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition group"
-            >
-              <div className="p-2 bg-red-100 rounded-lg group-hover:bg-red-200 transition">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              </div>
-              <span className="font-medium text-gray-700">Ação Corretiva</span>
-            </Link>
-          </div>
-        </div>
+            </div>
+          );
+        })()}
       </main>
 
       {/* Footer */}

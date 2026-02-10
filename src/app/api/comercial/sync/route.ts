@@ -373,8 +373,8 @@ async function syncOportunidade(
     // Criar
     await query(
       `INSERT INTO crm_oportunidades (
-        titulo, cliente_id, vendedor_id, tipo_produto, valor_estimado,
-        estagio, status, probabilidade, origem
+        titulo, cliente_id, vendedor_id, produto, valor_estimado,
+        estagio, status, probabilidade, fonte
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PLANILHA')
       ON CONFLICT DO NOTHING`,
       [titulo, clienteId, vendedorId, prop.tipo_produto, valorTotal, estagio, status, probabilidade]

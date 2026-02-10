@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('PRODUCAO', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
@@ -311,6 +315,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('PRODUCAO', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
     const opdId = parseInt(id);

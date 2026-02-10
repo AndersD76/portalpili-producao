@@ -92,19 +92,21 @@ export default function ComercialPage() {
     try {
       // Non-admin: filter by own usuario_id
       const opUrl = isAdminRef.current
-        ? '/api/comercial/oportunidades?limit=2000'
-        : `/api/comercial/oportunidades?limit=2000&usuario_id=${userRef.current?.id || ''}`;
-      const [opRes, vendRes] = await Promise.all([
-        fetch(opUrl),
-        fetch('/api/comercial/vendedores?ativo=true'),
-      ]);
-      if (opRes.ok) {
-        const opData = await opRes.json();
+        ? '/api/comercial/oportunidades?limit=10000'
+        : `/api/comercial/oportunidades?limit=10000&usuario_id=${userRef.current?.id || ''}`;
+      const fetches: Promise<Response>[] = [fetch(opUrl)];
+      // Só buscar lista de vendedores se for admin (sidebar)
+      if (isAdminRef.current) {
+        fetches.push(fetch('/api/comercial/vendedores?ativo=true'));
+      }
+      const responses = await Promise.all(fetches);
+      if (responses[0].ok) {
+        const opData = await responses[0].json();
         setOportunidades(opData.data || []);
         setPipeline(opData.pipeline || []);
       }
-      if (vendRes.ok) {
-        const vendData = await vendRes.json();
+      if (isAdminRef.current && responses[1]?.ok) {
+        const vendData = await responses[1].json();
         setVendedores(vendData.data || []);
       }
     } catch (error) {
@@ -202,36 +204,49 @@ export default function ComercialPage() {
   }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, ordenacao]);
 
   const resumo = useMemo(() => {
-    const ativas = oportunidades.filter(o => o.status === 'ABERTA');
-    const ganhas = oportunidades.filter(o => o.estagio === 'FECHADA');
-    const perdidas = oportunidades.filter(o => o.estagio === 'PERDIDA');
+    const base = listaFiltrada;
+    const ativas = base.filter(o => o.status === 'ABERTA');
+    const ganhas = base.filter(o => o.estagio === 'FECHADA');
+    const perdidas = base.filter(o => o.estagio === 'PERDIDA');
     const totalDec = ganhas.length + perdidas.length;
     return {
-      total: oportunidades.length,
+      total: base.length,
       ativas: ativas.length,
       valorPipeline: ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
       ganhos: ganhas.length,
       valorGanho: ganhas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
       taxa: totalDec > 0 ? Math.round((ganhas.length / totalDec) * 100) : 0,
     };
-  }, [oportunidades]);
+  }, [listaFiltrada]);
 
+  // Calcular estágios a partir dos dados filtrados por vendedor (não por estágio)
   const estagiosAtivos = useMemo(() => {
-    return pipeline
-      .filter(p => parseInt(String(p.quantidade)) > 0)
-      .map(p => ({
-        key: p.estagio,
-        label: ESTAGIO_CONFIG[p.estagio]?.label || p.estagio,
-        cor: ESTAGIO_CONFIG[p.estagio]?.cor || 'bg-gray-500',
-        corHex: ESTAGIO_CONFIG[p.estagio]?.corHex || '#6b7280',
-        quantidade: parseInt(String(p.quantidade)) || 0,
-        valor: toNum(p.valor_total),
+    // Filtrar por vendedor selecionado, mas NÃO por estágio (senão o dropdown fica vazio)
+    let base = [...oportunidades];
+    if (filtroVendedor) base = base.filter(o => o.vendedor_nome === filtroVendedor);
+
+    // Agrupar por estágio
+    const porEstagio: Record<string, { quantidade: number; valor: number }> = {};
+    base.forEach(o => {
+      if (!porEstagio[o.estagio]) porEstagio[o.estagio] = { quantidade: 0, valor: 0 };
+      porEstagio[o.estagio].quantidade++;
+      porEstagio[o.estagio].valor += toNum(o.valor_estimado);
+    });
+
+    const order: Record<string, number> = { EM_NEGOCIACAO: 1, PROSPECCAO: 2, FECHADA: 3, PERDIDA: 4, TESTE: 5, SUBSTITUIDO: 6, SUSPENSO: 7, PROPOSTA: 8, EM_ANALISE: 9, QUALIFICACAO: 10 };
+
+    return Object.entries(porEstagio)
+      .filter(([, v]) => v.quantidade > 0)
+      .map(([key, v]) => ({
+        key,
+        label: ESTAGIO_CONFIG[key]?.label || key,
+        cor: ESTAGIO_CONFIG[key]?.cor || 'bg-gray-500',
+        corHex: ESTAGIO_CONFIG[key]?.corHex || '#6b7280',
+        quantidade: v.quantidade,
+        valor: v.valor,
       }))
-      .sort((a, b) => {
-        const order: Record<string, number> = { EM_NEGOCIACAO: 1, PROSPECCAO: 2, FECHADA: 3, PERDIDA: 4, TESTE: 5, SUBSTITUIDO: 6, SUSPENSO: 7 };
-        return (order[a.key] || 99) - (order[b.key] || 99);
-      });
-  }, [pipeline]);
+      .sort((a, b) => (order[a.key] || 99) - (order[b.key] || 99));
+  }, [oportunidades, filtroVendedor]);
 
   const vendedoresComMetricas = useMemo(() => {
     return vendedores.map(v => {
@@ -282,9 +297,9 @@ export default function ComercialPage() {
   // ==================== RENDER ====================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* HEADER - padrão do app */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50">
+      {/* HEADER */}
+      <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-3">
@@ -298,46 +313,31 @@ export default function ComercialPage() {
                 {user && <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/comercial/pipeline" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />
-                </svg>
-                Kanban
-              </Link>
-              <Link href="/comercial/vendedores" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Vendedores
-              </Link>
-              <Link href="/comercial/clientes" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Clientes
-              </Link>
-              <Link href="/comercial/relatorios" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Relatórios
-              </Link>
-              {syncing && <span className="text-xs text-gray-400 hidden sm:inline">Sincronizando...</span>}
+            <div className="flex items-center gap-1">
+              {[
+                { href: '/comercial/pipeline', label: 'Kanban' },
+                { href: '/comercial/vendedores', label: 'Vendedores' },
+                { href: '/comercial/clientes', label: 'Clientes' },
+              ].map(link => (
+                <Link key={link.href} href={link.href}
+                  className="hidden sm:inline-block px-3 py-1.5 text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                  {link.label}
+                </Link>
+              ))}
               <button
                 onClick={() => runSync(false)}
                 disabled={syncing}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                  syncing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
+                  syncing ? 'text-gray-400 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'
                 }`}
               >
                 <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span className="hidden sm:inline">{syncing ? 'Sincronizando...' : 'Sync'}</span>
+                <span className="hidden sm:inline">{syncing ? 'Sync...' : 'Sync'}</span>
               </button>
-              <button onClick={logout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition" title="Sair">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button onClick={logout} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition" title="Sair">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </button>
@@ -357,117 +357,98 @@ export default function ComercialPage() {
       )}
 
       {/* RESUMO BAR */}
-      <div className="bg-white border-b px-4 sm:px-6 py-3">
-        <div className="max-w-full mx-auto flex gap-4 sm:gap-6 flex-wrap items-center">
-          <div>
-            <span className="text-2xl font-bold text-gray-900">{resumo.total}</span>
-            <span className="text-xs text-gray-500 ml-1">propostas</span>
-          </div>
-          <div>
-            <span className="text-2xl font-bold text-red-600">{fmt(resumo.valorPipeline)}</span>
-            <span className="text-xs text-gray-500 ml-1">pipeline</span>
-          </div>
-          <div>
-            <span className="text-2xl font-bold text-green-600">{resumo.ganhos}</span>
-            <span className="text-xs text-gray-500 ml-1">ganhos ({fmt(resumo.valorGanho)})</span>
-          </div>
-          <div>
-            <span className="text-2xl font-bold text-gray-700">{resumo.taxa}%</span>
-            <span className="text-xs text-gray-500 ml-1">conversão</span>
-          </div>
+      <div className="bg-white border-b px-4 sm:px-6 py-2">
+        <div className="max-w-full mx-auto flex gap-6 items-center text-sm">
+          <span><strong className="text-gray-900">{resumo.total}</strong> <span className="text-gray-400">propostas</span></span>
+          <span><strong className="text-red-600">{fmt(resumo.valorPipeline)}</strong> <span className="text-gray-400">pipeline</span></span>
+          <span><strong className="text-green-600">{resumo.ganhos}</strong> <span className="text-gray-400">ganhos ({fmt(resumo.valorGanho)})</span></span>
+          <span><strong className="text-gray-700">{resumo.taxa}%</strong> <span className="text-gray-400">conversão</span></span>
           {ultimoSync && (
-            <div className="ml-auto text-xs text-gray-400">
+            <span className="ml-auto text-xs text-gray-300">
               Sync: {new Date(ultimoSync).toLocaleString('pt-BR')}
-            </div>
+            </span>
           )}
         </div>
       </div>
 
       {/* FILTROS */}
-      <div className="bg-white border-b shadow-sm px-4 sm:px-6 py-2">
-        <div className="max-w-full mx-auto flex gap-3 sm:gap-4 flex-wrap items-center">
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-gray-500 font-medium">Etapa:</label>
-            <select value={filtroEstagio} onChange={e => setFiltroEstagio(e.target.value)}
-              className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500">
-              <option value="">Todas</option>
-              {estagiosAtivos.map(e => <option key={e.key} value={e.key}>{e.label} ({e.quantidade})</option>)}
+      <div className="bg-white border-b px-4 sm:px-6 py-1.5">
+        <div className="max-w-full mx-auto flex gap-3 items-center text-sm">
+          {/* Dropdown vendedor - visível no mobile para admin */}
+          {isAdmin && (
+            <select value={filtroVendedor || ''} onChange={e => setFiltroVendedor(e.target.value || null)}
+              className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500 md:hidden">
+              <option value="">Todos vendedores</option>
+              {vendedoresComMetricas.map(v => <option key={v.id} value={v.nome}>{v.nome} ({v.opsAtivas})</option>)}
             </select>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-gray-500 font-medium">Prob:</label>
-            <select value={filtroProb} onChange={e => setFiltroProb(e.target.value)}
-              className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500">
-              <option value="">Todas</option>
-              <option value="alta">Alta (70%+)</option>
-              <option value="media">Média (40-69%)</option>
-              <option value="baixa">Baixa (&lt;40%)</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-gray-500 font-medium">Ordenar:</label>
-            <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
-              className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-red-500 focus:border-red-500">
-              <option value="valor">Maior Valor</option>
-              <option value="prob">Maior Probabilidade</option>
-              <option value="recente">Mais Recente</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-gray-500 font-medium">Buscar:</label>
-            <input type="text" value={filtroBusca} onChange={e => setFiltroBusca(e.target.value)}
-              placeholder="Cliente ou CNPJ"
-              className="px-2 py-1 border border-gray-300 rounded text-sm w-40 focus:ring-1 focus:ring-red-500 focus:border-red-500" />
-          </div>
+          )}
+          <select value={filtroEstagio} onChange={e => setFiltroEstagio(e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
+            <option value="">Todas etapas</option>
+            {estagiosAtivos.map(e => <option key={e.key} value={e.key}>{e.label} ({e.quantidade})</option>)}
+          </select>
+          <select value={filtroProb} onChange={e => setFiltroProb(e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
+            <option value="">Todas prob.</option>
+            <option value="alta">Alta (70%+)</option>
+            <option value="media">Média (40-69%)</option>
+            <option value="baixa">Baixa (&lt;40%)</option>
+          </select>
+          <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
+            <option value="valor">Maior valor</option>
+            <option value="prob">Maior prob.</option>
+            <option value="recente">Mais recente</option>
+          </select>
+          <input type="text" value={filtroBusca} onChange={e => setFiltroBusca(e.target.value)}
+            placeholder="Buscar cliente ou CNPJ..."
+            className="px-2 py-1 border border-gray-200 rounded text-sm w-48 text-gray-600 focus:ring-1 focus:ring-red-500" />
         </div>
       </div>
 
-      {/* MAIN: SIDEBAR + CARDS */}
-      <div className="flex" style={{ height: 'calc(100vh - 220px)' }}>
-        {/* SIDEBAR VENDEDORES */}
-        <aside className="w-56 bg-white border-r overflow-y-auto flex-shrink-0 hidden md:block">
-          <div className="px-3 py-2.5 font-semibold text-xs text-gray-500 border-b bg-gray-50 uppercase tracking-wide">
-            Vendedores
-          </div>
-          <div
-            className={`px-3 py-2.5 border-b cursor-pointer transition hover:bg-gray-50 ${!filtroVendedor ? 'bg-red-50 border-l-[3px] border-l-red-600' : ''}`}
-            onClick={() => setFiltroVendedor(null)}
-          >
-            <div className="font-semibold text-sm">Todos</div>
-            <div className="text-xs text-gray-500">{oportunidades.length} propostas</div>
-          </div>
-          {vendedoresComMetricas.map(v => (
+      {/* MAIN: SIDEBAR + LIST */}
+      <div className="flex" style={{ height: 'calc(100vh - 180px)' }}>
+        {/* SIDEBAR VENDEDORES - só para admin */}
+        {isAdmin && (
+          <aside className="w-48 bg-white border-r overflow-y-auto flex-shrink-0 hidden md:block text-sm">
             <div
-              key={v.id}
-              className={`px-3 py-2.5 border-b cursor-pointer transition hover:bg-gray-50 ${
-                filtroVendedor === v.nome ? 'bg-red-50 border-l-[3px] border-l-red-600' : ''
-              }`}
-              onClick={() => setFiltroVendedor(filtroVendedor === v.nome ? null : v.nome)}
+              className={`px-3 py-2 border-b cursor-pointer transition hover:bg-gray-50 ${!filtroVendedor ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'}`}
+              onClick={() => setFiltroVendedor(null)}
             >
-              <div className="font-semibold text-sm truncate">{v.nome}</div>
-              <div className="text-xs text-gray-500">
-                <span className="text-red-600 font-semibold">{fmt(v.valorAtivo)}</span>
-                {' | '}{v.opsAtivas} ativas
-              </div>
+              Todos <span className="text-gray-400 font-normal">({oportunidades.length})</span>
             </div>
-          ))}
-        </aside>
+            {vendedoresComMetricas.map(v => (
+              <div
+                key={v.id}
+                className={`px-3 py-2 border-b cursor-pointer transition hover:bg-gray-50 ${
+                  filtroVendedor === v.nome ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'
+                }`}
+                onClick={() => setFiltroVendedor(filtroVendedor === v.nome ? null : v.nome)}
+              >
+                <div className="truncate">{v.nome}</div>
+                <div className="text-xs text-gray-400 font-normal">{fmt(v.valorAtivo)} &middot; {v.opsAtivas}</div>
+              </div>
+            ))}
+          </aside>
+        )}
 
         {/* AREA DE PROPOSTAS */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-base font-bold text-gray-800">
-              {filtroVendedor || 'Todas as Propostas'}
-              <span className="text-gray-400 font-normal ml-2 text-sm">({listaFiltrada.length})</span>
-            </h2>
-          </div>
+        <div className="flex-1 overflow-y-auto p-3">
 
           {listaFiltrada.length === 0 ? (
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
           ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+            <div className="bg-white rounded-lg border overflow-hidden">
+              {/* Table header */}
+              <div className="grid grid-cols-[1fr_180px_100px_100px_120px] gap-2 px-4 py-2.5 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <span>Cliente / Produto</span>
+                <span className="text-right">Valor</span>
+                <span className="text-center">Prob.</span>
+                <span className="text-center">Etapa</span>
+                <span className="text-right">Vendedor</span>
+              </div>
+              {/* Rows */}
               {listaFiltrada.map(op => {
-                const dias = diasNoFunil(op.created_at);
                 const prob = toNum(op.probabilidade);
                 const valor = toNum(op.valor_estimado);
                 const cfg = ESTAGIO_CONFIG[op.estagio];
@@ -476,54 +457,37 @@ export default function ComercialPage() {
                 return (
                   <div
                     key={op.id}
-                    className={`bg-white rounded-lg p-4 border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
-                      urgente ? 'border-l-4 border-l-red-500' : prob >= 70 ? 'border-l-4 border-l-green-500' : 'border-gray-200'
+                    className={`grid grid-cols-[1fr_180px_100px_100px_120px] gap-2 px-4 py-3 border-b last:border-b-0 hover:bg-gray-50 transition cursor-pointer items-center ${
+                      urgente ? 'bg-red-50/40' : ''
                     }`}
                   >
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs text-gray-400 font-medium">#{op.id} | {dias}d</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${probBg(prob)}`}>
+                    {/* Cliente + Produto */}
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900 text-sm truncate">
+                        {op.cliente_nome}
+                        {urgente && <span className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500" title="Atividade atrasada" />}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">{op.tipo_produto || op.titulo}</div>
+                    </div>
+                    {/* Valor */}
+                    <div className="text-right font-bold text-sm text-gray-800">{fmtFull(valor)}</div>
+                    {/* Probabilidade */}
+                    <div className="text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${probBg(prob)}`}>
                         {prob}%
                       </span>
                     </div>
-
-                    {/* Cliente */}
-                    <div className="font-bold text-gray-900 text-sm mb-1 truncate">{op.cliente_nome}</div>
-
-                    {/* Produto */}
-                    <div className="text-xs text-gray-600 mb-2 truncate">{op.tipo_produto || op.titulo}</div>
-
-                    {/* Valor */}
-                    <div className="text-xl font-bold text-red-600 mb-2">{fmtFull(valor)}</div>
-
-                    {/* Etapa badge */}
-                    {cfg && (
-                      <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold text-white mb-2"
-                        style={{ background: cfg.corHex }}>
-                        {cfg.label}
-                      </span>
-                    )}
-
-                    {/* Info */}
-                    <div className="text-xs text-gray-400">
-                      {op.created_at && new Date(op.created_at).toLocaleDateString('pt-BR')}
-                    </div>
-
-                    {/* Alertas */}
-                    {urgente && (
-                      <div className="mt-2">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700">
-                          {op.atividades_atrasadas} atrasada(s)
+                    {/* Etapa */}
+                    <div className="text-center">
+                      {cfg && (
+                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium text-white"
+                          style={{ background: cfg.corHex }}>
+                          {cfg.label}
                         </span>
-                      </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex justify-between items-center mt-3 pt-2 border-t text-xs text-gray-400">
-                      <span>{op.vendedor_nome || '-'}</span>
-                      <span>{op.status}</span>
+                      )}
                     </div>
+                    {/* Vendedor */}
+                    <div className="text-right text-xs text-gray-500 truncate">{op.vendedor_nome || '-'}</div>
                   </div>
                 );
               })}

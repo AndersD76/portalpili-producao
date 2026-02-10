@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { ATIVIDADES_PADRAO, getSubtarefasProducao, calcularPrevisaoInicio } from '@/lib/atividadesPadrao';
 import { notificacoes, enviarNotificacaoPush } from '@/lib/notifications';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET() {
+  const auth = await verificarPermissao('PRODUCAO', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     // Usar data_prevista_entrega como data_entrega para compatibilidade
     const result = await pool.query(`
@@ -60,6 +64,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await verificarPermissao('PRODUCAO', 'criar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const body = await request.json();
     const {

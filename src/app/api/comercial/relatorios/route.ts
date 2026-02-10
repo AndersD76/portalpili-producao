@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  const auth = await verificarPermissao('COMERCIAL', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { searchParams } = new URL(request.url);
     const tipo = searchParams.get('tipo') || 'totais';

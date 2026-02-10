@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 import { query, withTransaction } from '@/lib/db';
 import { gerarSugestoes } from '@/lib/comercial/ia';
 import { gerarFollowUp } from '@/lib/comercial/followup';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
@@ -92,6 +96,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -100,25 +107,33 @@ export async function PUT(
       titulo,
       descricao,
       tipo_produto,
+      produto,
       valor_estimado,
       probabilidade,
       estagio,
       situacao,
+      status,
       motivo_perda,
       data_previsao_fechamento,
       concorrentes,
+      concorrente,
       observacoes,
+      nota_contato,
     } = body;
 
-    // Se mudou de estágio, registra a data
+    const produtoVal = produto || tipo_produto;
+    const statusVal = status || situacao;
+    const concorrenteVal = concorrente || concorrentes;
+
+    // Se mudou de estágio, reseta dias no estágio
     let estagioClause = '';
     if (estagio) {
-      estagioClause = ', data_mudanca_estagio = NOW()';
+      estagioClause = ', dias_no_estagio = 0';
     }
 
     // Se fechou (ganhou ou perdeu), registra a data
     let fechamentoClause = '';
-    if (situacao === 'GANHA' || situacao === 'PERDIDA') {
+    if (statusVal === 'GANHA' || statusVal === 'PERDIDA') {
       fechamentoClause = ', data_fechamento = NOW()';
     }
 
@@ -126,27 +141,36 @@ export async function PUT(
       `UPDATE crm_oportunidades SET
         titulo = COALESCE($2, titulo),
         descricao = COALESCE($3, descricao),
-        tipo_produto = COALESCE($4, tipo_produto),
+        produto = COALESCE($4, produto),
         valor_estimado = COALESCE($5, valor_estimado),
         probabilidade = COALESCE($6, probabilidade),
         estagio = COALESCE($7, estagio),
-        situacao = COALESCE($8, situacao),
+        status = COALESCE($8, status),
         motivo_perda = COALESCE($9, motivo_perda),
         data_previsao_fechamento = COALESCE($10, data_previsao_fechamento),
-        concorrentes = COALESCE($11, concorrentes),
+        concorrente = COALESCE($11, concorrente),
         observacoes = COALESCE($12, observacoes),
         updated_at = NOW()
         ${estagioClause}
         ${fechamentoClause}
       WHERE id = $1
       RETURNING *`,
-      [id, titulo, descricao, tipo_produto, valor_estimado, probabilidade, estagio, situacao, motivo_perda, data_previsao_fechamento, concorrentes, observacoes]
+      [id, titulo, descricao, produtoVal, valor_estimado, probabilidade, estagio, statusVal, motivo_perda, data_previsao_fechamento, concorrenteVal, observacoes]
     );
 
     if (!result?.rows[0]) {
       return NextResponse.json(
         { success: false, error: 'Oportunidade não encontrada' },
         { status: 404 }
+      );
+    }
+
+    // Registra nota de contato se fornecida
+    if (nota_contato && nota_contato.trim()) {
+      await query(
+        `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
+         VALUES ($1, 'CONTATO', $2)`,
+        [id, nota_contato.trim()]
       );
     }
 
@@ -190,6 +214,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
@@ -208,7 +235,7 @@ export async function DELETE(
 
     // Soft delete - cancela a oportunidade
     const result = await query(
-      `UPDATE crm_oportunidades SET situacao = 'CANCELADA', updated_at = NOW() WHERE id = $1 RETURNING id`,
+      `UPDATE crm_oportunidades SET status = 'CANCELADA', updated_at = NOW() WHERE id = $1 RETURNING id`,
       [id]
     );
 

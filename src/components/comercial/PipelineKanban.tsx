@@ -17,6 +17,8 @@ interface Oportunidade {
   data_previsao_fechamento?: string;
   total_atividades?: number;
   atividades_atrasadas?: number;
+  ultimo_contato?: string;
+  ultimo_contato_desc?: string;
   created_at: string;
 }
 
@@ -105,7 +107,7 @@ export default function PipelineKanban({
   };
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4" style={{ scrollbarWidth: 'none' }}>
       {ESTAGIOS.map((estagio) => {
         const totais = getTotalPorEstagio(estagio.id);
         const ops = getOportunidadesPorEstagio(estagio.id);

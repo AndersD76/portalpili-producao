@@ -22,6 +22,8 @@ interface Oportunidade {
   data_previsao_fechamento?: string;
   total_atividades?: number;
   atividades_atrasadas?: number;
+  ultimo_contato?: string;
+  ultimo_contato_desc?: string;
   observacoes?: string;
   concorrentes?: string;
   created_at: string;
@@ -56,6 +58,7 @@ export default function PipelinePage() {
     probabilidade: '',
     observacoes: '',
     status: '',
+    nota_contato: '',
   });
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -127,6 +130,7 @@ export default function PipelinePage() {
       probabilidade: String(toNum(oportunidade.probabilidade)),
       observacoes: oportunidade.observacoes || '',
       status: oportunidade.status,
+      nota_contato: '',
     });
   };
 
@@ -142,6 +146,7 @@ export default function PipelinePage() {
           valor_estimado: parseFloat(editForm.valor_estimado) || 0,
           probabilidade: parseInt(editForm.probabilidade) || 0,
           observacoes: editForm.observacoes,
+          nota_contato: editForm.nota_contato,
         }),
       });
       const data = await res.json();
@@ -153,6 +158,10 @@ export default function PipelinePage() {
             valor_estimado: parseFloat(editForm.valor_estimado) || 0,
             probabilidade: parseInt(editForm.probabilidade) || 0,
             observacoes: editForm.observacoes,
+            ...(editForm.nota_contato.trim() ? {
+              ultimo_contato: new Date().toISOString(),
+              ultimo_contato_desc: editForm.nota_contato.trim(),
+            } : {}),
           } : o)
         );
         setEditModal(null);
@@ -337,6 +346,33 @@ export default function PipelinePage() {
                   onChange={e => setEditForm({ ...editForm, observacoes: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="Anotações sobre esta oportunidade..."
+                />
+              </div>
+
+              {/* Último Contato */}
+              <div className="bg-blue-50 rounded-lg p-3 space-y-2">
+                <label className="block text-sm font-medium text-blue-800">
+                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Último Contato
+                </label>
+                {editModal.ultimo_contato ? (
+                  <div className="text-xs text-blue-700">
+                    <span className="font-medium">{new Date(editModal.ultimo_contato).toLocaleDateString('pt-BR')}</span>
+                    {editModal.ultimo_contato_desc && (
+                      <span className="ml-1 text-blue-600">- {editModal.ultimo_contato_desc}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-blue-500 italic">Nenhum contato registrado</div>
+                )}
+                <textarea
+                  rows={2}
+                  value={editForm.nota_contato}
+                  onChange={e => setEditForm({ ...editForm, nota_contato: e.target.value })}
+                  className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                  placeholder="Registrar novo contato... (o que foi tratado?)"
                 />
               </div>
 
