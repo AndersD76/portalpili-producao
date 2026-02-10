@@ -19,6 +19,7 @@ interface Oportunidade {
   atividades_atrasadas?: number;
   ultimo_contato?: string;
   ultimo_contato_desc?: string;
+  dias_no_estagio?: number;
   created_at: string;
 }
 

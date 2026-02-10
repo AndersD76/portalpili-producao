@@ -66,7 +66,16 @@ export default function OPDCard({ opd }: OPDCardProps) {
         <div className="grid grid-cols-2 gap-2 sm:gap-4">
           <div>
             <p className="text-xs text-gray-500 uppercase font-semibold">Tipo</p>
-            <p className="text-xs sm:text-sm font-medium text-gray-800">{opd.tipo_opd}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs sm:text-sm font-medium text-gray-800">{opd.tipo_opd}</p>
+              {opd.tipo_produto && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  opd.tipo_produto === 'COLETOR' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                }`}>
+                  {opd.tipo_produto}
+                </span>
+              )}
+            </div>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase font-semibold">Responsável</p>

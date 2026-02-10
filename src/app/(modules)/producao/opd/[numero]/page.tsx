@@ -544,6 +544,7 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
                     <AtividadeItem
                       atividade={atividade}
                       opdCliente={opd?.cliente || undefined}
+                      tipoProduto={opd?.tipo_produto || undefined}
                       onUpdate={updateAtividade}
                       onRefresh={handleRefresh}
                     />
@@ -555,6 +556,7 @@ export default function OPDDetalhe({ params }: { params: Promise<{ numero: strin
                             key={subtarefa.id}
                             atividade={subtarefa}
                             opdCliente={opd?.cliente || undefined}
+                            tipoProduto={opd?.tipo_produto || undefined}
                             onUpdate={updateAtividade}
                             onRefresh={handleRefresh}
                           />

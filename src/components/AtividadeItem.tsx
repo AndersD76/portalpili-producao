@@ -12,6 +12,7 @@ import FormLiberacaoEmbarque from './FormLiberacaoEmbarque';
 import FormDesembarque from './FormDesembarque';
 import FormEntrega from './FormEntrega';
 import FormReuniaoStart from './FormReuniaoStart';
+import FormReuniaoStartColetor from './FormReuniaoStartColetor';
 import FormularioReuniaoStart2 from './FormularioReuniaoStart2';
 import FormularioLiberacaoComercial from './FormularioLiberacaoComercial';
 
@@ -68,6 +69,7 @@ import ModalVisualizarFormulario from './ModalVisualizarFormulario';
 interface AtividadeItemProps {
   atividade: Atividade;
   opdCliente?: string;
+  tipoProduto?: string;
   onUpdate: (id: number, data: any) => Promise<void>;
   onRefresh: (atividadeAtualizada?: Atividade) => void | Promise<void>;
 }
@@ -81,6 +83,7 @@ const FORM_COMPONENTS: { [key: string]: React.ComponentType<any> } = {
   'DESEMBARQUE_PRE_INSTALACAO': FormularioDesembarquePreInstalacao,
   'ENTREGA': FormEntrega,
   'REUNIAO_START': FormReuniaoStart,
+  'REUNIAO_START_COLETOR': FormReuniaoStartColetor,
   'REUNIAO_START_2': FormularioReuniaoStart2,
   'LIBERACAO_COMERCIAL': FormularioLiberacaoComercial,
   'INSTALACAO': FormularioInstalacao,
@@ -211,7 +214,7 @@ const ATIVIDADE_TO_FORM: { [key: string]: string } = {
   'REVISÃO FINAL DE PROJETOS': 'REVISAO_PROJETOS',
 };
 
-export default function AtividadeItem({ atividade, onUpdate, onRefresh }: AtividadeItemProps) {
+export default function AtividadeItem({ atividade, tipoProduto, onUpdate, onRefresh }: AtividadeItemProps) {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -321,11 +324,14 @@ export default function AtividadeItem({ atividade, onUpdate, onRefresh }: Ativid
   // Determinar qual formulário usar
   const getTipoFormulario = (): string | null => {
     // Primeiro verificar se há tipo_formulario definido na atividade
-    if ((atividade as any).tipo_formulario) {
-      return (atividade as any).tipo_formulario;
+    let tipo = (atividade as any).tipo_formulario || ATIVIDADE_TO_FORM[atividade.atividade] || null;
+
+    // Se é coletor e o formulário é de start (tombador), redirecionar para versão coletor
+    if (tipo === 'REUNIAO_START' && tipoProduto === 'COLETOR') {
+      tipo = 'REUNIAO_START_COLETOR';
     }
-    // Fallback para mapeamento por nome da atividade
-    return ATIVIDADE_TO_FORM[atividade.atividade] || null;
+
+    return tipo;
   };
 
   const tipoFormulario = getTipoFormulario();

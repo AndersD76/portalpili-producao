@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { PipelineKanban } from '@/components/comercial';
+import { PipelineKanban, ModalDetalheOportunidade } from '@/components/comercial';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Oportunidade {
@@ -51,16 +51,7 @@ export default function PipelinePage() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [filtroVendedor, setFiltroVendedor] = useState<string>('');
   const [filtroProduto, setFiltroProduto] = useState<string>('');
-  const [editModal, setEditModal] = useState<Oportunidade | null>(null);
-  const [editForm, setEditForm] = useState({
-    estagio: '',
-    valor_estimado: '',
-    probabilidade: '',
-    observacoes: '',
-    status: '',
-    nota_contato: '',
-  });
-  const [saving, setSaving] = useState(false);
+  const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
   const router = useRouter();
   const { user, authenticated, loading: authLoading, isAdmin } = useAuth();
 
@@ -123,56 +114,7 @@ export default function PipelinePage() {
   }, []);
 
   const handleClickOportunidade = (oportunidade: Oportunidade) => {
-    setEditModal(oportunidade);
-    setEditForm({
-      estagio: oportunidade.estagio,
-      valor_estimado: String(toNum(oportunidade.valor_estimado)),
-      probabilidade: String(toNum(oportunidade.probabilidade)),
-      observacoes: oportunidade.observacoes || '',
-      status: oportunidade.status,
-      nota_contato: '',
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editModal) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/comercial/oportunidades/${editModal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          estagio: editForm.estagio,
-          valor_estimado: parseFloat(editForm.valor_estimado) || 0,
-          probabilidade: parseInt(editForm.probabilidade) || 0,
-          observacoes: editForm.observacoes,
-          nota_contato: editForm.nota_contato,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setOportunidades(prev =>
-          prev.map(o => o.id === editModal.id ? {
-            ...o,
-            estagio: editForm.estagio,
-            valor_estimado: parseFloat(editForm.valor_estimado) || 0,
-            probabilidade: parseInt(editForm.probabilidade) || 0,
-            observacoes: editForm.observacoes,
-            ...(editForm.nota_contato.trim() ? {
-              ultimo_contato: new Date().toISOString(),
-              ultimo_contato_desc: editForm.nota_contato.trim(),
-            } : {}),
-          } : o)
-        );
-        setEditModal(null);
-      } else {
-        alert(data.error || 'Erro ao salvar');
-      }
-    } catch {
-      alert('Erro ao salvar');
-    } finally {
-      setSaving(false);
-    }
+    setSelectedOportunidadeId(oportunidade.id);
   };
 
   const toNum = (v: unknown): number => {
@@ -269,146 +211,13 @@ export default function PipelinePage() {
         />
       </main>
 
-      {/* Modal Editar Oportunidade */}
-      {editModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditModal(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-xl">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">#{editModal.id} - Oportunidade</h3>
-                <p className="text-xs text-gray-500">{editModal.vendedor_nome}</p>
-              </div>
-              <button onClick={() => setEditModal(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="px-6 py-4 space-y-4">
-              {/* Info card */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <div className="font-bold text-gray-900">{editModal.titulo}</div>
-                <div className="text-sm text-gray-600">
-                  {editModal.cliente_fantasia || editModal.cliente_nome}
-                </div>
-                <div className="text-xs text-gray-400">
-                  Produto: {editModal.produto || editModal.tipo_produto || '-'} &bull; Criado: {new Date(editModal.created_at).toLocaleDateString('pt-BR')}
-                </div>
-              </div>
-
-              {/* Estagio */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Estágio</label>
-                <select
-                  value={editForm.estagio}
-                  onChange={e => setEditForm({ ...editForm, estagio: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                >
-                  {ESTAGIOS_OPTIONS.map(e => (
-                    <option key={e.value} value={e.value}>{e.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Valor + Probabilidade */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Valor Estimado (R$)</label>
-                  <input
-                    type="number"
-                    value={editForm.valor_estimado}
-                    onChange={e => setEditForm({ ...editForm, valor_estimado: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Probabilidade (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={editForm.probabilidade}
-                    onChange={e => setEditForm({ ...editForm, probabilidade: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
-              </div>
-
-              {/* Observacoes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-                <textarea
-                  rows={3}
-                  value={editForm.observacoes}
-                  onChange={e => setEditForm({ ...editForm, observacoes: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  placeholder="Anotações sobre esta oportunidade..."
-                />
-              </div>
-
-              {/* Último Contato */}
-              <div className="bg-blue-50 rounded-lg p-3 space-y-2">
-                <label className="block text-sm font-medium text-blue-800">
-                  <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  Último Contato
-                </label>
-                {editModal.ultimo_contato ? (
-                  <div className="text-xs text-blue-700">
-                    <span className="font-medium">{new Date(editModal.ultimo_contato).toLocaleDateString('pt-BR')}</span>
-                    {editModal.ultimo_contato_desc && (
-                      <span className="ml-1 text-blue-600">- {editModal.ultimo_contato_desc}</span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-xs text-blue-500 italic">Nenhum contato registrado</div>
-                )}
-                <textarea
-                  rows={2}
-                  value={editForm.nota_contato}
-                  onChange={e => setEditForm({ ...editForm, nota_contato: e.target.value })}
-                  className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-white"
-                  placeholder="Registrar novo contato... (o que foi tratado?)"
-                />
-              </div>
-
-              {/* Atividades info */}
-              {(toNum(editModal.total_atividades) > 0 || toNum(editModal.atividades_atrasadas) > 0) && (
-                <div className="flex gap-3 text-xs">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">
-                    {editModal.total_atividades} atividade(s)
-                  </span>
-                  {toNum(editModal.atividades_atrasadas) > 0 && (
-                    <span className="px-2 py-1 bg-red-50 text-red-700 rounded">
-                      {editModal.atividades_atrasadas} atrasada(s)
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3 rounded-b-xl">
-              <button
-                onClick={() => setEditModal(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                disabled={saving}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium disabled:opacity-50"
-              >
-                {saving ? 'Salvando...' : 'Salvar'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Modal Detalhe Oportunidade */}
+      {selectedOportunidadeId && (
+        <ModalDetalheOportunidade
+          oportunidadeId={selectedOportunidadeId}
+          onClose={() => setSelectedOportunidadeId(null)}
+          onSave={() => fetchOportunidades()}
+        />
       )}
     </div>
   );
