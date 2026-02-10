@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,75 +11,85 @@ interface PipelineEstagio {
   valor_total: number;
 }
 
-const ESTAGIOS = [
-  { key: 'PROSPECCAO', label: 'Prospecção', cor: 'bg-gray-500' },
-  { key: 'QUALIFICACAO', label: 'Qualificação', cor: 'bg-blue-500' },
-  { key: 'PROPOSTA', label: 'Proposta', cor: 'bg-purple-500' },
-  { key: 'EM_ANALISE', label: 'Em Análise', cor: 'bg-cyan-500' },
-  { key: 'EM_NEGOCIACAO', label: 'Negociação', cor: 'bg-orange-500' },
-  { key: 'FECHADA', label: 'Fechada', cor: 'bg-green-500' },
-  { key: 'PERDIDA', label: 'Perdida', cor: 'bg-red-500' },
-  { key: 'SUSPENSO', label: 'Suspenso', cor: 'bg-yellow-500' },
-  { key: 'SUBSTITUIDO', label: 'Substituído', cor: 'bg-indigo-500' },
-  { key: 'TESTE', label: 'Teste', cor: 'bg-pink-500' },
-];
+// Mapeamento de cores e labels para estágios conhecidos
+const ESTAGIO_CONFIG: Record<string, { label: string; cor: string; ordem: number }> = {
+  EM_NEGOCIACAO: { label: 'Negociação', cor: 'bg-orange-500', ordem: 1 },
+  PROSPECCAO: { label: 'Prospecção', cor: 'bg-blue-500', ordem: 2 },
+  FECHADA: { label: 'Fechada', cor: 'bg-green-500', ordem: 3 },
+  PERDIDA: { label: 'Perdida', cor: 'bg-red-500', ordem: 4 },
+  TESTE: { label: 'Teste', cor: 'bg-pink-500', ordem: 5 },
+  SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', ordem: 6 },
+  SUSPENSO: { label: 'Suspenso', cor: 'bg-yellow-600', ordem: 7 },
+  PROPOSTA: { label: 'Proposta', cor: 'bg-purple-500', ordem: 8 },
+  EM_ANALISE: { label: 'Em Análise', cor: 'bg-cyan-500', ordem: 9 },
+  QUALIFICACAO: { label: 'Qualificação', cor: 'bg-teal-500', ordem: 10 },
+};
+
+const AUTO_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutos
 
 export default function ComercialPage() {
   const [loading, setLoading] = useState(true);
-  const [pipeline, setPipeline] = useState<Record<string, { quantidade: number; valor: number }>>({});
+  const [estagios, setEstagios] = useState<Array<{ key: string; label: string; cor: string; quantidade: number; valor: number }>>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [ultimoSync, setUltimoSync] = useState<string | null>(null);
+  const syncTriggered = useRef(false);
   const router = useRouter();
   const { user, authenticated, loading: authLoading, logout } = useAuth();
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!authenticated) {
-      router.push('/login');
-      return;
-    }
-    fetchPipeline();
-    fetchSyncStatus();
-  }, [authLoading, authenticated]);
-
-  const fetchPipeline = async () => {
+  const fetchPipeline = useCallback(async () => {
     try {
       const response = await fetch('/api/comercial/oportunidades');
       if (response.ok) {
         const data = await response.json();
-        const pipelineData = data.pipeline || [];
-        const newPipeline: Record<string, { quantidade: number; valor: number }> = {};
-        pipelineData.forEach((p: PipelineEstagio) => {
-          newPipeline[p.estagio] = {
-            quantidade: parseInt(String(p.quantidade)) || 0,
-            valor: parseFloat(String(p.valor_total)) || 0,
-          };
-        });
-        setPipeline(newPipeline);
+        const pipelineData: PipelineEstagio[] = data.pipeline || [];
+
+        // Construir estágios dinamicamente a partir dos dados
+        const items = pipelineData
+          .filter(p => parseInt(String(p.quantidade)) > 0)
+          .map(p => {
+            const config = ESTAGIO_CONFIG[p.estagio] || {
+              label: p.estagio.replace(/_/g, ' '),
+              cor: 'bg-gray-500',
+              ordem: 99,
+            };
+            return {
+              key: p.estagio,
+              label: config.label,
+              cor: config.cor,
+              ordem: config.ordem,
+              quantidade: parseInt(String(p.quantidade)) || 0,
+              valor: parseFloat(String(p.valor_total)) || 0,
+            };
+          })
+          .sort((a, b) => a.ordem - b.ordem);
+
+        setEstagios(items);
       }
     } catch (error) {
       console.error('Erro ao buscar pipeline:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSyncStatus = async () => {
+  const fetchSyncStatus = useCallback(async (): Promise<string | null> => {
     try {
       const response = await fetch('/api/comercial/sync');
       if (response.ok) {
         const data = await response.json();
         if (data.data?.ultimo_sync) {
           setUltimoSync(data.data.ultimo_sync);
+          return data.data.ultimo_sync;
         }
       }
     } catch { /* ignore */ }
-  };
+    return null;
+  }, []);
 
-  const handleSync = async () => {
+  const runSync = useCallback(async (silent = false) => {
     setSyncing(true);
-    setSyncResult(null);
+    if (!silent) setSyncResult(null);
     try {
       const response = await fetch('/api/comercial/sync', {
         method: 'POST',
@@ -88,22 +98,50 @@ export default function ComercialPage() {
       });
       const data = await response.json();
       if (data.success) {
-        setSyncResult({
-          message: `Sync concluído: ${data.novas} novas, ${data.atualizadas} atualizadas, ${data.erros} erros`,
-          type: 'success',
-        });
-        // Recarregar pipeline após sync
+        if (!silent) {
+          setSyncResult({
+            message: `Sync concluído: ${data.novas} novas, ${data.atualizadas} atualizadas, ${data.erros} erros`,
+            type: 'success',
+          });
+        }
         await fetchPipeline();
         await fetchSyncStatus();
-      } else {
+      } else if (!silent) {
         setSyncResult({ message: data.error || 'Erro no sync', type: 'error' });
       }
-    } catch (error) {
-      setSyncResult({ message: 'Erro de conexão ao sincronizar', type: 'error' });
+    } catch {
+      if (!silent) {
+        setSyncResult({ message: 'Erro de conexão ao sincronizar', type: 'error' });
+      }
     } finally {
       setSyncing(false);
     }
-  };
+  }, [fetchPipeline, fetchSyncStatus]);
+
+  // Carregamento inicial: buscar dados + auto-sync se necessário
+  useEffect(() => {
+    if (authLoading) return;
+    if (!authenticated) {
+      router.push('/login');
+      return;
+    }
+
+    const init = async () => {
+      // Buscar pipeline e status do sync em paralelo
+      const [, lastSync] = await Promise.all([fetchPipeline(), fetchSyncStatus()]);
+
+      // Auto-sync se nunca sincronizou ou último sync > 30min atrás
+      if (!syncTriggered.current) {
+        syncTriggered.current = true;
+        const needsSync = !lastSync || (Date.now() - new Date(lastSync).getTime() > AUTO_SYNC_INTERVAL);
+        if (needsSync) {
+          runSync(true); // sync silencioso em background
+        }
+      }
+    };
+
+    init();
+  }, [authLoading, authenticated, router, fetchPipeline, fetchSyncStatus, runSync]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -114,15 +152,20 @@ export default function ComercialPage() {
     }).format(value);
   };
 
-  const totalOportunidades = ESTAGIOS.reduce((sum, e) => sum + (pipeline[e.key]?.quantidade || 0), 0);
-  const totalValor = ESTAGIOS.reduce((sum, e) => sum + (pipeline[e.key]?.valor || 0), 0);
+  const totalOportunidades = estagios.reduce((sum, e) => sum + e.quantidade, 0);
+  const totalValor = estagios.reduce((sum, e) => sum + e.valor, 0);
+
+  // Calcular grid columns baseado na quantidade de estágios
+  const gridCols = estagios.length <= 4 ? 'grid-cols-2 sm:grid-cols-4'
+    : estagios.length <= 6 ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
+    : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7';
 
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 font-medium">Carregando pipeline...</p>
+          <p className="mt-4 text-gray-600 font-medium">Sincronizando planilha...</p>
         </div>
       </div>
     );
@@ -153,8 +196,11 @@ export default function ComercialPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {syncing && (
+                <span className="text-xs text-gray-400 hidden sm:inline">Sincronizando...</span>
+              )}
               <button
-                onClick={handleSync}
+                onClick={() => runSync(false)}
                 disabled={syncing}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition ${
                   syncing
@@ -166,7 +212,7 @@ export default function ComercialPage() {
                 <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                {syncing ? 'Sincronizando...' : 'Sync Planilha'}
+                <span className="hidden sm:inline">{syncing ? 'Sincronizando...' : 'Sync'}</span>
               </button>
               <button
                 onClick={logout}
@@ -200,29 +246,26 @@ export default function ComercialPage() {
             <h2 className="text-lg font-bold text-gray-900">Pipeline de Vendas</h2>
             {ultimoSync && (
               <span className="text-xs text-gray-400">
-                Último sync: {new Date(ultimoSync).toLocaleString('pt-BR')}
+                Atualizado: {new Date(ultimoSync).toLocaleString('pt-BR')}
               </span>
             )}
           </div>
 
-          {/* Estágios */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2 mb-6">
-            {ESTAGIOS.map((estagio) => {
-              const data = pipeline[estagio.key] || { quantidade: 0, valor: 0 };
-              return (
-                <Link
-                  key={estagio.key}
-                  href={`/comercial/pipeline?estagio=${estagio.key}`}
-                  className="text-center group"
-                >
-                  <div className={`${estagio.cor} text-white rounded-lg p-2 sm:p-3 mb-2 group-hover:opacity-90 transition`}>
-                    <div className="text-xl sm:text-2xl font-bold">{data.quantidade}</div>
-                    <div className="text-xs opacity-80">{formatCurrency(data.valor)}</div>
-                  </div>
-                  <div className="text-xs text-gray-600">{estagio.label}</div>
-                </Link>
-              );
-            })}
+          {/* Estágios - dinâmicos a partir dos dados da planilha */}
+          <div className={`grid ${gridCols} gap-3 mb-6`}>
+            {estagios.map((estagio) => (
+              <Link
+                key={estagio.key}
+                href={`/comercial/pipeline?estagio=${estagio.key}`}
+                className="text-center group"
+              >
+                <div className={`${estagio.cor} text-white rounded-lg p-3 sm:p-4 mb-2 group-hover:opacity-90 transition shadow-sm`}>
+                  <div className="text-2xl sm:text-3xl font-bold">{estagio.quantidade}</div>
+                  <div className="text-xs opacity-80 mt-1">{formatCurrency(estagio.valor)}</div>
+                </div>
+                <div className="text-xs font-medium text-gray-600">{estagio.label}</div>
+              </Link>
+            ))}
           </div>
 
           {/* Totais */}
