@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PrecoBase {
   id: number;
@@ -42,7 +43,6 @@ interface SimulacaoReajuste {
 }
 
 export default function AdminPrecosPage() {
-  const [user, setUser] = useState<{ nome: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'base' | 'opcoes' | 'config' | 'reajuste'>('base');
   const [precosBase, setPrecosBase] = useState<PrecoBase[]>([]);
@@ -53,25 +53,16 @@ export default function AdminPrecosPage() {
   const [simulacao, setSimulacao] = useState<SimulacaoReajuste | null>(null);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
   const router = useRouter();
+  const { user, authenticated, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      router.push('/login');
-      return;
-    }
-
     fetchData();
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   const fetchData = async () => {
     setLoading(true);

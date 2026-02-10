@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { consultarCNPJ, enriquecerCliente } from '@/lib/comercial';
 import { verificarPermissao } from '@/lib/auth';
+import { buscarClienteFuzzy } from '@/lib/comercial/fuzzyMatch';
 
 export async function GET(request: Request) {
   // Verificar permissão de visualização
@@ -14,10 +15,67 @@ export async function GET(request: Request) {
     const segmento = searchParams.get('segmento');
     const vendedor_id = searchParams.get('vendedor_id');
     const search = searchParams.get('search');
+    const fuzzy = searchParams.get('fuzzy') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
+    // Busca fuzzy: carrega todos os clientes e filtra por similaridade
+    if (fuzzy && search) {
+      let fuzzySql = `
+        SELECT
+          c.*,
+          v.nome as vendedor_nome,
+          COUNT(DISTINCT o.id) as total_oportunidades,
+          SUM(CASE WHEN o.status = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_compras,
+          MAX(o.created_at) as ultima_oportunidade
+        FROM crm_clientes c
+        LEFT JOIN crm_vendedores v ON c.vendedor_id = v.id
+        LEFT JOIN crm_oportunidades o ON c.id = o.cliente_id
+        WHERE 1=1
+      `;
+      const fuzzyParams: unknown[] = [];
+      let fuzzyParamIndex = 1;
+
+      if (status) {
+        fuzzySql += ` AND c.status = $${fuzzyParamIndex++}`;
+        fuzzyParams.push(status);
+      }
+      if (segmento) {
+        fuzzySql += ` AND c.segmento = $${fuzzyParamIndex++}`;
+        fuzzyParams.push(segmento);
+      }
+      if (vendedor_id) {
+        fuzzySql += ` AND c.vendedor_id = $${fuzzyParamIndex++}`;
+        fuzzyParams.push(vendedor_id);
+      }
+
+      fuzzySql += ` GROUP BY c.id, v.nome`;
+      const allClients = await query(fuzzySql, fuzzyParams);
+      const rows = allClients?.rows || [];
+
+      const matches = buscarClienteFuzzy(search, rows, 0.4);
+      const total = matches.length;
+      const paginatedMatches = matches.slice(offset, offset + limit);
+
+      return NextResponse.json({
+        success: true,
+        data: paginatedMatches.map(m => ({
+          ...m.item,
+          _similaridade: m.similaridade,
+          _campo_match: m.campo_match,
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+        fuzzy: true,
+      });
+    }
+
+    // Busca padrão via ILIKE
     let sql = `
       SELECT
         c.*,

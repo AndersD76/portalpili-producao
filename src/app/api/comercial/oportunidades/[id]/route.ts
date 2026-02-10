@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, withTransaction } from '@/lib/db';
 import { gerarSugestoes } from '@/lib/comercial/ia';
+import { gerarFollowUp } from '@/lib/comercial/followup';
 
 export async function GET(
   request: Request,
@@ -149,19 +150,32 @@ export async function PUT(
       );
     }
 
-    // Registra interação de mudança de estágio
+    // Registra interação de mudança de estágio e gera follow-up automático
+    let followup = null;
     if (estagio) {
       await query(
         `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
          VALUES ($1, 'ANOTACAO', $2)`,
         [id, `Oportunidade movida para estágio: ${estagio}`]
       );
+
+      // Gerar follow-up automático para o novo estágio
+      try {
+        followup = await gerarFollowUp(
+          parseInt(id),
+          estagio,
+          result.rows[0].vendedor_id
+        );
+      } catch (followupError) {
+        console.log('Erro ao gerar follow-up automático:', followupError);
+      }
     }
 
     return NextResponse.json({
       success: true,
       data: result.rows[0],
       message: 'Oportunidade atualizada com sucesso',
+      followup,
     });
   } catch (error) {
     console.error('Erro ao atualizar oportunidade:', error);

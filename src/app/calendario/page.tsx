@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { OPD } from '@/types/opd';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CalendarioPage() {
   const [opds, setOpds] = useState<OPD[]>([]);
@@ -12,21 +13,20 @@ export default function CalendarioPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
 
+  const { authenticated, loading: authLoading, logout } = useAuth();
+
   // Verificar autenticação
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     setCheckingAuth(false);
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   const handleLogout = () => {
-    localStorage.removeItem('authenticated');
-    localStorage.removeItem('user_data');
-    sessionStorage.removeItem('politica_vista');
-    router.push('/login');
+    logout();
   };
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { OPD } from '@/types/opd';
 import { Atividade } from '@/types/atividade';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardStats {
   totalOPDs: number;
@@ -26,8 +27,8 @@ export default function DashboardPage() {
   const [opds, setOpds] = useState<OPD[]>([]);
   const [todasAtividades, setTodasAtividades] = useState<(Atividade & { opd_cliente?: string })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const router = useRouter();
+  const { user, authenticated, loading: authLoading, logout } = useAuth();
   const [selectedOPD, setSelectedOPD] = useState<string>('todas');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [selectedResponsavel, setSelectedResponsavel] = useState<string>('todos');
@@ -50,34 +51,16 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch (e) {
-      console.error('Erro ao parsear dados do usuário');
-      router.push('/login');
-      return;
-    }
-
     fetchOPDs();
-  }, []);
+  }, [authLoading, authenticated]);
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      localStorage.removeItem('authenticated');
-      localStorage.removeItem('user_data');
-      router.push('/login');
-    } catch (err) {
-      console.error('Erro ao fazer logout:', err);
-    }
+    logout();
   };
 
   const fetchOPDs = async () => {

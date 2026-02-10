@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import {
   TURNOS_TRABALHO,
@@ -23,6 +24,7 @@ import {
 
 export default function NovaNaoConformidadePage() {
   const router = useRouter();
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -98,9 +100,6 @@ export default function NovaNaoConformidadePage() {
     setError(null);
 
     try {
-      const userData = localStorage.getItem('user_data');
-      const user = userData ? JSON.parse(userData) : null;
-
       const response = await fetch('/api/qualidade/nao-conformidade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -137,7 +136,7 @@ export default function NovaNaoConformidadePage() {
           descricao: formData.descricao,
           disposicao: formData.disposicao,
           anexos: anexos.length > 0 ? anexos : null,
-          created_by: user?.id || null
+          created_by: authUser?.id || null
         })
       });
 

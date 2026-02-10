@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Perfil {
   id: number;
@@ -43,14 +44,16 @@ export default function NovoUsuarioPage() {
     confirmarSenha: '',
   });
 
+  const { authenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchPerfis();
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   const fetchPerfis = async () => {
     try {

@@ -12,8 +12,8 @@ export async function GET(
       `SELECT
         v.*,
         COUNT(DISTINCT o.id) as total_oportunidades,
-        COUNT(DISTINCT CASE WHEN o.estagio = 'FECHAMENTO' AND o.situacao = 'GANHA' THEN o.id END) as oportunidades_ganhas,
-        SUM(CASE WHEN o.estagio = 'FECHAMENTO' AND o.situacao = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_ganho,
+        COUNT(DISTINCT CASE WHEN o.estagio = 'FECHAMENTO' AND o.status = 'GANHA' THEN o.id END) as oportunidades_ganhas,
+        SUM(CASE WHEN o.estagio = 'FECHAMENTO' AND o.status = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_ganho,
         COUNT(DISTINCT c.id) as total_clientes,
         json_agg(DISTINCT jsonb_build_object(
           'id', m.id,
@@ -24,7 +24,7 @@ export async function GET(
         )) FILTER (WHERE m.id IS NOT NULL) as metas
       FROM crm_vendedores v
       LEFT JOIN crm_oportunidades o ON v.id = o.vendedor_id
-      LEFT JOIN crm_clientes c ON v.id = c.vendedor_responsavel_id
+      LEFT JOIN crm_clientes c ON v.id = c.vendedor_id
       LEFT JOIN crm_metas m ON v.id = m.vendedor_id AND m.ano = EXTRACT(YEAR FROM NOW())
       WHERE v.id = $1
       GROUP BY v.id`,
@@ -64,10 +64,8 @@ export async function PUT(
       email,
       telefone,
       cargo,
-      equipe,
       meta_mensal,
-      comissao_percentual,
-      regioes_atuacao,
+      comissao_padrao,
       avatar_url,
       ativo,
     } = body;
@@ -78,16 +76,14 @@ export async function PUT(
         email = COALESCE($3, email),
         telefone = COALESCE($4, telefone),
         cargo = COALESCE($5, cargo),
-        equipe = COALESCE($6, equipe),
-        meta_mensal = COALESCE($7, meta_mensal),
-        comissao_percentual = COALESCE($8, comissao_percentual),
-        regioes_atuacao = COALESCE($9, regioes_atuacao),
-        avatar_url = COALESCE($10, avatar_url),
-        ativo = COALESCE($11, ativo),
+        meta_mensal = COALESCE($6, meta_mensal),
+        comissao_padrao = COALESCE($7, comissao_padrao),
+        avatar_url = COALESCE($8, avatar_url),
+        ativo = COALESCE($9, ativo),
         updated_at = NOW()
       WHERE id = $1
       RETURNING *`,
-      [id, nome, email, telefone, cargo, equipe, meta_mensal, comissao_percentual, regioes_atuacao, avatar_url, ativo]
+      [id, nome, email, telefone, cargo, meta_mensal, comissao_padrao, avatar_url, ativo]
     );
 
     if (!result?.rows[0]) {
@@ -120,7 +116,10 @@ export async function DELETE(
 
     // Remover referências em outras tabelas primeiro
     await query(`UPDATE crm_oportunidades SET vendedor_id = NULL WHERE vendedor_id = $1`, [id]);
-    await query(`UPDATE crm_clientes SET vendedor_responsavel_id = NULL WHERE vendedor_responsavel_id = $1`, [id]);
+    await query(`UPDATE crm_clientes SET vendedor_id = NULL WHERE vendedor_id = $1`, [id]);
+    await query(`UPDATE crm_interacoes SET vendedor_id = NULL WHERE vendedor_id = $1`, [id]);
+    await query(`UPDATE crm_atividades SET vendedor_id = NULL WHERE vendedor_id = $1`, [id]);
+    await query(`UPDATE crm_propostas SET vendedor_id = NULL WHERE vendedor_id = $1`, [id]);
     await query(`DELETE FROM crm_metas WHERE vendedor_id = $1`, [id]);
 
     // Excluir vendedor permanentemente

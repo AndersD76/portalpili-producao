@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PipelineKanban, AssistenteIA } from '@/components/comercial';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Oportunidade {
   id: number;
@@ -23,7 +24,6 @@ interface Oportunidade {
 }
 
 export default function PipelinePage() {
-  const [user, setUser] = useState<{ id: number; nome: string; perfil?: string; is_admin?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
   const [filtroVendedor, setFiltroVendedor] = useState<string>('');
@@ -31,29 +31,19 @@ export default function PipelinePage() {
   const [mostrarAssistente, setMostrarAssistente] = useState(false);
   const [oportunidadeSelecionada, setOportunidadeSelecionada] = useState<Oportunidade | null>(null);
   const router = useRouter();
+  const { user, authenticated, loading: authLoading, isAdmin } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      // Filtrar pelo vendedor logado por padrão (exceto admin/diretor)
-      // Admin usa is_admin boolean, não perfil string
-      if (!parsedUser.is_admin && parsedUser.perfil !== 'diretor') {
-        setFiltroVendedor(String(parsedUser.id));
-      }
-    } catch {
-      router.push('/login');
-      return;
+    // Filtrar pelo vendedor logado por padrão (exceto admin)
+    if (user && !isAdmin) {
+      setFiltroVendedor(String(user.id));
     }
-  }, [router]);
+  }, [authLoading, authenticated, user, isAdmin]);
 
   // Buscar oportunidades quando filtros mudarem
   useEffect(() => {

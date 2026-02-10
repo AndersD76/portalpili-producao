@@ -5,16 +5,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const ativo = searchParams.get('ativo');
-    const equipe = searchParams.get('equipe');
 
     let sql = `
       SELECT
         v.*,
+        u.nome as usuario_nome,
+        u.email as usuario_email,
         COUNT(DISTINCT o.id) as total_oportunidades,
         COUNT(DISTINCT CASE WHEN o.estagio = 'FECHAMENTO' AND o.status = 'GANHA' THEN o.id END) as oportunidades_ganhas,
         SUM(CASE WHEN o.estagio = 'FECHAMENTO' AND o.status = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_ganho,
         COUNT(DISTINCT c.id) as total_clientes
       FROM crm_vendedores v
+      LEFT JOIN usuarios u ON v.usuario_id = u.id
       LEFT JOIN crm_oportunidades o ON v.id = o.vendedor_id
       LEFT JOIN crm_clientes c ON v.id = c.vendedor_id
       WHERE 1=1
@@ -27,13 +29,8 @@ export async function GET(request: Request) {
       params.push(ativo === 'true');
     }
 
-    if (equipe) {
-      sql += ` AND v.equipe = $${paramIndex++}`;
-      params.push(equipe);
-    }
-
     sql += `
-      GROUP BY v.id
+      GROUP BY v.id, u.nome, u.email
       ORDER BY v.nome
     `;
 
@@ -61,10 +58,8 @@ export async function POST(request: Request) {
       email,
       telefone,
       cargo,
-      equipe,
       meta_mensal,
-      comissao_percentual,
-      regioes_atuacao,
+      comissao_padrao,
       avatar_url,
     } = body;
 
@@ -90,19 +85,17 @@ export async function POST(request: Request) {
 
     const result = await query(
       `INSERT INTO crm_vendedores (
-        nome, email, telefone, cargo, equipe, meta_mensal,
-        comissao_percentual, regioes_atuacao, avatar_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        nome, email, telefone, cargo, meta_mensal,
+        comissao_padrao, avatar_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`,
       [
         nome,
         email,
         telefone || null,
-        cargo || 'Vendedor',
-        equipe || null,
+        cargo || 'VENDEDOR',
         meta_mensal || 0,
-        comissao_percentual || 3,
-        regioes_atuacao || null,
+        comissao_padrao || 0.048,
         avatar_url || null,
       ]
     );

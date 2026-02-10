@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CampoCNPJ, AssistenteIA } from '@/components/comercial';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DadosCNPJ {
   razao_social: string;
@@ -51,12 +52,14 @@ export default function NovoClientePage() {
 
   const [analiseIA, setAnaliseIA] = useState<unknown>(null);
 
+  const { authenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
     }
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   const handleDadosCNPJ = (dados: DadosCNPJ | null) => {
     if (!dados) return;

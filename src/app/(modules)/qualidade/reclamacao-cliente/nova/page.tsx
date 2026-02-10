@@ -4,9 +4,11 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Anexo } from '@/types/qualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function NovaReclamacaoPage() {
   const router = useRouter();
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -70,16 +72,13 @@ export default function NovaReclamacaoPage() {
     setError(null);
 
     try {
-      const userData = localStorage.getItem('user_data');
-      const user = userData ? JSON.parse(userData) : null;
-
       const response = await fetch('/api/qualidade/reclamacao-cliente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           anexos: anexos.length > 0 ? anexos : null,
-          created_by: user?.id || null
+          created_by: authUser?.id || null
         })
       });
 

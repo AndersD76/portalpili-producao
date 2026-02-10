@@ -16,6 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AtividadeStats {
   atividade: string;
@@ -80,21 +81,20 @@ export default function Dashboard() {
   const [filtroProduto, setFiltroProduto] = useState<string>('');
   const [filtroAtividade, setFiltroAtividade] = useState<string>('');
 
+  const { authenticated, loading: authLoading, logout } = useAuth();
+
   // Verificar autenticação
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     setCheckingAuth(false);
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   const handleLogout = () => {
-    localStorage.removeItem('authenticated');
-    localStorage.removeItem('user_data');
-    sessionStorage.removeItem('politica_vista');
-    router.push('/login');
+    logout();
   };
 
   const fetchDashboardData = async () => {

@@ -18,6 +18,7 @@ import {
   SituacaoFinalAC
 } from '@/types/qualidade';
 import AssistenteIAQualidade from '@/components/qualidade/AssistenteIAQualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DetalhesAcaoCorretivaPage() {
   const router = useRouter();
@@ -47,14 +48,16 @@ export default function DetalhesAcaoCorretivaPage() {
     data_analise: ''
   });
 
+  const { authenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchAcao();
-  }, [params.id]);
+  }, [authLoading, authenticated, params.id]);
 
   const fetchAcao = async () => {
     try {

@@ -10,6 +10,9 @@ interface Vendedor {
   cargo?: string;
   comissao_padrao: string;
   ativo: boolean;
+  usuario_id?: number;
+  usuario_nome?: string;
+  usuario_email?: string;
   total_oportunidades: string;
   oportunidades_ganhas: string;
   valor_total_ganho: string;
@@ -20,6 +23,7 @@ interface Vendedor {
 export default function AdminVendedoresPage() {
   const [loading, setLoading] = useState(true);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [filtro, setFiltro] = useState<'ativos' | 'todos' | 'internos' | 'externos'>('ativos');
   const [showModal, setShowModal] = useState(false);
   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
   const [formData, setFormData] = useState({
@@ -47,6 +51,13 @@ export default function AdminVendedoresPage() {
       setLoading(false);
     }
   };
+
+  const filteredVendedores = vendedores.filter(v => {
+    if (filtro === 'ativos') return v.ativo;
+    if (filtro === 'internos') return v.ativo && v.usuario_id;
+    if (filtro === 'externos') return v.ativo && !v.usuario_id;
+    return true; // todos
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,13 +101,13 @@ export default function AdminVendedoresPage() {
       email: vendedor.email,
       telefone: vendedor.telefone || '',
       cargo: vendedor.cargo || 'VENDEDOR',
-      comissao_padrao: vendedor.comissao_padrao,
+      comissao_padrao: vendedor.comissao_padrao || '0.048',
     });
     setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Tem certeza que deseja excluir este vendedor?')) return;
+    if (!confirm('Tem certeza que deseja excluir este vendedor? Todas as oportunidades e clientes vinculados perderão o vendedor.')) return;
 
     try {
       const res = await fetch(`/api/comercial/vendedores/${id}`, {
@@ -113,6 +124,22 @@ export default function AdminVendedoresPage() {
     }
   };
 
+  const handleToggleAtivo = async (vendedor: Vendedor) => {
+    try {
+      const res = await fetch(`/api/comercial/vendedores/${vendedor.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo: !vendedor.ativo }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadVendedores();
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -121,12 +148,18 @@ export default function AdminVendedoresPage() {
     );
   }
 
+  const totalAtivos = vendedores.filter(v => v.ativo).length;
+  const totalInternos = vendedores.filter(v => v.ativo && v.usuario_id).length;
+  const totalExternos = vendedores.filter(v => v.ativo && !v.usuario_id).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Vendedores</h2>
-          <p className="text-gray-600 mt-1">Gerenciar equipe comercial</p>
+          <p className="text-gray-600 mt-1">
+            {totalAtivos} ativos ({totalInternos} internos, {totalExternos} representantes)
+          </p>
         </div>
         <button
           onClick={() => {
@@ -149,6 +182,28 @@ export default function AdminVendedoresPage() {
         </button>
       </div>
 
+      {/* Filtros */}
+      <div className="flex gap-2">
+        {[
+          { key: 'ativos', label: `Ativos (${totalAtivos})` },
+          { key: 'internos', label: `Internos (${totalInternos})` },
+          { key: 'externos', label: `Representantes (${totalExternos})` },
+          { key: 'todos', label: `Todos (${vendedores.length})` },
+        ].map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFiltro(f.key as typeof filtro)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              filtro === f.key
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <table className="w-full">
@@ -156,6 +211,7 @@ export default function AdminVendedoresPage() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cargo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comissao</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Clientes</th>
@@ -165,36 +221,55 @@ export default function AdminVendedoresPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {vendedores.map((vendedor) => (
-              <tr key={vendedor.id} className="hover:bg-gray-50">
+            {filteredVendedores.map((vendedor) => (
+              <tr key={vendedor.id} className={`hover:bg-gray-50 ${!vendedor.ativo ? 'opacity-50' : ''}`}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="font-medium text-gray-900">{vendedor.nome}</div>
-                  <div className="text-sm text-gray-500">{vendedor.telefone}</div>
+                  {vendedor.telefone && (
+                    <div className="text-sm text-gray-500">{vendedor.telefone}</div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {vendedor.email}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {vendedor.usuario_id ? (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Interno
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      Representante
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {vendedor.cargo}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {(parseFloat(vendedor.comissao_padrao) * 100).toFixed(1)}%
+                  {vendedor.comissao_padrao ? (parseFloat(vendedor.comissao_padrao) * 100).toFixed(1) : '4.8'}%
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {vendedor.total_clientes}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className="text-gray-600">{vendedor.total_oportunidades}</span>
-                  <span className="text-green-600 ml-2">({vendedor.oportunidades_ganhas} ganhas)</span>
+                  {parseInt(vendedor.oportunidades_ganhas) > 0 && (
+                    <span className="text-green-600 ml-2">({vendedor.oportunidades_ganhas} ganhas)</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    vendedor.ativo
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <button
+                    onClick={() => handleToggleAtivo(vendedor)}
+                    className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition ${
+                      vendedor.ativo
+                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                        : 'bg-red-100 text-red-800 hover:bg-red-200'
+                    }`}
+                    title={vendedor.ativo ? 'Clique para desativar' : 'Clique para ativar'}
+                  >
                     {vendedor.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
+                  </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                   <button
@@ -212,10 +287,10 @@ export default function AdminVendedoresPage() {
                 </td>
               </tr>
             ))}
-            {vendedores.length === 0 && (
+            {filteredVendedores.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                  Nenhum vendedor cadastrado
+                <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                  Nenhum vendedor encontrado
                 </td>
               </tr>
             )}

@@ -24,6 +24,7 @@ import {
   DisposicaoNaoConformidade,
   Anexo
 } from '@/types/qualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DetalhesNCPage() {
   const router = useRouter();
@@ -40,14 +41,16 @@ export default function DetalhesNCPage() {
     insights: string;
   } | null>(null);
 
+  const { user: authUser, authenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchNC();
-  }, [params.id]);
+  }, [authLoading, authenticated, params.id]);
 
   const fetchNC = async () => {
     try {
@@ -119,12 +122,9 @@ export default function DetalhesNCPage() {
 
     setSaving(true);
     try {
-      const userData = localStorage.getItem('user_data');
-      const user = userData ? JSON.parse(userData) : null;
-
       const updateData: any = { status: newStatus };
       if (newStatus === 'FECHADA') {
-        updateData.closed_by = user?.id || null;
+        updateData.closed_by = authUser?.id || null;
         updateData.closed_at = new Date().toISOString();
       }
 

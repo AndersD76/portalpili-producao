@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Atividade {
   id: number;
@@ -41,30 +42,21 @@ const TIPOS_ATIVIDADE: Record<string, { label: string; cor: string; icone: strin
 function AtividadesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
   const [loading, setLoading] = useState(true);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [totais, setTotais] = useState<Totais>({ pendentes: 0, concluidas: 0, atrasadas: 0, proxima_semana: 0 });
   const [filtro, setFiltro] = useState<'todas' | 'pendentes' | 'atrasadas' | 'concluidas'>(
     searchParams.get('atrasadas') === 'true' ? 'atrasadas' : 'pendentes'
   );
-  const [user, setUser] = useState<{ id: number; nome: string } | null>(null);
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      router.push('/login');
-      return;
-    }
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   useEffect(() => {
     if (user) {
@@ -192,15 +184,17 @@ function AtividadesContent() {
               </div>
             </div>
 
-            <Link
-              href="/comercial/atividades/nova"
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nova Atividade
-            </Link>
+            {podeExecutarAcao('COMERCIAL', 'criar') && (
+              <Link
+                href="/comercial/atividades/nova"
+                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nova Atividade
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -258,12 +252,14 @@ function AtividadesContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
               <p className="text-gray-500">Nenhuma atividade encontrada</p>
-              <Link
-                href="/comercial/atividades/nova"
-                className="inline-block mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm"
-              >
-                Criar Primeira Atividade
-              </Link>
+              {podeExecutarAcao('COMERCIAL', 'criar') && (
+                <Link
+                  href="/comercial/atividades/nova"
+                  className="inline-block mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm"
+                >
+                  Criar Primeira Atividade
+                </Link>
+              )}
             </div>
           ) : (
             <div className="divide-y">

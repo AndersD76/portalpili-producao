@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CQPergunta {
   id: number;
@@ -74,14 +75,16 @@ export default function ConfiguracaoCQPage() {
   });
   const [opcoesTexto, setOpcoesTexto] = useState('Conforme, Não conforme');
 
+  const { authenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchSetores();
-  }, []);
+  }, [authLoading, authenticated]);
 
   const fetchSetores = async () => {
     try {

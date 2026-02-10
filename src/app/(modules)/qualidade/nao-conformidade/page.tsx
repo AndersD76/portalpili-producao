@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { NaoConformidade, STATUS_NAO_CONFORMIDADE, TIPOS_NAO_CONFORMIDADE, GRAVIDADES_NAO_CONFORMIDADE } from '@/types/qualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function NaoConformidadePage() {
   const [ncs, setNcs] = useState<NaoConformidade[]>([]);
@@ -14,15 +15,16 @@ export default function NaoConformidadePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleting, setDeleting] = useState<number | null>(null);
   const router = useRouter();
+  const { authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchNCs();
-  }, []);
+  }, [authLoading, authenticated]);
 
   const fetchNCs = async () => {
     try {
@@ -132,15 +134,17 @@ export default function NaoConformidadePage() {
                 <p className="text-sm text-gray-600">Registro e tratamento de NCs</p>
               </div>
             </div>
-            <Link
-              href="/qualidade/nao-conformidade/nova"
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nova NC
-            </Link>
+            {podeExecutarAcao('QUALIDADE', 'criar') && (
+              <Link
+                href="/qualidade/nao-conformidade/nova"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nova NC
+              </Link>
+            )}
           </div>
 
           {/* Filtros */}

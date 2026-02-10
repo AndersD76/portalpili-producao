@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ProcessoOrigem, PROCESSOS_ORIGEM } from '@/types/qualidade';
 import AssistenteIAQualidade from '@/components/qualidade/AssistenteIAQualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 function NovaAcaoCorretivaForm() {
   const router = useRouter();
+  const { user: authUser } = useAuth();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +54,6 @@ function NovaAcaoCorretivaForm() {
     setError(null);
 
     try {
-      const userData = localStorage.getItem('user_data');
-      const user = userData ? JSON.parse(userData) : null;
-
       const response = await fetch('/api/qualidade/acao-corretiva', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +72,7 @@ function NovaAcaoCorretivaForm() {
           subcausas: formData.subcausas || null,
           acoes: formData.acoes || null,
           status_acoes: 'EM_ANDAMENTO',
-          created_by: user?.id || null
+          created_by: authUser?.id || null
         })
       });
 

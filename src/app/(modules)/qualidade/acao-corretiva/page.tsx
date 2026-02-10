@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { AcaoCorretiva, STATUS_ACAO_CORRETIVA, STATUS_ACOES_AC, SITUACAO_FINAL_AC } from '@/types/qualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AcaoCorretivaPage() {
   const [acoes, setAcoes] = useState<AcaoCorretiva[]>([]);
@@ -14,15 +15,16 @@ export default function AcaoCorretivaPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleting, setDeleting] = useState<number | null>(null);
   const router = useRouter();
+  const { authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchAcoes();
-  }, []);
+  }, [authLoading, authenticated]);
 
   const fetchAcoes = async () => {
     try {
@@ -142,15 +144,17 @@ export default function AcaoCorretivaPage() {
                 <p className="text-sm text-gray-600">Nº 57-3 - REV. 01</p>
               </div>
             </div>
-            <Link
-              href="/qualidade/acao-corretiva/nova"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nova RAC
-            </Link>
+            {podeExecutarAcao('QUALIDADE', 'criar') && (
+              <Link
+                href="/qualidade/acao-corretiva/nova"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nova RAC
+              </Link>
+            )}
           </div>
 
           {/* Filtros */}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { NaoConformidade, ReclamacaoCliente, AcaoCorretiva } from '@/types/qualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface QualidadeStats {
   naoConformidades: {
@@ -25,7 +26,6 @@ interface QualidadeStats {
 }
 
 export default function QualidadePage() {
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<QualidadeStats>({
     naoConformidades: { total: 0, abertas: 0, emAnalise: 0 },
@@ -36,25 +36,16 @@ export default function QualidadePage() {
   const [recentReclamacoes, setRecentReclamacoes] = useState<ReclamacaoCliente[]>([]);
   const [recentAcoes, setRecentAcoes] = useState<AcaoCorretiva[]>([]);
   const router = useRouter();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch (e) {
-      router.push('/login');
-      return;
-    }
-
     fetchData();
-  }, []);
+  }, [authLoading, authenticated]);
 
   const fetchData = async () => {
     try {
@@ -267,12 +258,14 @@ export default function QualidadePage() {
                 >
                   Ver Todas
                 </Link>
-                <Link
-                  href="/qualidade/nao-conformidade/nova"
-                  className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-center text-sm font-medium"
-                >
-                  Nova NC
-                </Link>
+                {podeExecutarAcao('QUALIDADE', 'criar') && (
+                  <Link
+                    href="/qualidade/nao-conformidade/nova"
+                    className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-center text-sm font-medium"
+                  >
+                    Nova NC
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -314,12 +307,14 @@ export default function QualidadePage() {
                 >
                   Ver Todas
                 </Link>
-                <Link
-                  href="/qualidade/reclamacao-cliente/nova"
-                  className="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-center text-sm font-medium"
-                >
-                  Nova Reclamação
-                </Link>
+                {podeExecutarAcao('QUALIDADE', 'criar') && (
+                  <Link
+                    href="/qualidade/reclamacao-cliente/nova"
+                    className="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-center text-sm font-medium"
+                  >
+                    Nova Reclamação
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -361,12 +356,14 @@ export default function QualidadePage() {
                 >
                   Ver Todas
                 </Link>
-                <Link
-                  href="/qualidade/acao-corretiva/nova"
-                  className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center text-sm font-medium"
-                >
-                  Nova Ação
-                </Link>
+                {podeExecutarAcao('QUALIDADE', 'criar') && (
+                  <Link
+                    href="/qualidade/acao-corretiva/nova"
+                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-center text-sm font-medium"
+                  >
+                    Nova Ação
+                  </Link>
+                )}
               </div>
             </div>
           </div>

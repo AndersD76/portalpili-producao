@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Stats {
   opdsAtivas: number;
@@ -13,12 +14,6 @@ interface Stats {
   entregasProximaSemana: number;
   clientes: number;
   propostas: number;
-}
-
-interface Permissao {
-  codigo: string;
-  nome: string;
-  pode_visualizar: boolean;
 }
 
 export default function Home() {
@@ -33,71 +28,18 @@ export default function Home() {
     propostas: 0
   });
   const [loading, setLoading] = useState(true);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [loadingPermissoes, setLoadingPermissoes] = useState(true);
-  const [userName, setUserName] = useState<string>('');
-  const [userId, setUserId] = useState<number | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [permissoes, setPermissoes] = useState<Permissao[]>([]);
   const router = useRouter();
+  const { user, isAdmin, authenticated, loading: authLoading, podeAcessarModulo, logout } = useAuth();
 
-  // Verificar autenticação
+  // Redirecionar se não autenticado
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (!authLoading && !authenticated) {
       router.push('/login');
-      return;
     }
-    // Buscar dados do usuário
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        setUserName(user.nome || '');
-        setUserId(user.id || null);
-        // Também verificar is_admin do localStorage
-        if (user.is_admin === true) {
-          setIsAdmin(true);
-        }
-        console.log('[Auth] Usuário carregado:', user.id, user.nome, 'is_admin:', user.is_admin);
-      } catch {
-        // Ignora erro de parse
-      }
-    }
-    setCheckingAuth(false);
-  }, [router]);
-
-  // Buscar permissões do usuário
-  useEffect(() => {
-    if (!userId) {
-      setLoadingPermissoes(false);
-      return;
-    }
-
-    async function fetchPermissoes() {
-      try {
-        console.log('[Permissoes] Buscando permissões para userId:', userId);
-        const response = await fetch(`/api/auth/permissoes?usuario_id=${userId}`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[Permissoes] Resposta:', data);
-          if (data.success) {
-            setPermissoes(data.data || []);
-            setIsAdmin(data.isAdmin || false);
-          }
-        }
-      } catch (error) {
-        console.error('Erro ao buscar permissões:', error);
-      } finally {
-        setLoadingPermissoes(false);
-      }
-    }
-
-    fetchPermissoes();
-  }, [userId]);
+  }, [authLoading, authenticated, router]);
 
   useEffect(() => {
-    if (checkingAuth) return;
+    if (authLoading || !authenticated) return;
 
     async function fetchStats() {
       try {
@@ -194,7 +136,7 @@ export default function Home() {
     }
 
     fetchStats();
-  }, [checkingAuth]);
+  }, [authLoading, authenticated]);
 
   const modulos = [
     {
@@ -296,39 +238,8 @@ export default function Home() {
     },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('authenticated');
-    localStorage.removeItem('user_data');
-    sessionStorage.removeItem('politica_vista');
-    router.push('/login');
-  };
-
-  // Verifica se usuário pode acessar um módulo
-  const podeAcessarModulo = (codigo: string): boolean => {
-    // Admin tem acesso a tudo
-    if (isAdmin) return true;
-
-    // Mapear href para código do módulo
-    const codigoMap: Record<string, string> = {
-      '/producao': 'PRODUCAO',
-      '/qualidade': 'QUALIDADE',
-      '/comercial': 'COMERCIAL',
-      '/dashboard': 'PRODUCAO', // Dashboard usa permissão de produção
-      '/producao/calendario': 'PRODUCAO', // Calendário usa permissão de produção
-      '/admin': 'ADMIN',
-    };
-
-    const moduloCodigo = codigoMap[codigo] || codigo.replace('/', '').toUpperCase();
-    const perm = permissoes.find(p => p.codigo === moduloCodigo);
-
-    // Se não encontrou a permissão, bloqueia (exceto se é admin)
-    if (!perm) return false;
-
-    return perm.pode_visualizar === true;
-  };
-
   // Tela de carregamento enquanto verifica autenticação ou permissões
-  if (checkingAuth || loadingPermissoes) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
         <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-600"></div>
@@ -346,18 +257,18 @@ export default function Home() {
               <h1 className="text-lg sm:text-xl font-bold text-gray-900">Portal Pili</h1>
             </div>
             <div className="flex items-center gap-3">
-              {userName && (
+              {user?.nome && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
                     <span className="text-red-600 font-semibold text-sm">
-                      {userName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                      {user.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                     </span>
                   </div>
-                  <span className="hidden sm:inline font-medium">{userName.split(' ')[0]}</span>
+                  <span className="hidden sm:inline font-medium">{user.nome.split(' ')[0]}</span>
                 </div>
               )}
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
                 title="Sair"
               >

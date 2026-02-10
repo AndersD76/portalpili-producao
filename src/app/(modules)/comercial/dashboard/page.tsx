@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardData {
   pipeline: {
@@ -65,8 +66,8 @@ const ESTAGIOS = [
 
 export default function DashboardComercialPage() {
   const router = useRouter();
+  const { user, authenticated, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ id: number; nome: string } | null>(null);
   const [data, setData] = useState<DashboardData>({
     pipeline: {
       prospeccao: { quantidade: 0, valor: 0 },
@@ -84,27 +85,13 @@ export default function DashboardComercialPage() {
   });
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      router.push('/login');
-      return;
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
+    fetchDashboardData();
+  }, [authLoading, authenticated]);
 
   const fetchDashboardData = async () => {
     try {

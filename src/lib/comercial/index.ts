@@ -61,3 +61,18 @@ export {
   registrarFeedback,
   obterEstatisticas,
 } from './ia';
+
+// Fuzzy Match - Busca inteligente por similaridade
+export {
+  normalizarNome,
+  calcularSimilaridade,
+  contemTermo,
+  buscarClienteFuzzy,
+  detectarDuplicatas,
+} from './fuzzyMatch';
+
+// Follow-up - Automação de acompanhamento
+export {
+  gerarFollowUp,
+  buscarOportunidadesSemFollowUp,
+} from './followup';

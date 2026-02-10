@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ClienteCard } from '@/components/comercial';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Cliente {
   id: number;
@@ -24,7 +25,6 @@ interface Cliente {
 }
 
 export default function ClientesPage() {
-  const [user, setUser] = useState<{ nome: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
@@ -33,23 +33,15 @@ export default function ClientesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const router = useRouter();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      router.push('/login');
-      return;
-    }
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   useEffect(() => {
     fetchClientes();
@@ -113,15 +105,17 @@ export default function ClientesPage() {
               </div>
             </div>
 
-            <Link
-              href="/comercial/clientes/novo"
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Novo Cliente
-            </Link>
+            {podeExecutarAcao('COMERCIAL', 'criar') && (
+              <Link
+                href="/comercial/clientes/novo"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Novo Cliente
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -184,15 +178,17 @@ export default function ClientesPage() {
             </svg>
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum cliente encontrado</h3>
             <p className="text-gray-500 mb-4">Comece cadastrando seu primeiro cliente</p>
-            <Link
-              href="/comercial/clientes/novo"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Novo Cliente
-            </Link>
+            {podeExecutarAcao('COMERCIAL', 'criar') && (
+              <Link
+                href="/comercial/clientes/novo"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Novo Cliente
+              </Link>
+            )}
           </div>
         ) : (
           <>

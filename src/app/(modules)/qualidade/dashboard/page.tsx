@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardData {
   naoConformidades: {
@@ -196,9 +197,9 @@ function MonthlyBarChart({ data, color = 'blue' }: { data: Array<{ mes: string; 
 export default function QualidadeDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'ncs' | 'reclamacoes' | 'acoes'>('ncs');
   const router = useRouter();
+  const { user, authenticated, loading: authLoading } = useAuth();
 
   // Filtros
   const [filtroLocal, setFiltroLocal] = useState<string>('todos');
@@ -209,23 +210,13 @@ export default function QualidadeDashboardPage() {
   const [filtroPeriodo, setFiltroPeriodo] = useState<string>('todos');
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch (e) {
-      router.push('/login');
-      return;
-    }
-
     fetchData();
-  }, []);
+  }, [authLoading, authenticated]);
 
   // Refetch quando os filtros mudam
   useEffect(() => {

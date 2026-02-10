@@ -7,6 +7,7 @@ import OPDCard from '@/components/OPDCard';
 import Modal from '@/components/Modal';
 import OPDForm from '@/components/OPDForm';
 import { OPD } from '@/types/opd';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProducaoHome() {
   const [opds, setOpds] = useState<OPD[]>([]);
@@ -14,12 +15,12 @@ export default function ProducaoHome() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewOPDModal, setShowNewOPDModal] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [diasFilter, setDiasFilter] = useState<string>('todos');
   const [ordenacao, setOrdenacao] = useState<'urgencia' | 'alfabetica' | 'recentes'>('urgencia');
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const router = useRouter();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao, logout } = useAuth();
 
   // Calcular dias restantes até a data de entrega (mesma lógica do OPDCard)
   const calcularDiasRestantes = (opd: OPD): number | null => {
@@ -109,35 +110,16 @@ export default function ProducaoHome() {
   };
 
   useEffect(() => {
-    // Verificar autenticação
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch (e) {
-      console.error('Erro ao parsear dados do usuário');
-      router.push('/login');
-      return;
-    }
-
     fetchOPDs();
-  }, []);
+  }, [authLoading, authenticated]);
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      localStorage.removeItem('authenticated');
-      localStorage.removeItem('user_data');
-      router.push('/login');
-    } catch (err) {
-      console.error('Erro ao fazer logout:', err);
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   const handleSyncSinprod = async () => {
@@ -291,15 +273,17 @@ export default function ProducaoHome() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
-              <button
-                onClick={() => setShowNewOPDModal(true)}
-                className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">Nova OPD</span>
-              </button>
+              {podeExecutarAcao('PRODUCAO', 'criar') && (
+                <button
+                  onClick={() => setShowNewOPDModal(true)}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="hidden sm:inline">Nova OPD</span>
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"

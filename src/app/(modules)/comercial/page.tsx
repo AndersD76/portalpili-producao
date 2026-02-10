@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ComercialStats {
   pipeline: {
@@ -35,7 +36,6 @@ interface ComercialStats {
 }
 
 export default function ComercialPage() {
-  const [user, setUser] = useState<{ nome: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ComercialStats>({
     pipeline: {
@@ -55,25 +55,16 @@ export default function ComercialPage() {
     atividades: { pendentes: 0, atrasadas: 0, proximaSemana: 0 },
   });
   const router = useRouter();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      router.push('/login');
-      return;
-    }
-
     fetchData();
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   const fetchData = async () => {
     try {
@@ -355,12 +346,14 @@ export default function ComercialPage() {
                 >
                   Ver Todos
                 </Link>
-                <Link
-                  href="/comercial/clientes/novo"
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center text-sm font-medium"
-                >
-                  Novo Cliente
-                </Link>
+                {podeExecutarAcao('COMERCIAL', 'criar') && (
+                  <Link
+                    href="/comercial/clientes/novo"
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center text-sm font-medium"
+                  >
+                    Novo Cliente
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -402,12 +395,14 @@ export default function ComercialPage() {
                 >
                   Ver Todas
                 </Link>
-                <Link
-                  href="/comercial/propostas/nova"
-                  className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-center text-sm font-medium"
-                >
-                  Nova Proposta
-                </Link>
+                {podeExecutarAcao('COMERCIAL', 'criar') && (
+                  <Link
+                    href="/comercial/propostas/nova"
+                    className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-center text-sm font-medium"
+                  >
+                    Nova Proposta
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -449,12 +444,14 @@ export default function ComercialPage() {
                 >
                   Ver Todas
                 </Link>
-                <Link
-                  href="/comercial/atividades/nova"
-                  className="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-center text-sm font-medium"
-                >
-                  Nova Atividade
-                </Link>
+                {podeExecutarAcao('COMERCIAL', 'criar') && (
+                  <Link
+                    href="/comercial/atividades/nova"
+                    className="flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-center text-sm font-medium"
+                  >
+                    Nova Atividade
+                  </Link>
+                )}
               </div>
             </div>
           </div>

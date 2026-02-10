@@ -11,6 +11,7 @@ import {
   StatusReclamacao,
   Anexo
 } from '@/types/qualidade';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DetalhesReclamacaoPage() {
   const router = useRouter();
@@ -21,14 +22,16 @@ export default function DetalhesReclamacaoPage() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<ReclamacaoCliente>>({});
 
+  const { authenticated, loading: authLoading } = useAuth();
+
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchReclamacao();
-  }, [params.id]);
+  }, [authLoading, authenticated, params.id]);
 
   const fetchReclamacao = async () => {
     try {

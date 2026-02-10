@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import './globals.css'
 import NotificationManager from '@/components/NotificationManager'
+import Providers from '@/components/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -46,7 +47,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={inter.className}>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <NotificationManager />
         <Toaster
           position="top-right"

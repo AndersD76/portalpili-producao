@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Proposta {
   id: number;
@@ -54,24 +55,15 @@ export default function PropostasPage() {
   const [filtroSituacao, setFiltroSituacao] = useState<string>('');
   const [filtroProduto, setFiltroProduto] = useState<string>('');
   const [search, setSearch] = useState('');
-  const [user, setUser] = useState<{ id: number; nome: string } | null>(null);
+  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    const userData = localStorage.getItem('user_data');
-
-    if (authenticated !== 'true' || !userData) {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
-
-    try {
-      setUser(JSON.parse(userData));
-    } catch {
-      router.push('/login');
-      return;
-    }
-  }, [router]);
+  }, [authLoading, authenticated]);
 
   useEffect(() => {
     if (user) {
@@ -183,15 +175,17 @@ export default function PropostasPage() {
               </div>
             </div>
 
-            <Link
-              href="/comercial/propostas/nova"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Nova Proposta
-            </Link>
+            {podeExecutarAcao('COMERCIAL', 'criar') && (
+              <Link
+                href="/comercial/propostas/nova"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Nova Proposta
+              </Link>
+            )}
           </div>
         </div>
       </header>

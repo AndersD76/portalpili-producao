@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AssistenteIA from '@/components/comercial/AssistenteIA';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 interface Cliente {
@@ -430,6 +431,7 @@ function OpcionalItem({ label, descricao, value, onValueChange, qtd, onQtdChange
 
 export default function NovaPropostaPage() {
   const router = useRouter();
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -468,11 +470,9 @@ export default function NovaPropostaPage() {
           setOpcionais(data.data || []);
         }
 
-        // Set current user as vendedor
-        const userData = localStorage.getItem('user_data');
-        if (userData) {
-          const user = JSON.parse(userData);
-          setForm(prev => ({ ...prev, vendedor_id: user.id, vendedor_email: user.email || '' }));
+        // Set current user as vendedor (from AuthContext)
+        if (authUser) {
+          setForm(prev => ({ ...prev, vendedor_id: authUser.id, vendedor_email: authUser.email || '' }));
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);

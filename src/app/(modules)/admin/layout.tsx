@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItem {
   href: string;
@@ -16,15 +16,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      setIsAdmin(user.is_admin || user.role === 'super_admin');
-    }
-  }, []);
+  const { isAdmin } = useAuth();
 
   const navItems: NavItem[] = [
     {

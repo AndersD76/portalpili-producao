@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Modulo {
   id: number;
@@ -61,6 +62,7 @@ const DEPARTAMENTOS_PADRAO = [
 
 export default function AdminUsuariosPage() {
   const router = useRouter();
+  const { authenticated, loading: authLoading, recarregarPermissoes } = useAuth();
   const [loading, setLoading] = useState(true);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [perfis, setPerfis] = useState<Perfil[]>([]);
@@ -76,13 +78,13 @@ export default function AdminUsuariosPage() {
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
-    if (authenticated !== 'true') {
+    if (authLoading) return;
+    if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchDados();
-  }, [router]);
+  }, [authLoading, authenticated, router]);
 
   const fetchDados = async () => {
     setLoading(true);
@@ -196,6 +198,8 @@ export default function AdminUsuariosPage() {
 
       setMensagem({ tipo: 'sucesso', texto: 'Usuário atualizado com sucesso!' });
       fetchDados();
+      // Atualizar cache de permissões do contexto global
+      recarregarPermissoes();
 
       setTimeout(() => {
         setUsuarioEditando(null);
