@@ -8,6 +8,7 @@ interface Vendedor {
   email: string;
   telefone?: string;
   cargo?: string;
+  tipo?: string;
   comissao_padrao: string;
   ativo: boolean;
   usuario_id?: number;
@@ -32,6 +33,7 @@ export default function AdminVendedoresPage() {
     telefone: '',
     cargo: 'VENDEDOR',
     comissao_padrao: '0.048',
+    tipo: 'REPRESENTANTE',
   });
 
   useEffect(() => {
@@ -54,8 +56,8 @@ export default function AdminVendedoresPage() {
 
   const filteredVendedores = vendedores.filter(v => {
     if (filtro === 'ativos') return v.ativo;
-    if (filtro === 'internos') return v.ativo && v.usuario_id;
-    if (filtro === 'externos') return v.ativo && !v.usuario_id;
+    if (filtro === 'internos') return v.ativo && v.tipo === 'INTERNO';
+    if (filtro === 'externos') return v.ativo && v.tipo !== 'INTERNO';
     return true; // todos
   });
 
@@ -83,6 +85,7 @@ export default function AdminVendedoresPage() {
           telefone: '',
           cargo: 'VENDEDOR',
           comissao_padrao: '0.048',
+          tipo: 'REPRESENTANTE',
         });
         loadVendedores();
       } else {
@@ -102,6 +105,7 @@ export default function AdminVendedoresPage() {
       telefone: vendedor.telefone || '',
       cargo: vendedor.cargo || 'VENDEDOR',
       comissao_padrao: vendedor.comissao_padrao || '0.048',
+      tipo: vendedor.tipo || (vendedor.usuario_id ? 'INTERNO' : 'REPRESENTANTE'),
     });
     setShowModal(true);
   };
@@ -149,8 +153,8 @@ export default function AdminVendedoresPage() {
   }
 
   const totalAtivos = vendedores.filter(v => v.ativo).length;
-  const totalInternos = vendedores.filter(v => v.ativo && v.usuario_id).length;
-  const totalExternos = vendedores.filter(v => v.ativo && !v.usuario_id).length;
+  const totalInternos = vendedores.filter(v => v.ativo && v.tipo === 'INTERNO').length;
+  const totalExternos = vendedores.filter(v => v.ativo && v.tipo !== 'INTERNO').length;
 
   return (
     <div className="space-y-6">
@@ -170,6 +174,7 @@ export default function AdminVendedoresPage() {
               telefone: '',
               cargo: 'VENDEDOR',
               comissao_padrao: '0.048',
+              tipo: 'REPRESENTANTE',
             });
             setShowModal(true);
           }}
@@ -233,7 +238,7 @@ export default function AdminVendedoresPage() {
                   {vendedor.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {vendedor.usuario_id ? (
+                  {vendedor.tipo === 'INTERNO' ? (
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       Interno
                     </span>
@@ -335,17 +340,30 @@ export default function AdminVendedoresPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
-                <select
-                  value={formData.cargo}
-                  onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                >
-                  <option value="VENDEDOR">Vendedor</option>
-                  <option value="GERENTE">Gerente</option>
-                  <option value="DIRETOR">Diretor</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                  <select
+                    value={formData.tipo}
+                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  >
+                    <option value="INTERNO">Interno</option>
+                    <option value="REPRESENTANTE">Representante</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+                  <select
+                    value={formData.cargo}
+                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  >
+                    <option value="VENDEDOR">Vendedor</option>
+                    <option value="GERENTE">Gerente</option>
+                    <option value="DIRETOR">Diretor</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Comissao (%)</label>

@@ -78,14 +78,18 @@ export default function ComercialPage() {
   const [ordenacao, setOrdenacao] = useState<string>('valor');
 
   const router = useRouter();
-  const { user, authenticated, loading: authLoading, logout } = useAuth();
+  const { user, authenticated, loading: authLoading, logout, isAdmin } = useAuth();
 
   // ==================== DATA FETCHING ====================
 
   const fetchAll = useCallback(async () => {
     try {
+      // Non-admin: filter by own usuario_id
+      const opUrl = isAdmin
+        ? '/api/comercial/oportunidades?limit=2000'
+        : `/api/comercial/oportunidades?limit=2000&usuario_id=${user?.id || ''}`;
       const [opRes, vendRes] = await Promise.all([
-        fetch('/api/comercial/oportunidades?limit=2000'),
+        fetch(opUrl),
         fetch('/api/comercial/vendedores?ativo=true'),
       ]);
       if (opRes.ok) {
@@ -102,7 +106,7 @@ export default function ComercialPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, user]);
 
   const fetchSyncStatus = useCallback(async (): Promise<string | null> => {
     try {
@@ -283,6 +287,24 @@ export default function ComercialPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Link href="/comercial/pipeline" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />
+                </svg>
+                Kanban
+              </Link>
+              <Link href="/comercial/vendedores" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Vendedores
+              </Link>
+              <Link href="/comercial/clientes" className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Clientes
+              </Link>
               {syncing && <span className="text-xs text-gray-400 hidden sm:inline">Sincronizando...</span>}
               <button
                 onClick={() => runSync(false)}

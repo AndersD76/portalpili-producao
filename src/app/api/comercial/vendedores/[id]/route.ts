@@ -68,6 +68,7 @@ export async function PUT(
       comissao_padrao,
       avatar_url,
       ativo,
+      tipo,
     } = body;
 
     const result = await query(
@@ -80,10 +81,11 @@ export async function PUT(
         comissao_padrao = COALESCE($7, comissao_padrao),
         avatar_url = COALESCE($8, avatar_url),
         ativo = COALESCE($9, ativo),
+        tipo = COALESCE($10, tipo),
         updated_at = NOW()
       WHERE id = $1
       RETURNING *`,
-      [id, nome, email, telefone, cargo, meta_mensal, comissao_padrao, avatar_url, ativo]
+      [id, nome, email, telefone, cargo, meta_mensal, comissao_padrao, avatar_url, ativo, tipo]
     );
 
     if (!result?.rows[0]) {

@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       meta_mensal,
       comissao_padrao,
       avatar_url,
+      tipo,
     } = body;
 
     if (!nome || !email) {
@@ -86,8 +87,8 @@ export async function POST(request: Request) {
     const result = await query(
       `INSERT INTO crm_vendedores (
         nome, email, telefone, cargo, meta_mensal,
-        comissao_padrao, avatar_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        comissao_padrao, avatar_url, tipo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
       [
         nome,
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
         meta_mensal || 0,
         comissao_padrao || 0.048,
         avatar_url || null,
+        tipo || 'REPRESENTANTE',
       ]
     );
 
