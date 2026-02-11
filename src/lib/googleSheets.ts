@@ -14,6 +14,32 @@ function buildExportUrl(gid: string): string {
   return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
 }
 
+// ==================== NORMALIZAÇÃO ESTADO ====================
+
+const ESTADO_SIGLAS: Record<string, string> = {
+  'acre': 'AC', 'alagoas': 'AL', 'amapa': 'AP', 'amazonas': 'AM',
+  'bahia': 'BA', 'ceara': 'CE', 'distrito federal': 'DF', 'espirito santo': 'ES',
+  'goias': 'GO', 'maranhao': 'MA', 'mato grosso': 'MT', 'mato grosso do sul': 'MS',
+  'minas gerais': 'MG', 'para': 'PA', 'paraiba': 'PB', 'parana': 'PR',
+  'pernambuco': 'PE', 'piaui': 'PI', 'rio de janeiro': 'RJ', 'rio grande do norte': 'RN',
+  'rio grande do sul': 'RS', 'rondonia': 'RO', 'roraima': 'RR', 'santa catarina': 'SC',
+  'sao paulo': 'SP', 'sergipe': 'SE', 'tocantins': 'TO',
+};
+
+const SIGLAS_VALIDAS = new Set(Object.values(ESTADO_SIGLAS));
+
+function normalizarEstado(valor: string): string {
+  if (!valor) return '';
+  const limpo = valor.trim();
+  // Já é sigla válida
+  if (limpo.length === 2 && SIGLAS_VALIDAS.has(limpo.toUpperCase())) {
+    return limpo.toUpperCase();
+  }
+  // Tentar mapear nome completo
+  const normalizado = limpo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return ESTADO_SIGLAS[normalizado] || limpo.substring(0, 2).toUpperCase();
+}
+
 // ==================== CSV PARSER ====================
 
 function parseCSV(text: string): Record<string, string>[] {
@@ -153,7 +179,7 @@ function mapRowToProposta(row: Record<string, string>): PropostaSheet {
     vendedor_nome: row['Vendedor e/ou Representante (Nome e Sobrenome):'] || '',
     cliente_razao_social: row['Razão Social do Cliente:'] || '',
     cliente_pais: row['País (onde será instalado o equipamento):'] || '',
-    cliente_estado: row['Estado (onde será instalado o equipamento):'] || '',
+    cliente_estado: normalizarEstado(row['Estado (onde será instalado o equipamento):'] || ''),
     cliente_cidade: row['Município (onde será instalado o equipamento):'] || '',
     cliente_regiao: row['Região:'] || '',
     vendedor_email: row['E-mail do Vendedor/Representante:'] || '',

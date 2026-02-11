@@ -251,7 +251,7 @@ async function insertProposta(
       prop.cliente_cnpj ? prop.cliente_cnpj.replace(/\D/g, '') : null,
       prop.cliente_contato,
       prop.cliente_pais,
-      prop.cliente_estado,
+      prop.cliente_estado ? prop.cliente_estado.substring(0, 2) : null,
       prop.cliente_cidade,
       prop.cliente_regiao,
       prop.vendedor_nome,
