@@ -11,13 +11,47 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const oportunidade_id = searchParams.get('oportunidade_id');
     const cliente_id = searchParams.get('cliente_id');
-    const vendedor_id = searchParams.get('vendedor_id');
+    let vendedor_id = searchParams.get('vendedor_id');
     const situacao = searchParams.get('situacao');
     const tipo_produto = searchParams.get('tipo_produto');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
+
+    // SERVER-SIDE: Se NÃO é admin, forçar filtro pelo vendedor do usuário logado
+    const isAdmin = auth.usuario.is_admin;
+    let vendedorNaoEncontrado = false;
+    if (!isAdmin && !vendedor_id) {
+      const vendedorResult = await query(
+        `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
+        [auth.usuario.id]
+      );
+      if (vendedorResult?.rows?.length) {
+        vendedor_id = String(vendedorResult.rows[0].id);
+      } else {
+        const vendedorByName = await query(
+          `SELECT id FROM crm_vendedores WHERE LOWER(nome) = LOWER($1) OR nome ILIKE $2 LIMIT 1`,
+          [auth.usuario.nome, `%${auth.usuario.nome.split(' ')[0]}%`]
+        );
+        if (vendedorByName?.rows?.length) {
+          vendedor_id = String(vendedorByName.rows[0].id);
+        } else {
+          console.warn(`[PROPOSTAS] Vendedor não encontrado para usuário ${auth.usuario.id} (${auth.usuario.nome})`);
+          vendedorNaoEncontrado = true;
+        }
+      }
+    }
+
+    // Se não é admin e não tem vendedor vinculado, retorna lista vazia
+    if (vendedorNaoEncontrado) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+        aviso: 'Seu usuário não está vinculado a um vendedor. Contate o administrador.',
+      });
+    }
 
     let sql = `
       SELECT
@@ -75,18 +109,39 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
-    // Conta total para paginação (com parâmetros seguros)
-    let countSql = 'SELECT COUNT(*) as total FROM crm_propostas WHERE 1=1';
+    // Conta total para paginação (replica todos os filtros da query principal)
+    let countSql = `
+      SELECT COUNT(*) as total FROM crm_propostas p
+      LEFT JOIN crm_clientes c ON p.cliente_id = c.id
+      WHERE 1=1
+    `;
     const countParams: unknown[] = [];
     let countParamIndex = 1;
 
-    if (situacao) {
-      countSql += ` AND situacao = $${countParamIndex++}`;
-      countParams.push(situacao);
+    if (oportunidade_id) {
+      countSql += ` AND p.oportunidade_id = $${countParamIndex++}`;
+      countParams.push(oportunidade_id);
+    }
+    if (cliente_id) {
+      countSql += ` AND p.cliente_id = $${countParamIndex++}`;
+      countParams.push(cliente_id);
     }
     if (vendedor_id) {
-      countSql += ` AND vendedor_id = $${countParamIndex++}`;
+      countSql += ` AND p.vendedor_id = $${countParamIndex++}`;
       countParams.push(vendedor_id);
+    }
+    if (situacao) {
+      countSql += ` AND p.situacao = $${countParamIndex++}`;
+      countParams.push(situacao);
+    }
+    if (tipo_produto) {
+      countSql += ` AND p.produto = $${countParamIndex++}`;
+      countParams.push(tipo_produto);
+    }
+    if (search) {
+      countSql += ` AND (CAST(p.numero_proposta AS TEXT) ILIKE $${countParamIndex} OR c.razao_social ILIKE $${countParamIndex})`;
+      countParams.push(`%${search}%`);
+      countParamIndex++;
     }
 
     const countResult = await query(countSql, countParams);
