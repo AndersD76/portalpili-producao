@@ -20,6 +20,7 @@ export async function GET(request: Request) {
 
     // SERVER-SIDE: Se NÃO é admin, forçar filtro pelo vendedor do usuário logado
     const isAdmin = auth.usuario.is_admin;
+    let vendedorNaoEncontrado = false;
     if (!isAdmin && !vendedor_id) {
       // Tentar encontrar vendedor pelo usuario_id
       const vendedorResult = await query(
@@ -36,8 +37,21 @@ export async function GET(request: Request) {
         );
         if (vendedorByName?.rows?.length) {
           vendedor_id = String(vendedorByName.rows[0].id);
+        } else {
+          console.warn(`[OPORTUNIDADES] Vendedor não encontrado para usuário ${auth.usuario.id} (${auth.usuario.nome})`);
+          vendedorNaoEncontrado = true;
         }
       }
+    }
+
+    // Se não é admin e não tem vendedor vinculado, retorna lista vazia
+    if (vendedorNaoEncontrado) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+        aviso: 'Seu usuário não está vinculado a um vendedor. Contate o administrador.',
+      });
     }
 
     // Buscar pipeline filtrado pelo vendedor (se aplicável)

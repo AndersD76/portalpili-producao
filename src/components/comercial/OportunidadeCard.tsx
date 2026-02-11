@@ -83,6 +83,12 @@ export default function OportunidadeCard({
     }
   };
 
+  const ESTAGIO_LEGADO_LABELS: Record<string, { label: string; color: string }> = {
+    PROSPECCAO: { label: 'Prospecção', color: 'bg-blue-100 text-blue-700' },
+    QUALIFICACAO: { label: 'Qualificação', color: 'bg-teal-100 text-teal-700' },
+    PROPOSTA: { label: 'Proposta', color: 'bg-purple-100 text-purple-700' },
+  };
+
   const diasParaFechamento = () => {
     if (!oportunidade.data_previsao_fechamento) return null;
     const hoje = new Date();
@@ -105,6 +111,11 @@ export default function OportunidadeCard({
         <div className="flex items-center gap-2">
           <span className="text-red-600">{getProdutoIcon(oportunidade.produto)}</span>
           <span className="text-xs font-medium text-gray-500">{oportunidade.produto}</span>
+          {ESTAGIO_LEGADO_LABELS[oportunidade.estagio] && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${ESTAGIO_LEGADO_LABELS[oportunidade.estagio].color}`}>
+              {ESTAGIO_LEGADO_LABELS[oportunidade.estagio].label}
+            </span>
+          )}
         </div>
         <span className={`text-xs font-semibold ${getStatusColor(oportunidade.status)}`}>
           {oportunidade.status}

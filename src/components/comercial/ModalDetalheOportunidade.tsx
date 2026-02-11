@@ -17,6 +17,9 @@ const ESTAGIOS_OPTIONS = [
   { value: 'TESTE', label: 'Teste' },
   { value: 'SUSPENSO', label: 'Suspenso' },
   { value: 'SUBSTITUIDO', label: 'Substituído' },
+  { value: 'PROSPECCAO', label: 'Prospecção' },
+  { value: 'QUALIFICACAO', label: 'Qualificação' },
+  { value: 'PROPOSTA', label: 'Proposta' },
 ];
 
 const toNum = (v: unknown): number => {

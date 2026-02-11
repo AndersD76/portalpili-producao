@@ -22,6 +22,7 @@ export async function GET(request: Request) {
 
     // SERVER-SIDE: Se NÃO é admin, forçar filtro pelo vendedor do usuário logado
     const isAdmin = auth.usuario.is_admin;
+    let vendedorNaoEncontrado = false;
     if (!isAdmin && !vendedor_id) {
       const vendedorResult = await query(
         `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
@@ -30,14 +31,29 @@ export async function GET(request: Request) {
       if (vendedorResult?.rows?.length) {
         vendedor_id = String(vendedorResult.rows[0].id);
       } else {
+        // Fallback: buscar por nome do usuário
         const vendedorByName = await query(
           `SELECT id FROM crm_vendedores WHERE LOWER(nome) = LOWER($1) OR nome ILIKE $2 LIMIT 1`,
           [auth.usuario.nome, `%${auth.usuario.nome.split(' ')[0]}%`]
         );
         if (vendedorByName?.rows?.length) {
           vendedor_id = String(vendedorByName.rows[0].id);
+        } else {
+          // Se não encontrou vendedor vinculado, não deve ver todos os clientes
+          console.warn(`[CLIENTES] Vendedor não encontrado para usuário ${auth.usuario.id} (${auth.usuario.nome})`);
+          vendedorNaoEncontrado = true;
         }
       }
+    }
+
+    // Se não é admin e não tem vendedor vinculado, retorna lista vazia
+    if (vendedorNaoEncontrado) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+        aviso: 'Seu usuário não está vinculado a um vendedor. Contate o administrador.',
+      });
     }
 
     // Busca fuzzy: carrega todos os clientes e filtra por similaridade
