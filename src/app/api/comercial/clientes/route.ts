@@ -13,12 +13,32 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const segmento = searchParams.get('segmento');
-    const vendedor_id = searchParams.get('vendedor_id');
+    let vendedor_id = searchParams.get('vendedor_id');
     const search = searchParams.get('search');
     const fuzzy = searchParams.get('fuzzy') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
+
+    // SERVER-SIDE: Se NÃO é admin, forçar filtro pelo vendedor do usuário logado
+    const isAdmin = auth.usuario.is_admin;
+    if (!isAdmin && !vendedor_id) {
+      const vendedorResult = await query(
+        `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
+        [auth.usuario.id]
+      );
+      if (vendedorResult?.rows?.length) {
+        vendedor_id = String(vendedorResult.rows[0].id);
+      } else {
+        const vendedorByName = await query(
+          `SELECT id FROM crm_vendedores WHERE LOWER(nome) = LOWER($1) OR nome ILIKE $2 LIMIT 1`,
+          [auth.usuario.nome, `%${auth.usuario.nome.split(' ')[0]}%`]
+        );
+        if (vendedorByName?.rows?.length) {
+          vendedor_id = String(vendedorByName.rows[0].id);
+        }
+      }
+    }
 
     // Busca fuzzy: carrega todos os clientes e filtra por similaridade
     if (fuzzy && search) {
@@ -46,8 +66,9 @@ export async function GET(request: Request) {
         fuzzyParams.push(segmento);
       }
       if (vendedor_id) {
-        fuzzySql += ` AND c.vendedor_id = $${fuzzyParamIndex++}`;
+        fuzzySql += ` AND (c.vendedor_id = $${fuzzyParamIndex} OR c.id IN (SELECT cliente_id FROM crm_oportunidades WHERE vendedor_id = $${fuzzyParamIndex}))`;
         fuzzyParams.push(vendedor_id);
+        fuzzyParamIndex++;
       }
 
       fuzzySql += ` GROUP BY c.id, v.nome`;
@@ -102,8 +123,9 @@ export async function GET(request: Request) {
     }
 
     if (vendedor_id) {
-      sql += ` AND c.vendedor_id = $${paramIndex++}`;
+      sql += ` AND (c.vendedor_id = $${paramIndex} OR c.id IN (SELECT cliente_id FROM crm_oportunidades WHERE vendedor_id = $${paramIndex}))`;
       params.push(vendedor_id);
+      paramIndex++;
     }
 
     if (search) {
@@ -135,8 +157,9 @@ export async function GET(request: Request) {
       countParams.push(segmento);
     }
     if (vendedor_id) {
-      countSql += ` AND c.vendedor_id = $${countParamIndex++}`;
+      countSql += ` AND (c.vendedor_id = $${countParamIndex} OR c.id IN (SELECT cliente_id FROM crm_oportunidades WHERE vendedor_id = $${countParamIndex}))`;
       countParams.push(vendedor_id);
+      countParamIndex++;
     }
     if (search) {
       countSql += ` AND (c.razao_social ILIKE $${countParamIndex} OR c.nome_fantasia ILIKE $${countParamIndex} OR c.cpf_cnpj ILIKE $${countParamIndex})`;
