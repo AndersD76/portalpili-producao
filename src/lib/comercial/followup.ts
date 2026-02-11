@@ -53,6 +53,13 @@ const FOLLOWUP_POR_ESTAGIO: Record<string, FollowUpConfig> = {
     prazo_dias: 5,
     prioridade: 'ALTA',
   },
+  POS_NEGOCIACAO: {
+    titulo: 'Acompanhar fechamento',
+    descricao: 'Acompanhar processo de fechamento: verificar documentação, contrato e condições acordadas.',
+    tipo: 'TAREFA',
+    prazo_dias: 3,
+    prioridade: 'ALTA',
+  },
   FECHADA: {
     titulo: 'Pós-venda: confirmar satisfação',
     descricao: 'Contatar cliente após 30 dias para verificar satisfação com a entrega e abrir novas oportunidades.',

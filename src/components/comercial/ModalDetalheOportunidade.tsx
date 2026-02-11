@@ -9,13 +9,14 @@ interface ModalDetalheOportunidadeProps {
 }
 
 const ESTAGIOS_OPTIONS = [
-  { value: 'PROSPECCAO', label: 'Prospecção' },
-  { value: 'EM_NEGOCIACAO', label: 'Negociação' },
+  { value: 'EM_ANALISE', label: 'Em Análise' },
+  { value: 'EM_NEGOCIACAO', label: 'Em Negociação' },
+  { value: 'POS_NEGOCIACAO', label: 'Pós Negociação' },
   { value: 'FECHADA', label: 'Fechada' },
   { value: 'PERDIDA', label: 'Perdida' },
   { value: 'TESTE', label: 'Teste' },
-  { value: 'SUBSTITUIDO', label: 'Substituído' },
   { value: 'SUSPENSO', label: 'Suspenso' },
+  { value: 'SUBSTITUIDO', label: 'Substituído' },
 ];
 
 const toNum = (v: unknown): number => {
@@ -33,16 +34,17 @@ const formatDate = (d?: string) => {
 };
 
 const ESTAGIO_COLORS: Record<string, string> = {
+  EM_ANALISE: '#06b6d4',
   EM_NEGOCIACAO: '#f97316',
-  PROSPECCAO: '#3b82f6',
+  POS_NEGOCIACAO: '#a855f7',
   FECHADA: '#22c55e',
   PERDIDA: '#ef4444',
   TESTE: '#ec4899',
-  SUBSTITUIDO: '#6366f1',
   SUSPENSO: '#ca8a04',
-  PROPOSTA: '#a855f7',
-  EM_ANALISE: '#06b6d4',
+  SUBSTITUIDO: '#6366f1',
+  PROSPECCAO: '#3b82f6',
   QUALIFICACAO: '#14b8a6',
+  PROPOSTA: '#a855f7',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -70,6 +72,7 @@ export default function ModalDetalheOportunidade({
 }: ModalDetalheOportunidadeProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const [tab, setTab] = useState<'info' | 'atividades' | 'interacoes' | 'propostas'>('info');
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -87,6 +90,7 @@ export default function ModalDetalheOportunidade({
 
   const fetchData = async () => {
     setLoading(true);
+    setErro(null);
     try {
       const res = await fetch(`/api/comercial/oportunidades/${oportunidadeId}`);
       const result = await res.json();
@@ -99,9 +103,12 @@ export default function ModalDetalheOportunidade({
           observacoes: result.data.observacoes || '',
           nota_contato: '',
         });
+      } else {
+        setErro(result.error || 'Erro ao buscar oportunidade');
       }
     } catch (error) {
       console.error('Erro ao buscar oportunidade:', error);
+      setErro('Erro de conexão ao buscar oportunidade');
     } finally {
       setLoading(false);
     }
@@ -151,7 +158,8 @@ export default function ModalDetalheOportunidade({
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
         <div className="bg-white rounded-xl p-8 text-center" onClick={e => e.stopPropagation()}>
-          <p className="text-red-600">Oportunidade não encontrada</p>
+          <p className="text-red-600 font-semibold">Oportunidade não encontrada</p>
+          {erro && <p className="text-sm text-gray-500 mt-1">{erro}</p>}
           <button onClick={onClose} className="mt-3 px-4 py-2 bg-gray-200 rounded-lg text-sm">Fechar</button>
         </div>
       </div>

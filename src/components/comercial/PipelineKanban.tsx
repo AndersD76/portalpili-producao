@@ -30,13 +30,14 @@ interface PipelineKanbanProps {
 }
 
 const ESTAGIOS = [
+  { id: 'EM_ANALISE', nome: 'Em Análise', cor: 'bg-cyan-500' },
   { id: 'EM_NEGOCIACAO', nome: 'Negociação', cor: 'bg-orange-500' },
-  { id: 'PROSPECCAO', nome: 'Prospecção', cor: 'bg-blue-500' },
+  { id: 'POS_NEGOCIACAO', nome: 'Pós Negociação', cor: 'bg-purple-500' },
   { id: 'FECHADA', nome: 'Fechada', cor: 'bg-green-500' },
   { id: 'PERDIDA', nome: 'Perdida', cor: 'bg-red-500' },
   { id: 'TESTE', nome: 'Teste', cor: 'bg-pink-500' },
-  { id: 'SUBSTITUIDO', nome: 'Substituído', cor: 'bg-indigo-500' },
   { id: 'SUSPENSO', nome: 'Suspenso', cor: 'bg-yellow-600' },
+  { id: 'SUBSTITUIDO', nome: 'Substituído', cor: 'bg-indigo-500' },
 ];
 
 export default function PipelineKanban({
@@ -67,6 +68,13 @@ export default function PipelineKanban({
     const estagiosFinais = ['FECHADA', 'PERDIDA', 'SUSPENSO', 'SUBSTITUIDO', 'TESTE'];
     if (estagiosFinais.includes(estagio)) {
       return oportunidades.filter((o) => o.estagio === estagio);
+    }
+    // EM_ANALISE também agrupa PROSPECCAO, QUALIFICACAO, PROPOSTA legados
+    if (estagio === 'EM_ANALISE') {
+      const legados = ['PROSPECCAO', 'QUALIFICACAO', 'PROPOSTA'];
+      return oportunidades.filter(
+        (o) => (o.estagio === estagio || legados.includes(o.estagio)) && o.status === 'ABERTA'
+      );
     }
     // Estágios ativos mostram apenas status ABERTA
     return oportunidades.filter(
@@ -108,7 +116,7 @@ export default function PipelineKanban({
   };
 
   return (
-    <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4" style={{ scrollbarWidth: 'none' }}>
+    <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       {ESTAGIOS.map((estagio) => {
         const totais = getTotalPorEstagio(estagio.id);
         const ops = getOportunidadesPorEstagio(estagio.id);

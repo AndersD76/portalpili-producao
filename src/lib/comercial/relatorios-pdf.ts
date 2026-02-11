@@ -2,16 +2,17 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const ESTAGIOS_LABELS: Record<string, string> = {
+  EM_ANALISE: 'Em Análise',
+  EM_NEGOCIACAO: 'Em Negociação',
+  POS_NEGOCIACAO: 'Pós Negociação',
+  FECHADA: 'Fechada',
+  PERDIDA: 'Perdida',
+  TESTE: 'Teste',
+  SUSPENSO: 'Suspenso',
+  SUBSTITUIDO: 'Substituído',
   PROSPECCAO: 'Prospecção',
   QUALIFICACAO: 'Qualificação',
   PROPOSTA: 'Proposta',
-  EM_ANALISE: 'Em Análise',
-  EM_NEGOCIACAO: 'Em Negociação',
-  FECHADA: 'Fechada',
-  PERDIDA: 'Perdida',
-  SUSPENSO: 'Suspenso',
-  SUBSTITUIDO: 'Substituído',
-  TESTE: 'Teste',
 };
 
 const SITUACAO_LABELS: Record<string, string> = {
@@ -475,4 +476,166 @@ export function gerarRelatorioProdutos(dados: ProdutosData, periodo: string) {
 
   gerarFooter(doc);
   doc.save('relatorio-produtos.pdf');
+}
+
+// ============================================
+// RELATÓRIO INDIVIDUAL DO VENDEDOR
+// ============================================
+
+interface VendedorIndividualData {
+  vendedor: {
+    nome: string;
+    tipo: string;
+    email?: string;
+    telefone?: string;
+    comissao_padrao: string;
+  };
+  kpis: {
+    total: number;
+    abertas: number;
+    ganhas: number;
+    perdidas: number;
+    valor_abertas: number;
+    valor_ganho: number;
+    ticket_medio: number;
+    taxa_conversao: number;
+    comissao_total: number;
+  };
+  pipeline: Array<{ estagio: string; quantidade: string; valor_total: string }>;
+  oportunidades: Array<{
+    id: number;
+    titulo: string;
+    cliente_nome: string;
+    produto: string;
+    estagio: string;
+    status: string;
+    valor_estimado: string;
+    probabilidade: string;
+    data_previsao_fechamento: string;
+    dias_no_estagio: string;
+    created_at: string;
+  }>;
+  atividades_pendentes: Array<{
+    titulo: string;
+    tipo: string;
+    data_agendada: string;
+    cliente_nome: string;
+    oportunidade_titulo: string;
+  }>;
+}
+
+export function gerarRelatorioVendedorIndividual(dados: VendedorIndividualData, periodo: string) {
+  const doc = new jsPDF('portrait', 'mm', 'a4');
+  const vendedor = dados.vendedor;
+  let y = gerarHeader(doc, `Relatório - ${vendedor.nome}`, periodo);
+
+  // Info do vendedor
+  doc.setFontSize(10);
+  doc.setTextColor(107, 114, 128);
+  doc.text(`${vendedor.tipo === 'INTERNO' ? 'Vendedor Interno' : 'Representante'}${vendedor.email ? ' | ' + vendedor.email : ''}`, 14, y);
+  y += 7;
+
+  // KPI boxes
+  const kpi = dados.kpis;
+  const boxW = 35;
+  const gap = 3;
+  const startX = 14;
+
+  addKpiBox(doc, startX, y, boxW, 'Oportunidades', String(kpi.total));
+  addKpiBox(doc, startX + boxW + gap, y, boxW, 'Ganhas', String(kpi.ganhas));
+  addKpiBox(doc, startX + 2 * (boxW + gap), y, boxW, 'Conversão', formatPercent(kpi.taxa_conversao));
+  addKpiBox(doc, startX + 3 * (boxW + gap), y, boxW, 'Valor Ganho', formatCurrency(kpi.valor_ganho));
+  addKpiBox(doc, startX + 4 * (boxW + gap), y, boxW, 'Comissão', formatCurrency(kpi.comissao_total));
+  y += 30;
+
+  // Pipeline do vendedor
+  if (dados.pipeline.length > 0) {
+    y = addSectionTitle(doc, y, 'Pipeline');
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Estágio', 'Quantidade', 'Valor']],
+      body: dados.pipeline.map(p => [
+        ESTAGIOS_LABELS[p.estagio] || p.estagio,
+        String(toNum(p.quantidade)),
+        formatCurrency(toNum(p.valor_total)),
+      ]),
+      foot: [[
+        'TOTAL',
+        String(dados.pipeline.reduce((s, p) => s + toNum(p.quantidade), 0)),
+        formatCurrency(dados.pipeline.reduce((s, p) => s + toNum(p.valor_total), 0)),
+      ]],
+      theme: 'grid',
+      headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 9 },
+      footStyles: { fillColor: [249, 250, 251], textColor: [17, 24, 39], fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } },
+      margin: { left: 14, right: 14 },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Atividades pendentes
+  if (dados.atividades_pendentes.length > 0) {
+    y = addSectionTitle(doc, y, `Atividades Pendentes (${dados.atividades_pendentes.length})`);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Atividade', 'Tipo', 'Data', 'Cliente', 'Oportunidade']],
+      body: dados.atividades_pendentes.map(a => [
+        a.titulo,
+        a.tipo,
+        a.data_agendada ? new Date(a.data_agendada).toLocaleDateString('pt-BR') : '-',
+        a.cliente_nome || '-',
+        a.oportunidade_titulo || '-',
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      margin: { left: 14, right: 14 },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Lista de oportunidades
+  if (dados.oportunidades.length > 0) {
+    // Check page space
+    if (y > 200) {
+      doc.addPage();
+      y = gerarHeader(doc, `Relatório - ${vendedor.nome} (cont.)`, periodo);
+    }
+
+    y = addSectionTitle(doc, y, `Oportunidades (${dados.oportunidades.length})`);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Cliente', 'Produto', 'Estágio', 'Valor', 'Prob.', 'Dias', 'Previsão']],
+      body: dados.oportunidades.map(o => [
+        o.cliente_nome || o.titulo,
+        o.produto || '-',
+        ESTAGIOS_LABELS[o.estagio] || o.estagio,
+        formatCurrency(toNum(o.valor_estimado)),
+        `${toNum(o.probabilidade)}%`,
+        String(toNum(o.dias_no_estagio)),
+        o.data_previsao_fechamento ? new Date(o.data_previsao_fechamento).toLocaleDateString('pt-BR') : '-',
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 8 },
+      bodyStyles: { fontSize: 7.5 },
+      columnStyles: {
+        3: { halign: 'right' },
+        4: { halign: 'center' },
+        5: { halign: 'center' },
+        6: { halign: 'center' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+  }
+
+  gerarFooter(doc);
+  doc.save(`relatorio-${vendedor.nome.toLowerCase().replace(/\s+/g, '-')}.pdf`);
 }

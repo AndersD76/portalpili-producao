@@ -4,6 +4,12 @@ import { gerarSugestoes } from '@/lib/comercial/ia';
 import { gerarFollowUp } from '@/lib/comercial/followup';
 import { verificarPermissao } from '@/lib/auth';
 
+const toNum = (v: unknown): number => {
+  if (v === null || v === undefined) return 0;
+  const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+  return isNaN(n) ? 0 : n;
+};
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -14,6 +20,7 @@ export async function GET(
   try {
     const { id } = await params;
 
+    // Query principal: oportunidade + cliente + vendedor (sem JOINs com tabelas que podem não existir)
     const result = await query(
       `SELECT
         o.*,
@@ -24,37 +31,11 @@ export async function GET(
         c.email as cliente_email,
         c.segmento as cliente_segmento,
         v.nome as vendedor_nome,
-        v.email as vendedor_email,
-        json_agg(DISTINCT jsonb_build_object(
-          'id', a.id,
-          'tipo', a.tipo,
-          'titulo', a.titulo,
-          'data_limite', a.data_agendada,
-          'data_agendada', a.data_agendada,
-          'concluida', a.status = 'CONCLUIDA',
-          'status', a.status
-        )) FILTER (WHERE a.id IS NOT NULL) as atividades,
-        json_agg(DISTINCT jsonb_build_object(
-          'id', i.id,
-          'tipo', i.tipo,
-          'descricao', i.descricao,
-          'data', i.created_at
-        )) FILTER (WHERE i.id IS NOT NULL) as interacoes,
-        json_agg(DISTINCT jsonb_build_object(
-          'id', p.id,
-          'numero', p.numero,
-          'valor_total', p.valor_total,
-          'situacao', p.situacao,
-          'created_at', p.created_at
-        )) FILTER (WHERE p.id IS NOT NULL) as propostas
+        v.email as vendedor_email
       FROM crm_oportunidades o
       LEFT JOIN crm_clientes c ON o.cliente_id = c.id
       LEFT JOIN crm_vendedores v ON o.vendedor_id = v.id
-      LEFT JOIN crm_atividades a ON o.id = a.oportunidade_id
-      LEFT JOIN crm_interacoes i ON o.id = i.oportunidade_id
-      LEFT JOIN crm_propostas p ON o.id = p.oportunidade_id
-      WHERE o.id = $1
-      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cnpj, c.telefone, c.email, c.segmento, v.nome, v.email`,
+      WHERE o.id = $1`,
       [id]
     );
 
@@ -65,14 +46,49 @@ export async function GET(
       );
     }
 
+    const oportunidade = result.rows[0];
+
+    // Buscar atividades separadamente (tabela pode não existir)
+    let atividades = null;
+    try {
+      const atRes = await query(
+        `SELECT id, tipo, titulo, data_agendada, status,
+          (status = 'CONCLUIDA') as concluida
+        FROM crm_atividades WHERE oportunidade_id = $1 ORDER BY data_agendada DESC`,
+        [id]
+      );
+      atividades = atRes?.rows || [];
+    } catch { /* tabela pode não existir */ }
+
+    // Buscar interações separadamente
+    let interacoes = null;
+    try {
+      const intRes = await query(
+        `SELECT id, tipo, descricao, created_at as data
+        FROM crm_interacoes WHERE oportunidade_id = $1 ORDER BY created_at DESC`,
+        [id]
+      );
+      interacoes = intRes?.rows || [];
+    } catch { /* tabela pode não existir */ }
+
+    // Buscar propostas separadamente
+    let propostas = null;
+    try {
+      const propRes = await query(
+        `SELECT id, numero, valor_total, situacao, created_at
+        FROM crm_propostas WHERE oportunidade_id = $1 ORDER BY created_at DESC`,
+        [id]
+      );
+      propostas = propRes?.rows || [];
+    } catch { /* tabela pode não existir */ }
+
     // Tenta gerar sugestões da IA
     let sugestoes = null;
     try {
-      const oportunidade = result.rows[0];
       sugestoes = await gerarSugestoes(oportunidade.estagio, {
         cliente: { razao_social: oportunidade.cliente_nome },
         valor_estimado: oportunidade.valor_estimado,
-        dias_no_estagio: Math.floor((Date.now() - new Date(oportunidade.data_mudanca_estagio || oportunidade.created_at).getTime()) / (1000 * 60 * 60 * 24)),
+        dias_no_estagio: toNum(oportunidade.dias_no_estagio),
       });
     } catch {
       // IA não disponível - continua sem sugestões
@@ -80,7 +96,12 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: result.rows[0],
+      data: {
+        ...oportunidade,
+        atividades,
+        interacoes,
+        propostas,
+      },
       sugestoes_ia: sugestoes,
     });
   } catch (error) {

@@ -1,19 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { gerarRelatorioTotais, gerarRelatorioVendedores, gerarRelatorioProdutos } from '@/lib/comercial/relatorios-pdf';
+import { gerarRelatorioTotais, gerarRelatorioVendedores, gerarRelatorioProdutos, gerarRelatorioVendedorIndividual } from '@/lib/comercial/relatorios-pdf';
 
-type ReportType = 'totais' | 'vendedores' | 'produtos';
+type ReportType = 'totais' | 'vendedores' | 'produtos' | 'vendedor_individual';
+
+interface Vendedor {
+  id: number;
+  nome: string;
+}
 
 export default function RelatoriosPage() {
   const [loading, setLoading] = useState<ReportType | null>(null);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [selectedVendedorId, setSelectedVendedorId] = useState<string>('');
   const router = useRouter();
   const { user, authenticated, loading: authLoading, isAdmin } = useAuth();
+
+  useEffect(() => {
+    if (authenticated && isAdmin) {
+      fetch('/api/comercial/vendedores?ativo=true')
+        .then(r => r.json())
+        .then(d => { if (d.success) setVendedores(d.data || []); })
+        .catch(() => {});
+    }
+  }, [authenticated, isAdmin]);
 
   if (authLoading) {
     return (
@@ -38,12 +54,18 @@ export default function RelatoriosPage() {
   };
 
   const handleGerarPDF = async (tipo: ReportType) => {
+    if (tipo === 'vendedor_individual' && !selectedVendedorId) {
+      alert('Selecione um vendedor para gerar o relatório individual.');
+      return;
+    }
+
     setLoading(tipo);
     try {
       const params = new URLSearchParams({ tipo });
       if (dataInicio) params.append('data_inicio', dataInicio);
       if (dataFim) params.append('data_fim', dataFim);
       if (!isAdmin && user?.id) params.append('usuario_id', String(user.id));
+      if (tipo === 'vendedor_individual') params.append('vendedor_id', selectedVendedorId);
 
       const res = await fetch(`/api/comercial/relatorios?${params.toString()}`);
       const result = await res.json();
@@ -61,6 +83,8 @@ export default function RelatoriosPage() {
         gerarRelatorioVendedores(result.data, periodo);
       } else if (tipo === 'produtos') {
         gerarRelatorioProdutos(result.data, periodo);
+      } else if (tipo === 'vendedor_individual') {
+        gerarRelatorioVendedorIndividual(result.data, periodo);
       }
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
@@ -84,8 +108,8 @@ export default function RelatoriosPage() {
     },
     {
       tipo: 'vendedores' as ReportType,
-      titulo: 'Por Vendedor',
-      descricao: 'Desempenho individual: oportunidades, taxa de conversão, valor ganho, comissões e propostas.',
+      titulo: 'Todos Vendedores',
+      descricao: 'Comparativo de todos os vendedores: oportunidades, conversão, valor ganho e comissões.',
       icone: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -165,7 +189,7 @@ export default function RelatoriosPage() {
         </div>
 
         {/* Report cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {relatorios.map(rel => (
             <div key={rel.tipo} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition">
               <div className={`bg-gradient-to-r ${rel.cor} p-4`}>
@@ -203,6 +227,65 @@ export default function RelatoriosPage() {
             </div>
           ))}
         </div>
+
+        {/* Individual vendor report */}
+        {isAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-4">
+              <div className="text-white flex items-center gap-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <h3 className="text-lg font-bold">Relatório Individual do Vendedor</h3>
+              </div>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-600 mb-4">
+                Relatório detalhado para um vendedor específico: KPIs, pipeline, oportunidades, atividades pendentes.
+              </p>
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">Selecionar Vendedor</label>
+                  <select
+                    value={selectedVendedorId}
+                    onChange={e => setSelectedVendedorId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">-- Selecione --</option>
+                    {vendedores.map(v => (
+                      <option key={v.id} value={String(v.id)}>{v.nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={() => handleGerarPDF('vendedor_individual')}
+                  disabled={loading !== null || !selectedVendedorId}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition ${
+                    loading === 'vendedor_individual'
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : !selectedVendedorId
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                  } disabled:opacity-50`}
+                >
+                  {loading === 'vendedor_individual' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Gerar PDF
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {!isAdmin && (
           <p className="text-xs text-gray-400 text-center mt-6">

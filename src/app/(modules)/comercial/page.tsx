@@ -41,15 +41,16 @@ interface PipelineEstagio {
 }
 
 const ESTAGIO_CONFIG: Record<string, { label: string; cor: string; corHex: string }> = {
-  EM_NEGOCIACAO: { label: 'Negociação', cor: 'bg-orange-500', corHex: '#f97316' },
-  PROSPECCAO: { label: 'Prospecção', cor: 'bg-blue-500', corHex: '#3b82f6' },
+  EM_ANALISE: { label: 'Em Análise', cor: 'bg-cyan-500', corHex: '#06b6d4' },
+  EM_NEGOCIACAO: { label: 'Em Negociação', cor: 'bg-orange-500', corHex: '#f97316' },
+  POS_NEGOCIACAO: { label: 'Pós Negociação', cor: 'bg-purple-500', corHex: '#a855f7' },
   FECHADA: { label: 'Fechada', cor: 'bg-green-500', corHex: '#22c55e' },
   PERDIDA: { label: 'Perdida', cor: 'bg-red-500', corHex: '#ef4444' },
   TESTE: { label: 'Teste', cor: 'bg-pink-500', corHex: '#ec4899' },
-  SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', corHex: '#6366f1' },
   SUSPENSO: { label: 'Suspenso', cor: 'bg-yellow-600', corHex: '#ca8a04' },
+  SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', corHex: '#6366f1' },
+  PROSPECCAO: { label: 'Prospecção', cor: 'bg-blue-500', corHex: '#3b82f6' },
   PROPOSTA: { label: 'Proposta', cor: 'bg-purple-500', corHex: '#a855f7' },
-  EM_ANALISE: { label: 'Em Análise', cor: 'bg-cyan-500', corHex: '#06b6d4' },
   QUALIFICACAO: { label: 'Qualificação', cor: 'bg-teal-500', corHex: '#14b8a6' },
 };
 
@@ -236,7 +237,7 @@ export default function ComercialPage() {
       porEstagio[o.estagio].valor += toNum(o.valor_estimado);
     });
 
-    const order: Record<string, number> = { EM_NEGOCIACAO: 1, PROSPECCAO: 2, FECHADA: 3, PERDIDA: 4, TESTE: 5, SUBSTITUIDO: 6, SUSPENSO: 7, PROPOSTA: 8, EM_ANALISE: 9, QUALIFICACAO: 10 };
+    const order: Record<string, number> = { EM_ANALISE: 1, EM_NEGOCIACAO: 2, POS_NEGOCIACAO: 3, FECHADA: 4, PERDIDA: 5, TESTE: 6, SUSPENSO: 7, SUBSTITUIDO: 8, PROSPECCAO: 9, PROPOSTA: 10, QUALIFICACAO: 11 };
 
     return Object.entries(porEstagio)
       .filter(([, v]) => v.quantidade > 0)

@@ -7,11 +7,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardData {
   pipeline: {
-    prospeccao: { quantidade: number; valor: number };
-    qualificacao: { quantidade: number; valor: number };
-    proposta: { quantidade: number; valor: number };
+    em_analise: { quantidade: number; valor: number };
     negociacao: { quantidade: number; valor: number };
+    pos_negociacao: { quantidade: number; valor: number };
     fechamento: { quantidade: number; valor: number };
+    [key: string]: { quantidade: number; valor: number };
   };
   propostas: {
     total: number;
@@ -57,10 +57,9 @@ interface DashboardData {
 }
 
 const ESTAGIOS = [
-  { key: 'prospeccao', label: 'Prospecção', cor: 'bg-gray-500' },
-  { key: 'qualificacao', label: 'Qualificação', cor: 'bg-blue-500' },
-  { key: 'proposta', label: 'Proposta', cor: 'bg-purple-500' },
+  { key: 'em_analise', label: 'Em Análise', cor: 'bg-cyan-500' },
   { key: 'negociacao', label: 'Negociação', cor: 'bg-orange-500' },
+  { key: 'pos_negociacao', label: 'Pós Negociação', cor: 'bg-purple-500' },
   { key: 'fechamento', label: 'Fechamento', cor: 'bg-green-500' },
 ];
 
@@ -70,10 +69,9 @@ export default function DashboardComercialPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData>({
     pipeline: {
-      prospeccao: { quantidade: 0, valor: 0 },
-      qualificacao: { quantidade: 0, valor: 0 },
-      proposta: { quantidade: 0, valor: 0 },
+      em_analise: { quantidade: 0, valor: 0 },
       negociacao: { quantidade: 0, valor: 0 },
+      pos_negociacao: { quantidade: 0, valor: 0 },
       fechamento: { quantidade: 0, valor: 0 },
     },
     propostas: { total: 0, abertas: 0, aprovadas: 0, rejeitadas: 0, valorTotal: 0, valorAprovado: 0 },
@@ -108,19 +106,23 @@ export default function DashboardComercialPage() {
         const opData = await opResponse.json().catch(() => ({ pipeline: [] }));
         const pipeline = opData.pipeline || [];
         const newPipeline: DashboardData['pipeline'] = {
-          prospeccao: { quantidade: 0, valor: 0 },
-          qualificacao: { quantidade: 0, valor: 0 },
-          proposta: { quantidade: 0, valor: 0 },
+          em_analise: { quantidade: 0, valor: 0 },
           negociacao: { quantidade: 0, valor: 0 },
+          pos_negociacao: { quantidade: 0, valor: 0 },
           fechamento: { quantidade: 0, valor: 0 },
         };
+        // Mapeamento de estágios do DB para chaves do dashboard
+        const estagioMap: Record<string, string> = {
+          EM_ANALISE: 'em_analise', PROSPECCAO: 'em_analise', QUALIFICACAO: 'em_analise', PROPOSTA: 'em_analise',
+          EM_NEGOCIACAO: 'negociacao',
+          POS_NEGOCIACAO: 'pos_negociacao',
+          FECHADA: 'fechamento',
+        };
         pipeline.forEach((p: { estagio: string; quantidade: string; valor_total: string }) => {
-          const key = p.estagio.toLowerCase() as keyof typeof newPipeline;
-          if (newPipeline[key]) {
-            newPipeline[key] = {
-              quantidade: parseInt(p.quantidade) || 0,
-              valor: parseFloat(p.valor_total) || 0,
-            };
+          const key = estagioMap[p.estagio];
+          if (key && newPipeline[key]) {
+            newPipeline[key].quantidade += parseInt(p.quantidade) || 0;
+            newPipeline[key].valor += parseFloat(p.valor_total) || 0;
           }
         });
         setData(prev => ({ ...prev, pipeline: newPipeline }));

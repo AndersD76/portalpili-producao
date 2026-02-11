@@ -24,29 +24,27 @@ export async function GET(request: Request) {
 
       case 'base':
         sql = `
-          SELECT pb.id,
-                 pb.produto as tipo_produto,
-                 pb.tipo as modelo,
-                 pb.tamanho as comprimento,
-                 pb.descricao,
-                 pb.preco,
-                 pb.ativo,
-                 pb.qt_cilindros, pb.qt_motores, pb.qt_oleo,
-                 pb.angulo_inclinacao, pb.ordem_exibicao, pb.created_at, pb.updated_at,
-                 pc.nome as categoria_nome
-          FROM crm_precos_base pb
-          LEFT JOIN crm_precos_categorias pc ON pb.categoria_id = pc.id
+          SELECT id,
+                 produto as tipo_produto,
+                 tipo as modelo,
+                 tamanho as comprimento,
+                 descricao,
+                 preco,
+                 ativo,
+                 qt_cilindros, qt_motores, qt_oleo,
+                 angulo_inclinacao, ordem_exibicao, created_at, updated_at
+          FROM crm_precos_base
           WHERE 1=1
         `;
         if (ativo !== null) {
-          sql += ` AND pb.ativo = $${paramIndex++}`;
+          sql += ` AND ativo = $${paramIndex++}`;
           params.push(ativo === 'true');
         }
         if (tipo_produto) {
-          sql += ` AND pb.produto = $${paramIndex++}`;
+          sql += ` AND produto = $${paramIndex++}`;
           params.push(tipo_produto);
         }
-        sql += ` ORDER BY pb.produto, pb.tipo, pb.tamanho`;
+        sql += ` ORDER BY produto, tipo, tamanho`;
         break;
 
       case 'opcoes':

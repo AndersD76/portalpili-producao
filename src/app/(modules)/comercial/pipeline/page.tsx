@@ -36,13 +36,14 @@ interface Vendedor {
 }
 
 const ESTAGIOS_OPTIONS = [
-  { value: 'PROSPECCAO', label: 'Prospecção' },
-  { value: 'EM_NEGOCIACAO', label: 'Negociação' },
+  { value: 'EM_ANALISE', label: 'Em Análise' },
+  { value: 'EM_NEGOCIACAO', label: 'Em Negociação' },
+  { value: 'POS_NEGOCIACAO', label: 'Pós Negociação' },
   { value: 'FECHADA', label: 'Fechada' },
   { value: 'PERDIDA', label: 'Perdida' },
   { value: 'TESTE', label: 'Teste' },
-  { value: 'SUBSTITUIDO', label: 'Substituído' },
   { value: 'SUSPENSO', label: 'Suspenso' },
+  { value: 'SUBSTITUIDO', label: 'Substituído' },
 ];
 
 export default function PipelinePage() {

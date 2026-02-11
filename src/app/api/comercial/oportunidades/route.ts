@@ -31,16 +31,17 @@ export async function GET(request: Request) {
         GROUP BY estagio
         ORDER BY
           CASE estagio
-            WHEN 'PROSPECCAO' THEN 1
-            WHEN 'QUALIFICACAO' THEN 2
-            WHEN 'PROPOSTA' THEN 3
-            WHEN 'EM_ANALISE' THEN 4
-            WHEN 'EM_NEGOCIACAO' THEN 5
-            WHEN 'FECHADA' THEN 6
-            WHEN 'PERDIDA' THEN 7
-            WHEN 'SUSPENSO' THEN 8
-            WHEN 'SUBSTITUIDO' THEN 9
-            WHEN 'TESTE' THEN 10
+            WHEN 'EM_ANALISE' THEN 1
+            WHEN 'EM_NEGOCIACAO' THEN 2
+            WHEN 'POS_NEGOCIACAO' THEN 3
+            WHEN 'FECHADA' THEN 4
+            WHEN 'PERDIDA' THEN 5
+            WHEN 'TESTE' THEN 6
+            WHEN 'SUSPENSO' THEN 7
+            WHEN 'SUBSTITUIDO' THEN 8
+            WHEN 'PROSPECCAO' THEN 9
+            WHEN 'QUALIFICACAO' THEN 10
+            WHEN 'PROPOSTA' THEN 11
           END
       `);
       pipelineData = pipelineResult?.rows || [];
@@ -115,16 +116,17 @@ export async function GET(request: Request) {
       GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, v.nome
       ORDER BY
         CASE o.estagio
-          WHEN 'EM_NEGOCIACAO' THEN 1
-          WHEN 'PROSPECCAO' THEN 2
-          WHEN 'FECHADA' THEN 3
-          WHEN 'PERDIDA' THEN 4
-          WHEN 'TESTE' THEN 5
-          WHEN 'SUBSTITUIDO' THEN 6
+          WHEN 'EM_ANALISE' THEN 1
+          WHEN 'EM_NEGOCIACAO' THEN 2
+          WHEN 'POS_NEGOCIACAO' THEN 3
+          WHEN 'FECHADA' THEN 4
+          WHEN 'PERDIDA' THEN 5
+          WHEN 'TESTE' THEN 6
           WHEN 'SUSPENSO' THEN 7
-          WHEN 'PROPOSTA' THEN 8
-          WHEN 'EM_ANALISE' THEN 9
+          WHEN 'SUBSTITUIDO' THEN 8
+          WHEN 'PROSPECCAO' THEN 9
           WHEN 'QUALIFICACAO' THEN 10
+          WHEN 'PROPOSTA' THEN 11
           ELSE 99
         END,
         o.valor_estimado DESC NULLS LAST
@@ -215,7 +217,7 @@ export async function POST(request: Request) {
         cliente_id, vendedor_id, titulo, descricao, produto,
         valor_estimado, probabilidade, data_previsao_fechamento,
         fonte, concorrente, observacoes, estagio, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PROSPECCAO', 'ABERTA')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'EM_ANALISE', 'ABERTA')
       RETURNING *`,
       [
         cliente_id,

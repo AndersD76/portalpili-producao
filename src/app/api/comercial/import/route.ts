@@ -241,8 +241,9 @@ async function importarOportunidades(dados: OportunidadeCSV[], modo: string) {
   const vendedores = vendedoresResult?.rows || [];
 
   const estagiosValidos = [
-    'PROSPECCAO', 'QUALIFICACAO', 'PROPOSTA', 'EM_ANALISE',
-    'EM_NEGOCIACAO', 'FECHADA', 'PERDIDA', 'SUSPENSO', 'SUBSTITUIDO', 'TESTE',
+    'EM_ANALISE', 'EM_NEGOCIACAO', 'POS_NEGOCIACAO',
+    'FECHADA', 'PERDIDA', 'TESTE', 'SUSPENSO', 'SUBSTITUIDO',
+    'PROSPECCAO', 'QUALIFICACAO', 'PROPOSTA',
   ];
 
   const resultados: Array<{
@@ -297,7 +298,7 @@ async function importarOportunidades(dados: OportunidadeCSV[], modo: string) {
     }
 
     // Validar estágio
-    const estagio = row.estagio ? row.estagio.toUpperCase().replace(/\s+/g, '_') : 'PROSPECCAO';
+    const estagio = row.estagio ? row.estagio.toUpperCase().replace(/\s+/g, '_').replace('PÓS', 'POS').replace('NEGOCIAÇÃO', 'NEGOCIACAO').replace('ANÁLISE', 'ANALISE').replace('NEGOCIAÇAO', 'NEGOCIACAO') : 'EM_ANALISE';
     if (!estagiosValidos.includes(estagio)) {
       resultados.push({ linha: i + 1, cliente: row.cliente, status: 'erro', mensagem: `Estágio inválido: ${row.estagio}` });
       erros++;

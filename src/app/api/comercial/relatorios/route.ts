@@ -54,16 +54,17 @@ export async function GET(request: Request) {
         ${baseWhere}
         GROUP BY o.estagio
         ORDER BY CASE o.estagio
-          WHEN 'PROSPECCAO' THEN 1
-          WHEN 'QUALIFICACAO' THEN 2
-          WHEN 'PROPOSTA' THEN 3
-          WHEN 'EM_ANALISE' THEN 4
-          WHEN 'EM_NEGOCIACAO' THEN 5
-          WHEN 'FECHADA' THEN 6
-          WHEN 'PERDIDA' THEN 7
-          WHEN 'SUSPENSO' THEN 8
-          WHEN 'SUBSTITUIDO' THEN 9
-          WHEN 'TESTE' THEN 10
+          WHEN 'EM_ANALISE' THEN 1
+          WHEN 'EM_NEGOCIACAO' THEN 2
+          WHEN 'POS_NEGOCIACAO' THEN 3
+          WHEN 'FECHADA' THEN 4
+          WHEN 'PERDIDA' THEN 5
+          WHEN 'TESTE' THEN 6
+          WHEN 'SUSPENSO' THEN 7
+          WHEN 'SUBSTITUIDO' THEN 8
+          WHEN 'PROSPECCAO' THEN 9
+          WHEN 'QUALIFICACAO' THEN 10
+          WHEN 'PROPOSTA' THEN 11
         END
       `, dateParams);
 
@@ -206,14 +207,15 @@ export async function GET(request: Request) {
         ${baseWhere}
         GROUP BY COALESCE(o.produto, o.tipo_produto, 'N/D'), o.estagio
         ORDER BY produto, CASE o.estagio
-          WHEN 'PROSPECCAO' THEN 1
-          WHEN 'QUALIFICACAO' THEN 2
-          WHEN 'PROPOSTA' THEN 3
-          WHEN 'EM_ANALISE' THEN 4
-          WHEN 'EM_NEGOCIACAO' THEN 5
-          WHEN 'FECHADA' THEN 6
-          WHEN 'PERDIDA' THEN 7
-          ELSE 8
+          WHEN 'EM_ANALISE' THEN 1
+          WHEN 'EM_NEGOCIACAO' THEN 2
+          WHEN 'POS_NEGOCIACAO' THEN 3
+          WHEN 'FECHADA' THEN 4
+          WHEN 'PERDIDA' THEN 5
+          WHEN 'TESTE' THEN 6
+          WHEN 'SUSPENSO' THEN 7
+          WHEN 'SUBSTITUIDO' THEN 8
+          ELSE 9
         END
       `, dateParams);
 
@@ -242,8 +244,110 @@ export async function GET(request: Request) {
       });
     }
 
+    if (tipo === 'vendedor_individual') {
+      const vendedorId = searchParams.get('vendedor_id');
+      if (!vendedorId) {
+        return NextResponse.json({ success: false, error: 'vendedor_id é obrigatório' }, { status: 400 });
+      }
+
+      // Dados do vendedor
+      const vendedorRes = await query(
+        `SELECT nome, tipo, email, telefone, comissao_padrao FROM crm_vendedores WHERE id = $1`,
+        [vendedorId]
+      );
+      if (!vendedorRes?.rows[0]) {
+        return NextResponse.json({ success: false, error: 'Vendedor não encontrado' }, { status: 404 });
+      }
+      const vendedor = vendedorRes.rows[0];
+
+      // KPIs do vendedor
+      const kpiDateFilter = dateFilter;
+      const kpiParams = [...dateParams];
+      const vidx = kpiParams.length + 1;
+
+      const kpiRes = await query(`
+        SELECT
+          COUNT(*) as total,
+          COUNT(CASE WHEN o.status = 'ABERTA' THEN 1 END) as abertas,
+          COUNT(CASE WHEN o.estagio = 'FECHADA' THEN 1 END) as ganhas,
+          COUNT(CASE WHEN o.estagio = 'PERDIDA' THEN 1 END) as perdidas,
+          COALESCE(SUM(CASE WHEN o.status = 'ABERTA' THEN o.valor_estimado END), 0) as valor_abertas,
+          COALESCE(SUM(CASE WHEN o.estagio = 'FECHADA' THEN o.valor_estimado END), 0) as valor_ganho,
+          COALESCE(AVG(CASE WHEN o.estagio = 'FECHADA' THEN o.valor_estimado END), 0) as ticket_medio
+        FROM crm_oportunidades o
+        WHERE o.vendedor_id = $${vidx} ${kpiDateFilter}
+      `, [...kpiParams, vendedorId]);
+
+      const kpi = kpiRes?.rows[0] || {};
+      const ganhas = parseInt(kpi.ganhas || '0');
+      const perdidas = parseInt(kpi.perdidas || '0');
+      const totalDecididas = ganhas + perdidas;
+      const comissao = parseFloat(vendedor.comissao_padrao || '0') * parseFloat(kpi.valor_ganho || '0');
+
+      // Pipeline do vendedor
+      const pipelineRes = await query(`
+        SELECT o.estagio, COUNT(*) as quantidade, COALESCE(SUM(o.valor_estimado), 0) as valor_total
+        FROM crm_oportunidades o
+        WHERE o.vendedor_id = $${vidx} ${kpiDateFilter}
+        GROUP BY o.estagio
+        ORDER BY CASE o.estagio
+          WHEN 'EM_ANALISE' THEN 1 WHEN 'EM_NEGOCIACAO' THEN 2 WHEN 'POS_NEGOCIACAO' THEN 3
+          WHEN 'FECHADA' THEN 4 WHEN 'PERDIDA' THEN 5 ELSE 9 END
+      `, [...kpiParams, vendedorId]);
+
+      // Oportunidades do vendedor
+      const opsRes = await query(`
+        SELECT o.id, o.titulo, c.razao_social as cliente_nome, o.produto, o.estagio, o.status,
+          o.valor_estimado, o.probabilidade, o.data_previsao_fechamento, o.dias_no_estagio, o.created_at
+        FROM crm_oportunidades o
+        LEFT JOIN crm_clientes c ON o.cliente_id = c.id
+        WHERE o.vendedor_id = $${vidx} ${kpiDateFilter}
+        ORDER BY CASE o.estagio
+          WHEN 'EM_ANALISE' THEN 1 WHEN 'EM_NEGOCIACAO' THEN 2 WHEN 'POS_NEGOCIACAO' THEN 3
+          WHEN 'FECHADA' THEN 4 WHEN 'PERDIDA' THEN 5 ELSE 9 END,
+          o.valor_estimado DESC NULLS LAST
+      `, [...kpiParams, vendedorId]);
+
+      // Atividades pendentes
+      let atividades: unknown[] = [];
+      try {
+        const atRes = await query(`
+          SELECT a.titulo, a.tipo, a.data_agendada,
+            c.razao_social as cliente_nome,
+            op.titulo as oportunidade_titulo
+          FROM crm_atividades a
+          LEFT JOIN crm_clientes c ON a.cliente_id = c.id
+          LEFT JOIN crm_oportunidades op ON a.oportunidade_id = op.id
+          WHERE a.vendedor_id = $1 AND a.status = 'PENDENTE'
+          ORDER BY a.data_agendada ASC NULLS LAST
+        `, [vendedorId]);
+        atividades = atRes?.rows || [];
+      } catch { /* tabela pode não existir */ }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          vendedor,
+          kpis: {
+            total: parseInt(kpi.total || '0'),
+            abertas: parseInt(kpi.abertas || '0'),
+            ganhas,
+            perdidas,
+            valor_abertas: parseFloat(kpi.valor_abertas || '0'),
+            valor_ganho: parseFloat(kpi.valor_ganho || '0'),
+            ticket_medio: parseFloat(kpi.ticket_medio || '0'),
+            taxa_conversao: totalDecididas > 0 ? ((ganhas / totalDecididas) * 100) : 0,
+            comissao_total: comissao,
+          },
+          pipeline: pipelineRes?.rows || [],
+          oportunidades: opsRes?.rows || [],
+          atividades_pendentes: atividades,
+        },
+      });
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Tipo de relatório inválido. Use: totais, vendedores, produtos' },
+      { success: false, error: 'Tipo de relatório inválido. Use: totais, vendedores, produtos, vendedor_individual' },
       { status: 400 }
     );
   } catch (error) {
