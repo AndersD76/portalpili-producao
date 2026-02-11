@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CampoCNPJ, AssistenteIA } from '@/components/comercial';
+import { CampoCNPJ } from '@/components/comercial';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DadosCNPJ {
@@ -393,17 +393,6 @@ export default function NovoClientePage() {
         </form>
       </main>
 
-      {/* Assistente IA */}
-      {mostrarAssistente && (
-        <AssistenteIA
-          sugestoes={[
-            'Como qualificar este lead?',
-            'Dicas para primeiro contato',
-            'Produtos recomendados',
-          ]}
-          onClose={() => setMostrarAssistente(false)}
-        />
-      )}
     </div>
   );
 }

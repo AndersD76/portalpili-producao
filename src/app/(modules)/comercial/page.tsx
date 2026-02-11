@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { ModalDetalheOportunidade, AssistenteIA } from '@/components/comercial';
+import { ModalDetalheOportunidade } from '@/components/comercial';
 
 interface Oportunidade {
   id: number;
@@ -516,10 +516,6 @@ export default function ComercialPage() {
         />
       )}
 
-      {/* Assistente IA */}
-      {showIA && (
-        <AssistenteIA onClose={() => setShowIA(false)} />
-      )}
     </div>
   );
 }
