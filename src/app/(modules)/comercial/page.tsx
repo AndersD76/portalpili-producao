@@ -49,9 +49,6 @@ const ESTAGIO_CONFIG: Record<string, { label: string; cor: string; corHex: strin
   TESTE: { label: 'Teste', cor: 'bg-pink-500', corHex: '#ec4899' },
   SUSPENSO: { label: 'Suspenso', cor: 'bg-yellow-600', corHex: '#ca8a04' },
   SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', corHex: '#6366f1' },
-  PROSPECCAO: { label: 'Prospecção', cor: 'bg-blue-500', corHex: '#3b82f6' },
-  PROPOSTA: { label: 'Proposta', cor: 'bg-purple-500', corHex: '#a855f7' },
-  QUALIFICACAO: { label: 'Qualificação', cor: 'bg-teal-500', corHex: '#14b8a6' },
 };
 
 const AUTO_SYNC_INTERVAL = 30 * 60 * 1000;
@@ -94,10 +91,8 @@ export default function ComercialPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      // Non-admin: filter by own usuario_id
-      const opUrl = isAdminRef.current
-        ? '/api/comercial/oportunidades?limit=10000'
-        : `/api/comercial/oportunidades?limit=10000&usuario_id=${userRef.current?.id || ''}`;
+      // API filtra server-side pelo vendedor do usuário logado
+      const opUrl = '/api/comercial/oportunidades?limit=10000';
       const fetches: Promise<Response>[] = [fetch(opUrl)];
       // Só buscar lista de vendedores se for admin (sidebar)
       if (isAdminRef.current) {
@@ -212,14 +207,13 @@ export default function ComercialPage() {
     const ativas = base.filter(o => o.status === 'ABERTA');
     const ganhas = base.filter(o => o.estagio === 'FECHADA');
     const perdidas = base.filter(o => o.estagio === 'PERDIDA');
-    const totalDec = ganhas.length + perdidas.length;
     return {
       total: base.length,
       ativas: ativas.length,
       valorPipeline: ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
       ganhos: ganhas.length,
       valorGanho: ganhas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
-      taxa: totalDec > 0 ? Math.round((ganhas.length / totalDec) * 100) : 0,
+      taxa: base.length > 0 ? Math.round((ganhas.length / base.length) * 100) : 0,
     };
   }, [listaFiltrada]);
 
@@ -237,7 +231,7 @@ export default function ComercialPage() {
       porEstagio[o.estagio].valor += toNum(o.valor_estimado);
     });
 
-    const order: Record<string, number> = { EM_ANALISE: 1, EM_NEGOCIACAO: 2, POS_NEGOCIACAO: 3, FECHADA: 4, PERDIDA: 5, TESTE: 6, SUSPENSO: 7, SUBSTITUIDO: 8, PROSPECCAO: 9, PROPOSTA: 10, QUALIFICACAO: 11 };
+    const order: Record<string, number> = { EM_ANALISE: 1, EM_NEGOCIACAO: 2, POS_NEGOCIACAO: 3, FECHADA: 4, PERDIDA: 5, TESTE: 6, SUSPENSO: 7, SUBSTITUIDO: 8 };
 
     return Object.entries(porEstagio)
       .filter(([, v]) => v.quantidade > 0)

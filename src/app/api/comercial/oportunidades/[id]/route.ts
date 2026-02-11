@@ -26,7 +26,7 @@ export async function GET(
         o.*,
         c.razao_social as cliente_nome,
         c.nome_fantasia as cliente_fantasia,
-        c.cnpj as cliente_cnpj,
+        c.cpf_cnpj as cliente_cnpj,
         c.telefone as cliente_telefone,
         c.email as cliente_email,
         c.segmento as cliente_segmento,

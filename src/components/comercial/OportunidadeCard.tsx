@@ -98,8 +98,7 @@ export default function OportunidadeCard({
       className={`bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-all duration-200 ${
         draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
       }`}
-      onClick={onClick}
-      draggable={draggable}
+      onClick={(e) => { if (onClick && !e.defaultPrevented) onClick(); }}
     >
       {/* Cabeçalho */}
       <div className="flex items-start justify-between mb-2">

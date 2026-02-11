@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     const estagio = searchParams.get('estagio');
     const status = searchParams.get('status');
     let vendedor_id = searchParams.get('vendedor_id');
-    const usuario_id = searchParams.get('usuario_id');
     const cliente_id = searchParams.get('cliente_id');
     const produto = searchParams.get('produto') || searchParams.get('tipo_produto');
     const search = searchParams.get('search');
@@ -19,15 +18,46 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    // IMPORTANTE: Buscar pipeline PRIMEIRO (sem filtros) para garantir dados no dashboard
+    // SERVER-SIDE: Se NÃO é admin, forçar filtro pelo vendedor do usuário logado
+    const isAdmin = auth.usuario.is_admin;
+    if (!isAdmin && !vendedor_id) {
+      // Tentar encontrar vendedor pelo usuario_id
+      const vendedorResult = await query(
+        `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
+        [auth.usuario.id]
+      );
+      if (vendedorResult?.rows?.length) {
+        vendedor_id = String(vendedorResult.rows[0].id);
+      } else {
+        // Fallback: buscar por nome similar
+        const vendedorByName = await query(
+          `SELECT id FROM crm_vendedores WHERE LOWER(nome) = LOWER($1) OR nome ILIKE $2 LIMIT 1`,
+          [auth.usuario.nome, `%${auth.usuario.nome.split(' ')[0]}%`]
+        );
+        if (vendedorByName?.rows?.length) {
+          vendedor_id = String(vendedorByName.rows[0].id);
+        }
+      }
+    }
+
+    // Buscar pipeline filtrado pelo vendedor (se aplicável)
     let pipelineData: { estagio: string; quantidade: string; valor_total: string }[] = [];
     try {
-      const pipelineResult = await query(`
+      let pipelineSql = `
         SELECT
           estagio,
           COUNT(*) as quantidade,
           COALESCE(SUM(valor_estimado), 0) as valor_total
         FROM crm_oportunidades
+      `;
+      const pipelineParams: unknown[] = [];
+
+      if (vendedor_id) {
+        pipelineSql += ` WHERE vendedor_id = $1`;
+        pipelineParams.push(vendedor_id);
+      }
+
+      pipelineSql += `
         GROUP BY estagio
         ORDER BY
           CASE estagio
@@ -39,25 +69,13 @@ export async function GET(request: Request) {
             WHEN 'TESTE' THEN 6
             WHEN 'SUSPENSO' THEN 7
             WHEN 'SUBSTITUIDO' THEN 8
-            WHEN 'PROSPECCAO' THEN 9
-            WHEN 'QUALIFICACAO' THEN 10
-            WHEN 'PROPOSTA' THEN 11
+            ELSE 99
           END
-      `);
+      `;
+      const pipelineResult = await query(pipelineSql, pipelineParams);
       pipelineData = pipelineResult?.rows || [];
     } catch (pipelineError) {
       console.error('Erro ao buscar pipeline:', pipelineError);
-    }
-
-    // Se usuario_id foi passado, buscar o vendedor_id correspondente
-    if (usuario_id && !vendedor_id) {
-      const vendedorResult = await query(
-        `SELECT id FROM crm_vendedores WHERE usuario_id = $1`,
-        [usuario_id]
-      );
-      if (vendedorResult?.rows?.length) {
-        vendedor_id = vendedorResult.rows[0].id;
-      }
     }
 
     let sql = `
@@ -124,9 +142,6 @@ export async function GET(request: Request) {
           WHEN 'TESTE' THEN 6
           WHEN 'SUSPENSO' THEN 7
           WHEN 'SUBSTITUIDO' THEN 8
-          WHEN 'PROSPECCAO' THEN 9
-          WHEN 'QUALIFICACAO' THEN 10
-          WHEN 'PROPOSTA' THEN 11
           ELSE 99
         END,
         o.valor_estimado DESC NULLS LAST
@@ -136,11 +151,7 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
-    // Pipeline já foi buscado no início da função (pipelineData)
-    // Debug logging
-    console.log('Pipeline data:', JSON.stringify(pipelineData, null, 2));
-
-    // Conta total para paginação
+    // Conta total para paginação (com mesmos filtros)
     let countSql = `SELECT COUNT(DISTINCT o.id) as total FROM crm_oportunidades o WHERE 1=1`;
     const countParams: unknown[] = [];
     let countParamIndex = 1;

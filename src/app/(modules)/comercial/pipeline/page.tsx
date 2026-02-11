@@ -59,10 +59,7 @@ export default function PipelinePage() {
   useEffect(() => {
     if (authLoading) return;
     if (!authenticated) { router.push('/login'); return; }
-    if (user && !isAdmin) {
-      setFiltroVendedor(String(user.id));
-    }
-  }, [authLoading, authenticated, user, isAdmin, router]);
+  }, [authLoading, authenticated, router]);
 
   useEffect(() => {
     if (!user) return;
@@ -73,7 +70,7 @@ export default function PipelinePage() {
   const fetchOportunidades = async () => {
     try {
       const params = new URLSearchParams();
-      if (filtroVendedor) params.append('usuario_id', filtroVendedor);
+      if (filtroVendedor) params.append('vendedor_id', filtroVendedor);
       if (filtroProduto) params.append('produto', filtroProduto);
       params.append('limit', '2000');
       const response = await fetch(`/api/comercial/oportunidades?${params.toString()}`);
@@ -181,7 +178,7 @@ export default function PipelinePage() {
                 >
                   <option value="">Todos Vendedores</option>
                   {vendedores.map(v => (
-                    <option key={v.id} value={v.usuario_id ? String(v.usuario_id) : `vid_${v.id}`}>
+                    <option key={v.id} value={String(v.id)}>
                       {v.nome}
                     </option>
                   ))}
