@@ -430,7 +430,7 @@ export default function ComercialPage() {
                 }`}
                 onClick={() => setFiltroVendedor(filtroVendedor === v.nome ? null : v.nome)}
               >
-                <div className="truncate text-xs">{v.nome}</div>
+                <div className="truncate text-xs" title={v.nome}>{abrevNome(v.nome)}</div>
                 <div className="text-[10px] text-gray-400 font-normal">{fmt(v.valorAtivo)} · {v.opsAtivas}</div>
               </div>
             ))}
@@ -447,8 +447,8 @@ export default function ComercialPage() {
               {/* Table header */}
               <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
                 isAdmin
-                  ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_88px_62px]'
-                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_62px]'
+                  ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_80px_72px]'
+                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_72px]'
               }`}>
                 <span className="text-center">#</span>
                 <span>Cliente</span>
@@ -473,8 +473,8 @@ export default function ComercialPage() {
                     onClick={() => setSelectedOportunidadeId(op.id)}
                     className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                       isAdmin
-                        ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_88px_62px]'
-                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_62px]'
+                        ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_80px_72px]'
+                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_72px]'
                     } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
                   >
                     {/* # Proposta */}
@@ -512,7 +512,7 @@ export default function ComercialPage() {
                     )}
                     {/* Data - hidden on small */}
                     <div className="hidden lg:block text-center text-[11px] text-gray-400 tabular-nums">
-                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-'}
+                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
                     </div>
                   </div>
                 );
