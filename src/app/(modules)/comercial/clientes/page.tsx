@@ -161,15 +161,18 @@ export default function ClientesPage() {
               <h1 className="text-base sm:text-lg font-bold text-gray-900">Clientes</h1>
             </div>
             <div className="flex items-center gap-1">
-              {[
-                { href: '/comercial', label: 'Pipeline' },
-                { href: '/comercial/pipeline', label: 'Kanban' },
-              ].map(link => (
-                <Link key={link.href} href={link.href}
-                  className="hidden sm:inline-block px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                  {link.label}
-                </Link>
-              ))}
+              <Link href="/comercial/dashboard" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
+                Dashboard
+              </Link>
+              <Link href="/comercial" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                Pipeline
+              </Link>
+              <Link href="/comercial/pipeline" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" /></svg>
+                Kanban
+              </Link>
               {podeExecutarAcao('COMERCIAL', 'criar') && (
                 <Link href="/comercial/clientes/novo"
                   className="px-2 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-xs sm:text-sm font-medium flex items-center gap-1">
