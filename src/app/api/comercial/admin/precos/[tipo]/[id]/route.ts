@@ -108,18 +108,7 @@ export async function PUT(
       valores
     );
 
-    // Registra alterações no histórico
-    for (const [campo, valorNovo] of Object.entries(dados)) {
-      const valorAnterior = atual.rows[0][campo];
-      if (JSON.stringify(valorAnterior) !== JSON.stringify(valorNovo)) {
-        await query(
-          `INSERT INTO crm_precos_historico (tabela, registro_id, campo, valor_anterior, valor_novo, usuario_id, motivo)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [tabela, id, campo, String(valorAnterior), String(valorNovo), usuario_id, motivo || 'Atualização']
-        );
-      }
-    }
-
+    // Histórico é registrado automaticamente pelo trigger fn_precos_auditoria()
     // Invalida cache
     invalidarCachePrecos();
 
@@ -128,10 +117,10 @@ export async function PUT(
       data: result?.rows[0],
       message: 'Preço atualizado com sucesso',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao atualizar preço:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao atualizar preço' },
+      { success: false, error: `Erro ao atualizar preço: ${error?.message || 'desconhecido'}` },
       { status: 500 }
     );
   }

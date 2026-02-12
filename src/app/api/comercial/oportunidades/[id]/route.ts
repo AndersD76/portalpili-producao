@@ -188,21 +188,29 @@ export async function PUT(
 
     // Registra nota de contato se fornecida
     if (nota_contato && nota_contato.trim()) {
-      await query(
-        `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
-         VALUES ($1, 'CONTATO', $2)`,
-        [id, nota_contato.trim()]
-      );
+      try {
+        await query(
+          `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
+           VALUES ($1, 'CONTATO', $2)`,
+          [id, nota_contato.trim()]
+        );
+      } catch (e) {
+        console.log('Erro ao registrar nota de contato:', e);
+      }
     }
 
     // Registra interação de mudança de estágio e gera follow-up automático
     let followup = null;
     if (estagio) {
-      await query(
-        `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
-         VALUES ($1, 'ANOTACAO', $2)`,
-        [id, `Oportunidade movida para estágio: ${estagio}`]
-      );
+      try {
+        await query(
+          `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
+           VALUES ($1, 'ANOTACAO', $2)`,
+          [id, `Oportunidade movida para estágio: ${estagio}`]
+        );
+      } catch (e) {
+        console.log('Erro ao registrar interação de estágio:', e);
+      }
 
       // Gerar follow-up automático para o novo estágio
       try {
@@ -222,10 +230,10 @@ export async function PUT(
       message: 'Oportunidade atualizada com sucesso',
       followup,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao atualizar oportunidade:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao atualizar oportunidade' },
+      { success: false, error: `Erro ao atualizar oportunidade: ${error?.message || 'desconhecido'}` },
       { status: 500 }
     );
   }
