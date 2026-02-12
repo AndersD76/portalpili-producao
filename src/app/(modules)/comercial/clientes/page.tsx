@@ -83,7 +83,7 @@ export default function ClientesPage() {
   };
 
   const fmtCurrency = (v: unknown) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toNum(v));
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toNum(v));
 
   const fmtCnpj = (cnpj: string) => {
     if (!cnpj) return '-';
@@ -233,14 +233,14 @@ export default function ClientesPage() {
           <div className="text-center py-16 text-gray-400">Nenhum cliente encontrado</div>
         ) : (
           <div className="bg-white rounded-lg border overflow-hidden">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead>
                 <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   <th className="px-2 py-2 text-left w-[130px] hidden lg:table-cell">CNPJ</th>
-                  <th className="px-2 py-2 text-left">Nome</th>
+                  <th className="px-2 py-2 text-left w-[40%]">Nome</th>
                   <th className="px-2 py-2 text-left w-[120px] hidden sm:table-cell">Cidade/UF</th>
-                  <th className="px-2 py-2 text-right w-[90px]">Valor</th>
-                  {isAdmin && <th className="px-2 py-2 text-left w-[150px] hidden lg:table-cell">Vendedor</th>}
+                  <th className="px-2 py-2 text-right w-[100px]">Valor</th>
+                  {isAdmin && <th className="px-2 py-2 text-left w-[140px] hidden lg:table-cell">Vendedor</th>}
                   <th className="px-2 py-2 text-center w-[50px]">Oport.</th>
                   <th className="px-2 py-2 text-center w-[80px] hidden sm:table-cell">Segmento</th>
                   <th className="px-2 py-2 text-center w-[65px]">Status</th>

@@ -285,7 +285,7 @@ export default function ComercialPage() {
   };
 
   const fmtFull = (v: unknown) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(toNum(v));
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(toNum(v));
   };
 
   const diasNoFunil = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
@@ -470,16 +470,16 @@ export default function ComercialPage() {
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead>
                   <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell">#</th>
-                    <th className="px-2 py-2 text-left">Cliente</th>
+                    <th className="px-2 py-2 text-left w-[40%]">Cliente</th>
                     <th className="px-2 py-2 text-right w-[100px]">Valor</th>
                     <th className="px-2 py-2 text-center w-[44px] hidden sm:table-cell">Prob</th>
                     <th className="px-2 py-2 text-center w-[90px]">Etapa</th>
                     <th className="px-2 py-2 text-center w-[44px] hidden lg:table-cell">Dias</th>
-                    {isAdmin && <th className="px-2 py-2 text-left w-[160px] hidden sm:table-cell">Vendedor</th>}
+                    {isAdmin && <th className="px-2 py-2 text-left w-[140px] hidden sm:table-cell">Vendedor</th>}
                     <th className="px-2 py-2 text-center w-[76px] hidden lg:table-cell">Data</th>
                   </tr>
                 </thead>

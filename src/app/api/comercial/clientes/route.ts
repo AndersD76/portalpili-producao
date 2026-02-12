@@ -63,7 +63,7 @@ export async function GET(request: Request) {
           c.*,
           v.nome as vendedor_nome,
           COUNT(DISTINCT o.id) as total_oportunidades,
-          SUM(CASE WHEN o.status = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_compras,
+          COALESCE(SUM(o.valor_estimado), 0) as valor_total_compras,
           MAX(o.created_at) as ultima_oportunidade
         FROM crm_clientes c
         LEFT JOIN crm_vendedores v ON c.vendedor_id = v.id
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
         c.*,
         v.nome as vendedor_nome,
         COUNT(DISTINCT o.id) as total_oportunidades,
-        SUM(CASE WHEN o.status = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_compras,
+        COALESCE(SUM(o.valor_estimado), 0) as valor_total_compras,
         MAX(o.created_at) as ultima_oportunidade
       FROM crm_clientes c
       LEFT JOIN crm_vendedores v ON c.vendedor_id = v.id
