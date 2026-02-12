@@ -193,18 +193,29 @@ export async function POST(request: Request) {
 
 // ==================== FUNÇÕES AUXILIARES ====================
 
+/**
+ * Normaliza numero_proposta para comparação: "PROP-00329" → "329", "329" → "329"
+ */
+function normalizarNumeroProposta(num: string): string {
+  if (!num) return '';
+  return num.replace(/^PROP-0*/i, '').replace(/^0+/, '') || num;
+}
+
 function findExistingProposta(
   prop: PropostaSheet,
   existentes: Array<{ id: number; data_criacao: string; situacao: string; cliente_cnpj: string; vendedor_nome: string; numero_proposta: string }>,
   dataCriacao: Date
 ) {
-  // Primeiro: match por numero_proposta se disponível
+  // Primeiro: match por numero_proposta normalizado
   if (prop.numero_proposta) {
-    const byNum = existentes.find(e => e.numero_proposta === prop.numero_proposta);
+    const numNorm = normalizarNumeroProposta(prop.numero_proposta);
+    const byNum = existentes.find(e =>
+      e.numero_proposta && normalizarNumeroProposta(e.numero_proposta) === numNorm
+    );
     if (byNum) return byNum;
   }
 
-  // Segundo: match por timestamp + cliente (com tolerância de 1 minuto)
+  // Segundo: match por timestamp + cliente (com tolerância de 2 min)
   return existentes.find(e => {
     const existDate = new Date(e.data_criacao);
     const diffMs = Math.abs(existDate.getTime() - dataCriacao.getTime());
@@ -353,31 +364,58 @@ async function syncOportunidade(
   }
 
   const titulo = `${prop.tipo_produto} - ${prop.cliente_razao_social}`;
+  const numNorm = prop.numero_proposta ? normalizarNumeroProposta(prop.numero_proposta) : null;
 
   // Verificar se já existe oportunidade para esta proposta
-  const existente = await query(
-    `SELECT id FROM crm_oportunidades WHERE titulo = $1 AND cliente_id = $2`,
-    [titulo, clienteId]
-  );
+  // Prioridade: 1) por numero_proposta, 2) por "Venda" variant, 3) por titulo+cliente
+  let existenteId: number | null = null;
 
-  if (existente?.rows[0]) {
-    // Atualizar
+  // 1) Buscar por numero_proposta (coluna adicionada)
+  if (numNorm) {
+    const byNum = await query(
+      `SELECT id FROM crm_oportunidades WHERE numero_proposta = $1`,
+      [numNorm]
+    );
+    if (byNum?.rows[0]) existenteId = byNum.rows[0].id;
+  }
+
+  // 2) Buscar variante "Venda X - Cliente" (do migrate-to-crm antigo)
+  if (!existenteId) {
+    const vendaTitulo = `Venda ${titulo}`;
+    const byVenda = clienteId
+      ? await query(`SELECT id FROM crm_oportunidades WHERE titulo = $1 AND cliente_id = $2`, [vendaTitulo, clienteId])
+      : await query(`SELECT id FROM crm_oportunidades WHERE titulo = $1 AND cliente_id IS NULL`, [vendaTitulo]);
+    if (byVenda?.rows[0]) existenteId = byVenda.rows[0].id;
+  }
+
+  // 3) Buscar por titulo + cliente (match original)
+  if (!existenteId) {
+    const byTitulo = clienteId
+      ? await query(`SELECT id FROM crm_oportunidades WHERE titulo = $1 AND cliente_id = $2`, [titulo, clienteId])
+      : await query(`SELECT id FROM crm_oportunidades WHERE titulo = $1 AND cliente_id IS NULL AND vendedor_id = $2`, [titulo, vendedorId]);
+    if (byTitulo?.rows[0]) existenteId = byTitulo.rows[0].id;
+  }
+
+  if (existenteId) {
+    // Atualizar - normalizar titulo (remover "Venda " prefix se existir)
     await query(
       `UPDATE crm_oportunidades SET
-        estagio = $2, status = $3, valor_estimado = COALESCE($4, valor_estimado),
-        probabilidade = COALESCE($5, probabilidade), updated_at = NOW()
+        titulo = $2, estagio = $3, status = $4, valor_estimado = COALESCE($5, valor_estimado),
+        probabilidade = COALESCE($6, probabilidade), numero_proposta = COALESCE($7, numero_proposta),
+        cliente_id = COALESCE($8, cliente_id), vendedor_id = COALESCE($9, vendedor_id),
+        fonte = 'PLANILHA', updated_at = NOW()
       WHERE id = $1`,
-      [existente.rows[0].id, estagio, status, valorTotal, probabilidade]
+      [existenteId, titulo, estagio, status, valorTotal, probabilidade, numNorm, clienteId, vendedorId]
     );
   } else {
     // Criar
     await query(
       `INSERT INTO crm_oportunidades (
         titulo, cliente_id, vendedor_id, produto, valor_estimado,
-        estagio, status, probabilidade, fonte
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PLANILHA')
+        estagio, status, probabilidade, fonte, numero_proposta
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PLANILHA', $9)
       ON CONFLICT DO NOTHING`,
-      [titulo, clienteId, vendedorId, prop.tipo_produto, valorTotal, estagio, status, probabilidade]
+      [titulo, clienteId, vendedorId, prop.tipo_produto, valorTotal, estagio, status, probabilidade, numNorm]
     );
   }
 }
