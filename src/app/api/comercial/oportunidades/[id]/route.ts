@@ -146,12 +146,6 @@ export async function PUT(
     const statusVal = status || situacao;
     const concorrenteVal = concorrente || concorrentes;
 
-    // Se mudou de estágio, reseta dias no estágio
-    let estagioClause = '';
-    if (estagio) {
-      estagioClause = ', dias_no_estagio = 0';
-    }
-
     // Se fechou (ganhou ou perdeu), registra a data
     let fechamentoClause = '';
     if (statusVal === 'GANHA' || statusVal === 'PERDIDA') {
@@ -172,7 +166,6 @@ export async function PUT(
         concorrente = COALESCE($11, concorrente),
         observacoes = COALESCE($12, observacoes),
         updated_at = NOW()
-        ${estagioClause}
         ${fechamentoClause}
       WHERE id = $1
       RETURNING *`,

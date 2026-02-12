@@ -7,11 +7,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface Cliente {
   id: number;
-  cnpj: string;
+  cpf_cnpj: string;
   razao_social: string;
   nome_fantasia?: string;
   segmento?: string;
-  cidade?: string;
+  municipio?: string;
   estado?: string;
   telefone?: string;
   email?: string;
@@ -102,8 +102,8 @@ export default function ClientesPage() {
       lista = lista.filter(c =>
         (c.razao_social || '').toLowerCase().includes(b) ||
         (c.nome_fantasia || '').toLowerCase().includes(b) ||
-        (c.cnpj || '').includes(b) ||
-        (c.cidade || '').toLowerCase().includes(b)
+        (c.cpf_cnpj || '').includes(b) ||
+        (c.municipio || '').toLowerCase().includes(b)
       );
     }
     if (ordenacao === 'nome') lista.sort((a, b) => (a.razao_social || '').localeCompare(b.razao_social || ''));
@@ -236,8 +236,8 @@ export default function ClientesPage() {
             {/* Table header */}
             <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
               isAdmin
-                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[120px_1fr_120px_80px_100px_80px_80px_72px]'
-                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[120px_1fr_120px_80px_80px_80px_72px]'
+                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_minmax(0,2fr)_60px_80px_72px]'
+                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_60px_80px_72px]'
             }`}>
               <span className="hidden lg:block">CNPJ</span>
               <span>Nome</span>
@@ -255,24 +255,24 @@ export default function ClientesPage() {
                 onClick={() => router.push(`/comercial/clientes/${c.id}`)}
                 className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                   isAdmin
-                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[120px_1fr_120px_80px_100px_80px_80px_72px]'
-                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[120px_1fr_120px_80px_80px_80px_72px]'
+                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_minmax(0,2fr)_60px_80px_72px]'
+                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_60px_80px_72px]'
                 } ${idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
               >
                 {/* CNPJ */}
                 <div className="hidden lg:block text-[11px] text-gray-400 font-mono tabular-nums truncate">
-                  {fmtCnpj(c.cnpj)}
+                  {fmtCnpj(c.cpf_cnpj)}
                 </div>
                 {/* Nome */}
                 <div className="min-w-0">
                   <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
                     {c.nome_fantasia || c.razao_social}
                   </div>
-                  <div className="text-[10px] text-gray-400 truncate lg:hidden">{fmtCnpj(c.cnpj)}</div>
+                  <div className="text-[10px] text-gray-400 truncate lg:hidden">{fmtCnpj(c.cpf_cnpj)}</div>
                 </div>
                 {/* Cidade/UF */}
                 <div className="hidden sm:block text-xs text-gray-500 truncate">
-                  {c.cidade ? `${c.cidade}/${c.estado || ''}` : c.estado || '-'}
+                  {c.municipio ? `${c.municipio}/${c.estado || ''}` : c.estado || '-'}
                 </div>
                 {/* Valor */}
                 <div className="text-right font-bold text-xs text-gray-800 tabular-nums">
