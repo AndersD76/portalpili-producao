@@ -228,7 +228,7 @@ export default function ClientesPage() {
       </div>
 
       {/* TABLE */}
-      <div className="p-2 sm:p-3">
+      <div className="p-2 sm:p-3 max-w-[1400px]">
         {listaFiltrada.length === 0 ? (
           <div className="text-center py-16 text-gray-400">Nenhum cliente encontrado</div>
         ) : (
@@ -236,8 +236,8 @@ export default function ClientesPage() {
             {/* Table header */}
             <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
               isAdmin
-                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_2fr_50px_70px_60px]'
-                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_50px_70px_60px]'
+                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_160px_50px_80px_65px]'
+                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_50px_80px_65px]'
             }`}>
               <span className="hidden lg:block">CNPJ</span>
               <span>Nome</span>
@@ -255,8 +255,8 @@ export default function ClientesPage() {
                 onClick={() => router.push(`/comercial/clientes/${c.id}`)}
                 className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                   isAdmin
-                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_2fr_50px_70px_60px]'
-                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_50px_70px_60px]'
+                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_160px_50px_80px_65px]'
+                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_50px_80px_65px]'
                 } ${idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
               >
                 {/* CNPJ */}

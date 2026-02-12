@@ -55,7 +55,7 @@ const ESTAGIO_CONFIG: Record<string, { label: string; tag: string; cor: string; 
   SUBSTITUIDO: { label: 'Substituído', tag: 'Subst.', cor: 'bg-indigo-500', corHex: '#6366f1' },
 };
 
-const AUTO_SYNC_INTERVAL = 30 * 60 * 1000;
+const AUTO_SYNC_INTERVAL = 60 * 60 * 1000; // 60 minutos
 
 // Safe number parser
 function toNum(v: unknown): number {
@@ -169,7 +169,7 @@ export default function ComercialPage() {
     if (!authenticated) { router.push('/login'); }
   }, [authLoading, authenticated, router]);
 
-  // Data loading - only runs once user is authenticated
+  // Data loading + periodic auto-sync every 60 min
   useEffect(() => {
     if (authLoading || !authenticated || !user) return;
     const init = async () => {
@@ -182,6 +182,9 @@ export default function ComercialPage() {
       }
     };
     init();
+    // Periodic sync every 60 minutes
+    const interval = setInterval(() => { runSync(true); }, AUTO_SYNC_INTERVAL);
+    return () => clearInterval(interval);
   }, [authLoading, authenticated, user, fetchAll, fetchSyncStatus, runSync]);
 
   // ==================== COMPUTED ====================
@@ -470,7 +473,7 @@ export default function ComercialPage() {
               {/* Table header */}
               <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
                 isAdmin
-                  ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_3fr_100px_42px_88px_44px_2fr_76px]'
+                  ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_1fr_100px_44px_90px_44px_1fr_76px]'
                   : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_100px_42px_88px_44px_76px]'
               }`}>
                 <span className="text-center">#</span>
@@ -479,8 +482,8 @@ export default function ComercialPage() {
                 <span className="text-center">Prob</span>
                 <span className="text-center">Etapa</span>
                 <span className="hidden lg:block text-center">Dias</span>
-                {isAdmin && <span className="text-right hidden sm:block">Vendedor</span>}
-                {isAdmin && <span className="text-right sm:hidden">Vend.</span>}
+                {isAdmin && <span className="hidden sm:block">Vendedor</span>}
+                {isAdmin && <span className="sm:hidden">Vend.</span>}
                 <span className="hidden lg:block text-center">Data</span>
               </div>
               {/* Rows */}
@@ -497,7 +500,7 @@ export default function ComercialPage() {
                     onClick={() => setSelectedOportunidadeId(op.id)}
                     className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                       isAdmin
-                        ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_3fr_100px_42px_88px_44px_2fr_76px]'
+                        ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_1fr_100px_44px_90px_44px_1fr_76px]'
                         : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_100px_42px_88px_44px_76px]'
                     } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
                   >
@@ -536,7 +539,7 @@ export default function ComercialPage() {
                     </div>
                     {/* Vendedor - admin only */}
                     {isAdmin && (
-                      <div className="text-right text-[10px] sm:text-xs text-gray-500 truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</div>
                     )}
                     {/* Data - hidden on small */}
                     <div className="hidden lg:block text-center text-[11px] text-gray-400 tabular-nums">

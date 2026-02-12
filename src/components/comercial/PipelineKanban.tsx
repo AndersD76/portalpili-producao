@@ -164,7 +164,11 @@ export default function PipelineKanban({
                       oportunidade={oportunidade}
                       onClick={() => onClickOportunidade?.(oportunidade)}
                       onMove={async (novoEstagio) => {
-                        if (onMoveOportunidade) await onMoveOportunidade(oportunidade.id, novoEstagio);
+                        try {
+                          if (onMoveOportunidade) await onMoveOportunidade(oportunidade.id, novoEstagio);
+                        } catch (err) {
+                          console.error('Erro ao mover:', err);
+                        }
                         onClickOportunidade?.(oportunidade);
                       }}
                       draggable
