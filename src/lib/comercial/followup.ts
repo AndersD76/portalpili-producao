@@ -109,8 +109,8 @@ export async function gerarFollowUp(
     `INSERT INTO crm_atividades (
       titulo, descricao, tipo, status, prioridade,
       oportunidade_id, cliente_id, vendedor_id,
-      data_agendada, origem
-    ) VALUES ($1, $2, $3, 'PENDENTE', $4, $5, $6, $7, $8, 'AUTO_FOLLOWUP')
+      data_agendada
+    ) VALUES ($1, $2, $3, 'PENDENTE', $4, $5, $6, $7, $8)
     RETURNING id`,
     [
       `${config.titulo} - ${oportunidade.titulo || 'Oportunidade #' + oportunidadeId}`,
