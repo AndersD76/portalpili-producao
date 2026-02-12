@@ -42,15 +42,15 @@ interface PipelineEstagio {
   valor_total: number;
 }
 
-const ESTAGIO_CONFIG: Record<string, { label: string; cor: string; corHex: string }> = {
-  EM_ANALISE: { label: 'Em Análise', cor: 'bg-cyan-500', corHex: '#06b6d4' },
-  EM_NEGOCIACAO: { label: 'Em Negociação', cor: 'bg-orange-500', corHex: '#f97316' },
-  POS_NEGOCIACAO: { label: 'Pós Negociação', cor: 'bg-purple-500', corHex: '#a855f7' },
-  FECHADA: { label: 'Fechada', cor: 'bg-green-500', corHex: '#22c55e' },
-  PERDIDA: { label: 'Perdida', cor: 'bg-red-500', corHex: '#ef4444' },
-  TESTE: { label: 'Teste', cor: 'bg-pink-500', corHex: '#ec4899' },
-  SUSPENSO: { label: 'Suspenso', cor: 'bg-yellow-600', corHex: '#ca8a04' },
-  SUBSTITUIDO: { label: 'Substituído', cor: 'bg-indigo-500', corHex: '#6366f1' },
+const ESTAGIO_CONFIG: Record<string, { label: string; tag: string; cor: string; corHex: string }> = {
+  EM_ANALISE: { label: 'Em Análise', tag: 'Análise', cor: 'bg-cyan-500', corHex: '#06b6d4' },
+  EM_NEGOCIACAO: { label: 'Em Negociação', tag: 'Negociação', cor: 'bg-orange-500', corHex: '#f97316' },
+  POS_NEGOCIACAO: { label: 'Pós Negociação', tag: 'Pós Neg.', cor: 'bg-purple-500', corHex: '#a855f7' },
+  FECHADA: { label: 'Fechada', tag: 'Fechada', cor: 'bg-green-500', corHex: '#22c55e' },
+  PERDIDA: { label: 'Perdida', tag: 'Perdida', cor: 'bg-red-500', corHex: '#ef4444' },
+  TESTE: { label: 'Teste', tag: 'Teste', cor: 'bg-pink-500', corHex: '#ec4899' },
+  SUSPENSO: { label: 'Suspenso', tag: 'Suspenso', cor: 'bg-yellow-600', corHex: '#ca8a04' },
+  SUBSTITUIDO: { label: 'Substituído', tag: 'Subst.', cor: 'bg-indigo-500', corHex: '#6366f1' },
 };
 
 const AUTO_SYNC_INTERVAL = 30 * 60 * 1000;
@@ -281,6 +281,13 @@ export default function ComercialPage() {
     return 'bg-red-100 text-red-800';
   };
 
+  const abrevNome = (nome: string) => {
+    if (!nome) return '-';
+    const p = nome.trim().split(/\s+/);
+    if (p.length <= 1) return nome;
+    return `${p[0]} ${p[p.length - 1][0]}.`;
+  };
+
   // ==================== LOADING ====================
 
   if (loading || authLoading) {
@@ -408,7 +415,7 @@ export default function ComercialPage() {
       <div className="flex flex-1">
         {/* SIDEBAR VENDEDORES - admin desktop only */}
         {isAdmin && (
-          <aside className="w-44 bg-white border-r flex-shrink-0 hidden md:block text-sm sticky top-[calc(3.5rem+37px)] self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+          <aside className="w-36 lg:w-40 bg-white border-r flex-shrink-0 hidden md:block text-sm sticky top-[calc(3.5rem+37px)] self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div
               className={`px-3 py-1.5 border-b cursor-pointer transition hover:bg-gray-50 ${!filtroVendedor ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'}`}
               onClick={() => setFiltroVendedor(null)}
@@ -438,10 +445,10 @@ export default function ComercialPage() {
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
               {/* Table header */}
-              <div className={`grid gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
+              <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
                 isAdmin
-                  ? 'grid-cols-[40px_1fr_90px_50px_80px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px_90px]'
-                  : 'grid-cols-[40px_1fr_90px_50px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px]'
+                  ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_88px_62px]'
+                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_62px]'
               }`}>
                 <span className="text-center">#</span>
                 <span>Cliente</span>
@@ -453,7 +460,7 @@ export default function ComercialPage() {
                 <span className="hidden lg:block text-center">Data</span>
               </div>
               {/* Rows */}
-              {listaFiltrada.map(op => {
+              {listaFiltrada.map((op, idx) => {
                 const prob = toNum(op.probabilidade);
                 const valor = toNum(op.valor_estimado);
                 const cfg = ESTAGIO_CONFIG[op.estagio];
@@ -464,14 +471,14 @@ export default function ComercialPage() {
                   <div
                     key={op.id}
                     onClick={() => setSelectedOportunidadeId(op.id)}
-                    className={`grid gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-gray-50 transition cursor-pointer items-center ${
+                    className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                       isAdmin
-                        ? 'grid-cols-[40px_1fr_90px_50px_80px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px_90px]'
-                        : 'grid-cols-[40px_1fr_90px_50px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px]'
-                    } ${urgente ? 'bg-red-50/40' : ''}`}
+                        ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_88px_62px]'
+                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_62px]'
+                    } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
                   >
                     {/* # Proposta */}
-                    <div className="text-center text-[10px] sm:text-xs font-mono text-gray-500">
+                    <div className="text-center text-[10px] font-mono text-gray-400">
                       {op.numero_proposta || '-'}
                     </div>
                     {/* Cliente + Produto */}
@@ -480,32 +487,32 @@ export default function ComercialPage() {
                         {op.cliente_nome || op.titulo}
                         {urgente && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Atividade atrasada" />}
                       </div>
-                      <div className="text-[10px] sm:text-xs text-gray-400 truncate">{op.produto || '-'}</div>
+                      <div className="text-[10px] text-gray-400 truncate">{op.produto || '-'}</div>
                     </div>
                     {/* Valor */}
-                    <div className="text-right font-bold text-xs sm:text-sm text-gray-800">{fmtFull(valor)}</div>
+                    <div className="text-right font-bold text-xs sm:text-sm text-gray-800 tabular-nums">{fmtFull(valor)}</div>
                     {/* Probabilidade */}
                     <div className="text-center">
-                      <span className={`inline-block px-1 py-0.5 rounded text-[10px] sm:text-xs font-semibold ${probBg(prob)}`}>
+                      <span className={`inline-block px-1 py-0.5 rounded text-[10px] font-bold ${probBg(prob)}`}>
                         {prob}%
                       </span>
                     </div>
                     {/* Etapa */}
-                    <div className="text-center">
+                    <div className="text-center overflow-hidden">
                       {cfg && (
-                        <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap"
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold text-white whitespace-nowrap"
                           style={{ background: cfg.corHex }}>
-                          {cfg.label}
+                          {cfg.tag}
                         </span>
                       )}
                     </div>
                     {/* Vendedor - admin only */}
                     {isAdmin && (
-                      <div className="text-right text-[10px] sm:text-xs text-gray-500 truncate">{op.vendedor_nome || '-'}</div>
+                      <div className="text-right text-[10px] sm:text-xs text-gray-500 truncate" title={op.vendedor_nome || ''}>{abrevNome(op.vendedor_nome || '')}</div>
                     )}
                     {/* Data - hidden on small */}
-                    <div className="hidden lg:block text-center text-xs text-gray-500">
-                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                    <div className="hidden lg:block text-center text-[11px] text-gray-400 tabular-nums">
+                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '-'}
                     </div>
                   </div>
                 );

@@ -201,7 +201,7 @@ export default function PipelinePage() {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 sm:p-6">
+      <main className="p-2 sm:p-4">
         <PipelineKanban
           oportunidades={oportunidades}
           onMoveOportunidade={handleMoveOportunidade}
