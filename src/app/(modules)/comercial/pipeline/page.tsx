@@ -111,6 +111,8 @@ export default function PipelinePage() {
     } catch (error) {
       console.error('Erro ao mover oportunidade:', error);
     }
+    // Always open modal after move so user can add notes
+    setSelectedOportunidadeId(oportunidadeId);
   }, []);
 
   const handleClickOportunidade = (oportunidade: Oportunidade) => {

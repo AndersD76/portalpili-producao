@@ -470,84 +470,75 @@ export default function ComercialPage() {
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
-              {/* Table header */}
-              <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
-                isAdmin
-                  ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_1fr_100px_44px_90px_44px_1fr_76px]'
-                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_100px_42px_88px_44px_76px]'
-              }`}>
-                <span className="text-center">#</span>
-                <span>Cliente</span>
-                <span className="text-right">Valor</span>
-                <span className="text-center">Prob</span>
-                <span className="text-center">Etapa</span>
-                <span className="hidden lg:block text-center">Dias</span>
-                {isAdmin && <span className="hidden sm:block">Vendedor</span>}
-                {isAdmin && <span className="sm:hidden">Vend.</span>}
-                <span className="hidden lg:block text-center">Data</span>
-              </div>
-              {/* Rows */}
-              {listaFiltrada.map((op, idx) => {
-                const prob = toNum(op.probabilidade);
-                const valor = toNum(op.valor_estimado);
-                const cfg = ESTAGIO_CONFIG[op.estagio];
-                const urgente = toNum(op.atividades_atrasadas) > 0;
-                const dataRef = op.data_abertura || op.created_at;
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell">#</th>
+                    <th className="px-2 py-2 text-left">Cliente</th>
+                    <th className="px-2 py-2 text-right w-[100px]">Valor</th>
+                    <th className="px-2 py-2 text-center w-[44px] hidden sm:table-cell">Prob</th>
+                    <th className="px-2 py-2 text-center w-[90px]">Etapa</th>
+                    <th className="px-2 py-2 text-center w-[44px] hidden lg:table-cell">Dias</th>
+                    {isAdmin && <th className="px-2 py-2 text-left w-[160px] hidden sm:table-cell">Vendedor</th>}
+                    <th className="px-2 py-2 text-center w-[76px] hidden lg:table-cell">Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listaFiltrada.map((op, idx) => {
+                    const prob = toNum(op.probabilidade);
+                    const valor = toNum(op.valor_estimado);
+                    const cfg = ESTAGIO_CONFIG[op.estagio];
+                    const urgente = toNum(op.atividades_atrasadas) > 0;
+                    const dataRef = op.data_abertura || op.created_at;
 
-                return (
-                  <div
-                    key={op.id}
-                    onClick={() => setSelectedOportunidadeId(op.id)}
-                    className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
-                      isAdmin
-                        ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_1fr_100px_44px_90px_44px_1fr_76px]'
-                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_100px_42px_88px_44px_76px]'
-                    } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
-                  >
-                    {/* # Proposta */}
-                    <div className="text-center text-[10px] font-mono text-gray-400">
-                      {op.numero_proposta || '-'}
-                    </div>
-                    {/* Cliente + Produto */}
-                    <div className="min-w-0">
-                      <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
-                        {op.cliente_nome || op.titulo}
-                        {urgente && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Atividade atrasada" />}
-                      </div>
-                      <div className="text-[10px] text-gray-400 truncate">{op.produto || '-'}</div>
-                    </div>
-                    {/* Valor */}
-                    <div className="text-right font-bold text-xs sm:text-sm text-gray-800 tabular-nums">{fmtFull(valor)}</div>
-                    {/* Probabilidade */}
-                    <div className="text-center">
-                      <span className={`inline-block px-1 py-0.5 rounded text-[10px] font-bold ${probBg(prob)}`}>
-                        {prob}%
-                      </span>
-                    </div>
-                    {/* Etapa */}
-                    <div className="text-center overflow-hidden">
-                      {cfg && (
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold text-white whitespace-nowrap"
-                          style={{ background: cfg.corHex }}>
-                          {cfg.tag}
-                        </span>
-                      )}
-                    </div>
-                    {/* Dias no funil */}
-                    <div className="hidden lg:block text-center text-[11px] text-gray-500 tabular-nums">
-                      {dataRef ? `${diasNoFunil(dataRef)}d` : '-'}
-                    </div>
-                    {/* Vendedor - admin only */}
-                    {isAdmin && (
-                      <div className="text-[10px] sm:text-xs text-gray-500 truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</div>
-                    )}
-                    {/* Data - hidden on small */}
-                    <div className="hidden lg:block text-center text-[11px] text-gray-400 tabular-nums">
-                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
-                    </div>
-                  </div>
-                );
-              })}
+                    return (
+                      <tr
+                        key={op.id}
+                        onClick={() => setSelectedOportunidadeId(op.id)}
+                        className={`border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer ${
+                          urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''
+                        }`}
+                      >
+                        <td className="px-2 py-1.5 text-center text-[10px] font-mono text-gray-400 hidden sm:table-cell">
+                          {op.numero_proposta || '-'}
+                        </td>
+                        <td className="px-2 py-1.5 max-w-0">
+                          <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
+                            {op.cliente_nome || op.titulo}
+                            {urgente && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Atividade atrasada" />}
+                          </div>
+                          <div className="text-[10px] text-gray-400 truncate">{op.produto || '-'}</div>
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-bold text-xs sm:text-sm text-gray-800 tabular-nums whitespace-nowrap">{fmtFull(valor)}</td>
+                        <td className="px-2 py-1.5 text-center hidden sm:table-cell">
+                          <span className={`inline-block px-1 py-0.5 rounded text-[10px] font-bold ${probBg(prob)}`}>
+                            {prob}%
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-center">
+                          {cfg && (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold text-white whitespace-nowrap"
+                              style={{ background: cfg.corHex }}>
+                              {cfg.tag}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5 text-center text-[11px] text-gray-500 tabular-nums hidden lg:table-cell">
+                          {dataRef ? `${diasNoFunil(dataRef)}d` : '-'}
+                        </td>
+                        {isAdmin && (
+                          <td className="px-2 py-1.5 text-xs text-gray-500 max-w-[160px] hidden sm:table-cell">
+                            <span className="block truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</span>
+                          </td>
+                        )}
+                        <td className="px-2 py-1.5 text-center text-[11px] text-gray-400 tabular-nums hidden lg:table-cell">
+                          {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

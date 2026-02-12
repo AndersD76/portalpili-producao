@@ -233,73 +233,63 @@ export default function ClientesPage() {
           <div className="text-center py-16 text-gray-400">Nenhum cliente encontrado</div>
         ) : (
           <div className="bg-white rounded-lg border overflow-hidden">
-            {/* Table header */}
-            <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
-              isAdmin
-                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_160px_50px_80px_65px]'
-                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_50px_80px_65px]'
-            }`}>
-              <span className="hidden lg:block">CNPJ</span>
-              <span>Nome</span>
-              <span className="hidden sm:block">Cidade/UF</span>
-              <span className="text-right">Valor</span>
-              {isAdmin && <span className="hidden lg:block">Vendedor</span>}
-              <span className="text-center">Oport.</span>
-              <span className="hidden sm:block text-center">Segmento</span>
-              <span className="text-center">Status</span>
-            </div>
-            {/* Rows */}
-            {listaFiltrada.map((c, idx) => (
-              <div
-                key={c.id}
-                onClick={() => router.push(`/comercial/clientes/${c.id}`)}
-                className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
-                  isAdmin
-                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_160px_50px_80px_65px]'
-                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_1fr_130px_90px_50px_80px_65px]'
-                } ${idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
-              >
-                {/* CNPJ */}
-                <div className="hidden lg:block text-[11px] text-gray-400 font-mono tabular-nums truncate">
-                  {fmtCnpj(c.cpf_cnpj)}
-                </div>
-                {/* Nome */}
-                <div className="min-w-0">
-                  <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
-                    {c.nome_fantasia || c.razao_social}
-                  </div>
-                  <div className="text-[10px] text-gray-400 truncate lg:hidden">{fmtCnpj(c.cpf_cnpj)}</div>
-                </div>
-                {/* Cidade/UF */}
-                <div className="hidden sm:block text-xs text-gray-500 truncate">
-                  {c.municipio ? `${c.municipio}/${c.estado || ''}` : c.estado || '-'}
-                </div>
-                {/* Valor */}
-                <div className="text-right font-bold text-xs text-gray-800 tabular-nums">
-                  {fmtCurrency(c.valor_total_compras)}
-                </div>
-                {/* Vendedor - admin only */}
-                {isAdmin && (
-                  <div className="hidden lg:block text-xs text-gray-500 truncate" title={c.vendedor_nome || ''}>
-                    {c.vendedor_nome || '-'}
-                  </div>
-                )}
-                {/* Oportunidades */}
-                <div className="text-center text-xs text-gray-600 tabular-nums">
-                  {toNum(c.total_oportunidades)}
-                </div>
-                {/* Segmento */}
-                <div className="hidden sm:block text-center text-[10px] text-gray-400 truncate">
-                  {c.segmento || '-'}
-                </div>
-                {/* Status */}
-                <div className="text-center">
-                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusColor[c.status || ''] || 'bg-gray-100 text-gray-500'}`}>
-                    {c.status || '-'}
-                  </span>
-                </div>
-              </div>
-            ))}
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-2 py-2 text-left w-[130px] hidden lg:table-cell">CNPJ</th>
+                  <th className="px-2 py-2 text-left">Nome</th>
+                  <th className="px-2 py-2 text-left w-[120px] hidden sm:table-cell">Cidade/UF</th>
+                  <th className="px-2 py-2 text-right w-[90px]">Valor</th>
+                  {isAdmin && <th className="px-2 py-2 text-left w-[150px] hidden lg:table-cell">Vendedor</th>}
+                  <th className="px-2 py-2 text-center w-[50px]">Oport.</th>
+                  <th className="px-2 py-2 text-center w-[80px] hidden sm:table-cell">Segmento</th>
+                  <th className="px-2 py-2 text-center w-[65px]">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {listaFiltrada.map((c, idx) => (
+                  <tr
+                    key={c.id}
+                    onClick={() => router.push(`/comercial/clientes/${c.id}`)}
+                    className={`border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer ${
+                      idx % 2 === 1 ? 'bg-gray-50/60' : ''
+                    }`}
+                  >
+                    <td className="px-2 py-1.5 text-[11px] text-gray-400 font-mono tabular-nums hidden lg:table-cell">
+                      <span className="block truncate">{fmtCnpj(c.cpf_cnpj)}</span>
+                    </td>
+                    <td className="px-2 py-1.5 max-w-0">
+                      <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
+                        {c.nome_fantasia || c.razao_social}
+                      </div>
+                      <div className="text-[10px] text-gray-400 truncate lg:hidden">{fmtCnpj(c.cpf_cnpj)}</div>
+                    </td>
+                    <td className="px-2 py-1.5 text-xs text-gray-500 hidden sm:table-cell">
+                      <span className="block truncate">{c.municipio ? `${c.municipio}/${c.estado || ''}` : c.estado || '-'}</span>
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-bold text-xs text-gray-800 tabular-nums whitespace-nowrap">
+                      {fmtCurrency(c.valor_total_compras)}
+                    </td>
+                    {isAdmin && (
+                      <td className="px-2 py-1.5 text-xs text-gray-500 hidden lg:table-cell">
+                        <span className="block truncate" title={c.vendedor_nome || ''}>{c.vendedor_nome || '-'}</span>
+                      </td>
+                    )}
+                    <td className="px-2 py-1.5 text-center text-xs text-gray-600 tabular-nums">
+                      {toNum(c.total_oportunidades)}
+                    </td>
+                    <td className="px-2 py-1.5 text-center text-[10px] text-gray-400 hidden sm:table-cell">
+                      <span className="block truncate">{c.segmento || '-'}</span>
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusColor[c.status || ''] || 'bg-gray-100 text-gray-500'}`}>
+                        {c.status || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
