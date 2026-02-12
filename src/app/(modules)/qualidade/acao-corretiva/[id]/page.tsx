@@ -163,9 +163,12 @@ export default function DetalhesAcaoCorretivaPage() {
         }
         setAcao(acaoData);
         setEditMode(false);
+      } else {
+        alert(result.error || 'Erro ao salvar. Verifique suas permissões.');
       }
     } catch (error) {
       console.error('Erro ao salvar:', error);
+      alert('Erro ao conectar com o servidor.');
     } finally {
       setSaving(false);
     }
@@ -271,9 +274,12 @@ export default function DetalhesAcaoCorretivaPage() {
       const result = await response.json();
       if (result.success) {
         router.push('/qualidade/acao-corretiva');
+      } else {
+        alert(result.error || 'Erro ao excluir. Verifique suas permissões.');
       }
     } catch (error) {
       console.error('Erro ao excluir:', error);
+      alert('Erro ao conectar com o servidor.');
     }
   };
 
