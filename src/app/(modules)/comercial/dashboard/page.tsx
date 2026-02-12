@@ -105,7 +105,7 @@ export default function DashboardComercialPage() {
   useEffect(() => {
     if (!user) return;
     fetchAll();
-  }, [user]);
+  }, [user, isAdmin]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -113,8 +113,8 @@ export default function DashboardComercialPage() {
       const fetches: Promise<Response>[] = [
         fetch('/api/comercial/oportunidades?limit=10000'),
         fetch('/api/comercial/atividades?limit=100'),
+        fetch('/api/comercial/vendedores?ativo=true'),
       ];
-      if (isAdmin) fetches.push(fetch('/api/comercial/vendedores?ativo=true'));
 
       const responses = await Promise.all(fetches.map(f => f.catch(() => null)));
 
@@ -134,7 +134,7 @@ export default function DashboardComercialPage() {
           });
         }
       }
-      if (isAdmin && responses[2]?.ok) {
+      if (responses[2]?.ok) {
         const d = await responses[2].json();
         setVendedores(d.data || []);
       }
@@ -153,11 +153,10 @@ export default function DashboardComercialPage() {
     const perdidas = oportunidades.filter(o => o.estagio === 'PERDIDA');
     const valorPipeline = ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
     const valorFechado = fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
-    const totalDecididas = fechadas.length + perdidas.length;
-    const taxaConversao = totalDecididas > 0 ? (fechadas.length / totalDecididas) * 100 : 0;
+    const taxaConversao = oportunidades.length > 0 ? (fechadas.length / oportunidades.length) * 100 : 0;
     const ticketMedio = fechadas.length > 0 ? valorFechado / fechadas.length : 0;
 
-    // Mes atual
+    // Mes atual - usar created_at como proxy para data de fechamento
     const now = new Date();
     const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
     const fechadasMes = fechadas.filter(o => new Date(o.created_at) >= inicioMes);
@@ -317,7 +316,7 @@ export default function DashboardComercialPage() {
           <KpiCard label="Pipeline" value={fmtShort(kpis.valorPipeline)} sub={`${kpis.ativas} ativas`} color="text-red-600" bg="bg-red-50" />
           <KpiCard label="Fechado" value={fmtShort(kpis.valorFechado)} sub={`${kpis.fechadas} ops`} color="text-green-600" bg="bg-green-50" />
           <KpiCard label="Este Mês" value={fmtShort(kpis.valorMes)} sub={`${kpis.fechadasMes} fechadas`} color="text-emerald-600" bg="bg-emerald-50" />
-          <KpiCard label="Conversão" value={`${kpis.taxaConversao.toFixed(1)}%`} sub={`${kpis.fechadas}/${kpis.fechadas + kpis.perdidas}`} color="text-blue-600" bg="bg-blue-50" />
+          <KpiCard label="Conversão" value={`${kpis.taxaConversao.toFixed(1)}%`} sub={`${kpis.fechadas}/${kpis.totalOps}`} color="text-blue-600" bg="bg-blue-50" />
           <KpiCard label="Ticket Médio" value={fmtShort(kpis.ticketMedio)} sub="fechadas" color="text-purple-600" bg="bg-purple-50" />
           <KpiCard label="Total" value={String(kpis.totalOps)} sub={`${kpis.perdidas} perdidas`} color="text-gray-700" bg="bg-gray-100" />
         </div>
@@ -493,10 +492,10 @@ export default function DashboardComercialPage() {
           </div>
         </div>
 
-        {/* ROW 4: FUNIL DE CONVERSÃO */}
+        {/* ROW 4: DISTRIBUIÇÃO POR ESTÁGIO - barras verticais */}
         <div className="bg-white rounded-lg border p-4">
-          <h2 className="font-bold text-gray-900 text-sm mb-3">Funil de Conversão</h2>
-          <FunnelChart data={pipelineData.filter(e => ['EM_ANALISE', 'EM_NEGOCIACAO', 'POS_NEGOCIACAO', 'FECHADA'].includes(e.key))} />
+          <h2 className="font-bold text-gray-900 text-sm mb-4">Distribuição por Estágio</h2>
+          <StageBarChart data={pipelineData} />
         </div>
 
         {/* ROW 5: Últimas oportunidades - mini table */}
@@ -571,40 +570,24 @@ function MiniKpi({ label, value, color }: { label: string; value: number; color:
   );
 }
 
-function FunnelChart({ data }: { data: Array<{ key: string; label: string; corHex: string; qtd: number; valor: number }> }) {
+function StageBarChart({ data }: { data: Array<{ key: string; label: string; corHex: string; qtd: number; valor: number }> }) {
   if (data.length === 0) return <p className="text-gray-400 text-xs text-center py-4">Sem dados</p>;
-  const maxQtd = Math.max(data[0]?.qtd || 1, 1);
+  const maxQtd = Math.max(...data.map(d => d.qtd), 1);
+  const barMaxH = 120;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-0">
-      {data.map((stage, i) => {
-        const widthPct = Math.max((stage.qtd / maxQtd) * 100, 15);
-        const dropoff = i > 0 && data[i - 1].qtd > 0
-          ? Math.round(((data[i - 1].qtd - stage.qtd) / data[i - 1].qtd) * 100)
-          : null;
-
+    <div className="flex items-end justify-around gap-2 sm:gap-4" style={{ minHeight: barMaxH + 60 }}>
+      {data.map(stage => {
+        const h = Math.max((stage.qtd / maxQtd) * barMaxH, 4);
         return (
-          <div key={stage.key} className="flex-1 flex flex-col items-center w-full sm:w-auto">
-            {/* Drop-off indicator */}
-            {dropoff !== null && dropoff > 0 && (
-              <div className="text-[10px] text-red-400 mb-1 hidden sm:block">-{dropoff}%</div>
-            )}
-            {/* Bar */}
-            <div className="w-full flex justify-center">
-              <div
-                className="rounded-lg py-3 px-2 text-center text-white transition-all duration-500"
-                style={{
-                  background: stage.corHex,
-                  width: `${widthPct}%`,
-                  minWidth: '80px',
-                }}
-              >
-                <div className="text-lg sm:text-xl font-bold">{stage.qtd}</div>
-                <div className="text-[10px] opacity-80">{fmtShort(stage.valor)}</div>
-              </div>
-            </div>
-            {/* Label */}
-            <div className="text-[10px] sm:text-xs text-gray-600 mt-1 text-center">{stage.label}</div>
+          <div key={stage.key} className="flex flex-col items-center flex-1 min-w-0">
+            <span className="text-xs font-bold text-gray-800 mb-1">{stage.qtd}</span>
+            <div
+              className="w-full max-w-[48px] rounded-t-md transition-all duration-500"
+              style={{ height: h, background: stage.corHex }}
+            />
+            <div className="text-[9px] sm:text-[10px] text-gray-500 mt-1 text-center leading-tight truncate w-full">{stage.label}</div>
+            <div className="text-[9px] text-gray-400 text-center">{fmtShort(stage.valor)}</div>
           </div>
         );
       })}
