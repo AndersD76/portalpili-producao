@@ -270,7 +270,7 @@ export default function ComercialPage() {
         opsTotal: ops.length,
         valorAtivo: ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
       };
-    }).sort((a, b) => b.valorAtivo - a.valorAtivo);
+    }).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [vendedores, oportunidades]);
 
   // ==================== HELPERS ====================
@@ -470,8 +470,8 @@ export default function ComercialPage() {
               {/* Table header */}
               <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
                 isAdmin
-                  ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_minmax(0,3fr)_100px_42px_88px_44px_minmax(0,2fr)_76px]'
-                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_minmax(0,1fr)_100px_42px_88px_44px_76px]'
+                  ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_3fr_100px_42px_88px_44px_2fr_76px]'
+                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_100px_42px_88px_44px_76px]'
               }`}>
                 <span className="text-center">#</span>
                 <span>Cliente</span>
@@ -497,8 +497,8 @@ export default function ComercialPage() {
                     onClick={() => setSelectedOportunidadeId(op.id)}
                     className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                       isAdmin
-                        ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_minmax(0,3fr)_100px_42px_88px_44px_minmax(0,2fr)_76px]'
-                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_minmax(0,1fr)_100px_42px_88px_44px_76px]'
+                        ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_3fr_100px_42px_88px_44px_2fr_76px]'
+                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_100px_42px_88px_44px_76px]'
                     } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
                   >
                     {/* # Proposta */}

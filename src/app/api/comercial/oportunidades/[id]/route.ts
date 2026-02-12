@@ -146,31 +146,41 @@ export async function PUT(
     const statusVal = status || situacao;
     const concorrenteVal = concorrente || concorrentes;
 
-    // Se fechou (ganhou ou perdeu), registra a data
-    let fechamentoClause = '';
-    if (statusVal === 'GANHA' || statusVal === 'PERDIDA') {
-      fechamentoClause = ', data_fechamento = NOW()';
-    }
+    let result;
 
-    const result = await query(
-      `UPDATE crm_oportunidades SET
-        titulo = COALESCE($2, titulo),
-        descricao = COALESCE($3, descricao),
-        produto = COALESCE($4, produto),
-        valor_estimado = COALESCE($5, valor_estimado),
-        probabilidade = COALESCE($6, probabilidade),
-        estagio = COALESCE($7, estagio),
-        status = COALESCE($8, status),
-        motivo_perda = COALESCE($9, motivo_perda),
-        data_previsao_fechamento = COALESCE($10, data_previsao_fechamento),
-        concorrente = COALESCE($11, concorrente),
-        observacoes = COALESCE($12, observacoes),
-        updated_at = NOW()
-        ${fechamentoClause}
-      WHERE id = $1
-      RETURNING *`,
-      [id, titulo, descricao, produtoVal, valor_estimado, probabilidade, estagio, statusVal, motivo_perda, data_previsao_fechamento, concorrenteVal, observacoes]
-    );
+    // Fast path: stage-only update (kanban move)
+    if (estagio && !titulo && !descricao && !produtoVal && !valor_estimado && !probabilidade && !statusVal && !motivo_perda && !data_previsao_fechamento && !concorrenteVal && !observacoes && !nota_contato) {
+      result = await query(
+        `UPDATE crm_oportunidades SET estagio = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+        [id, estagio]
+      );
+    } else {
+      // Full update path
+      let fechamentoClause = '';
+      if (statusVal === 'GANHA' || statusVal === 'PERDIDA') {
+        fechamentoClause = ', data_fechamento = NOW()';
+      }
+
+      result = await query(
+        `UPDATE crm_oportunidades SET
+          titulo = COALESCE($2, titulo),
+          descricao = COALESCE($3, descricao),
+          produto = COALESCE($4, produto),
+          valor_estimado = COALESCE($5, valor_estimado),
+          probabilidade = COALESCE($6, probabilidade),
+          estagio = COALESCE($7, estagio),
+          status = COALESCE($8, status),
+          motivo_perda = COALESCE($9, motivo_perda),
+          data_previsao_fechamento = COALESCE($10, data_previsao_fechamento),
+          concorrente = COALESCE($11, concorrente),
+          observacoes = COALESCE($12, observacoes),
+          updated_at = NOW()
+          ${fechamentoClause}
+        WHERE id = $1
+        RETURNING *`,
+        [id, titulo, descricao, produtoVal, valor_estimado, probabilidade, estagio, statusVal, motivo_perda, data_previsao_fechamento, concorrenteVal, observacoes]
+      );
+    }
 
     if (!result?.rows[0]) {
       return NextResponse.json(
@@ -179,7 +189,9 @@ export async function PUT(
       );
     }
 
-    // Registra nota de contato se fornecida
+    // Side effects - never block the response
+    let followup = null;
+
     if (nota_contato && nota_contato.trim()) {
       try {
         await query(
@@ -192,8 +204,6 @@ export async function PUT(
       }
     }
 
-    // Registra interação de mudança de estágio e gera follow-up automático
-    let followup = null;
     if (estagio) {
       try {
         await query(
@@ -205,7 +215,6 @@ export async function PUT(
         console.log('Erro ao registrar interação de estágio:', e);
       }
 
-      // Gerar follow-up automático para o novo estágio
       try {
         followup = await gerarFollowUp(
           parseInt(id),

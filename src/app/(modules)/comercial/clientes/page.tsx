@@ -236,8 +236,8 @@ export default function ClientesPage() {
             {/* Table header */}
             <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
               isAdmin
-                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_minmax(0,2fr)_60px_80px_72px]'
-                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_60px_80px_72px]'
+                ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_2fr_50px_70px_60px]'
+                : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_50px_70px_60px]'
             }`}>
               <span className="hidden lg:block">CNPJ</span>
               <span>Nome</span>
@@ -255,8 +255,8 @@ export default function ClientesPage() {
                 onClick={() => router.push(`/comercial/clientes/${c.id}`)}
                 className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                   isAdmin
-                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_minmax(0,2fr)_60px_80px_72px]'
-                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[120px_minmax(0,3fr)_minmax(0,1fr)_80px_60px_80px_72px]'
+                    ? 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_2fr_50px_70px_60px]'
+                    : 'grid-cols-[1fr_80px_60px_60px] sm:grid-cols-[1fr_120px_80px_80px] lg:grid-cols-[110px_3fr_2fr_80px_50px_70px_60px]'
                 } ${idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
               >
                 {/* CNPJ */}
