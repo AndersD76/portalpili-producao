@@ -14,7 +14,6 @@ interface Oportunidade {
   cliente_cnpj?: string;
   vendedor_nome?: string;
   vendedor_id?: number;
-  tipo_produto?: string;
   produto?: string;
   valor_estimado: number;
   probabilidade: number;
@@ -492,7 +491,7 @@ export default function ComercialPage() {
                         {op.cliente_nome || op.titulo}
                         {urgente && <span className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500" title="Atividade atrasada" />}
                       </div>
-                      <div className="text-xs text-gray-400 truncate">{op.produto || op.tipo_produto || '-'}</div>
+                      <div className="text-xs text-gray-400 truncate">{op.produto || '-'}</div>
                     </div>
                     {/* Data */}
                     <div className="text-center text-xs text-gray-500">

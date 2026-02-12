@@ -141,7 +141,7 @@ export default function OportunidadeCard({
           <div className="w-16 bg-gray-200 rounded-full h-1.5">
             <div
               className={`h-1.5 rounded-full ${getProbabilidadeColor(oportunidade.probabilidade)}`}
-              style={{ width: `${oportunidade.probabilidade}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, Number(oportunidade.probabilidade) || 0))}%` }}
             />
           </div>
           <span className="text-xs text-gray-500">{oportunidade.probabilidade}%</span>

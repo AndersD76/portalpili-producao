@@ -80,16 +80,21 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
-    // Conta totais por status
-    const totaisResult = await query(`
+    // Conta totais por status (com parametrização segura)
+    const totaisParams: unknown[] = [];
+    let totaisSql = `
       SELECT
         COUNT(*) FILTER (WHERE status != 'CONCLUIDA') as pendentes,
         COUNT(*) FILTER (WHERE status = 'CONCLUIDA') as concluidas,
         COUNT(*) FILTER (WHERE status != 'CONCLUIDA' AND data_agendada < NOW()) as atrasadas,
         COUNT(*) FILTER (WHERE status != 'CONCLUIDA' AND data_agendada BETWEEN NOW() AND NOW() + INTERVAL '7 days') as proxima_semana
       FROM crm_atividades
-      ${vendedor_id ? `WHERE vendedor_id = ${vendedor_id}` : ''}
-    `);
+    `;
+    if (vendedor_id) {
+      totaisSql += ` WHERE vendedor_id = $1`;
+      totaisParams.push(vendedor_id);
+    }
+    const totaisResult = await query(totaisSql, totaisParams);
 
     return NextResponse.json({
       success: true,

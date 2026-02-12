@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { verificarPermissao } from '@/lib/auth';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'visualizar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
@@ -26,13 +30,13 @@ export async function GET(
           'titulo', o.titulo,
           'valor_estimado', o.valor_estimado,
           'estagio', o.estagio,
-          'situacao', o.situacao,
+          'status', o.status,
           'created_at', o.created_at
         )) FILTER (WHERE o.id IS NOT NULL) as oportunidades,
         COUNT(DISTINCT o.id) as total_oportunidades,
-        SUM(CASE WHEN o.situacao = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_compras
+        SUM(CASE WHEN o.status = 'GANHA' THEN o.valor_estimado ELSE 0 END) as valor_total_compras
       FROM crm_clientes c
-      LEFT JOIN crm_vendedores v ON c.vendedor_responsavel_id = v.id
+      LEFT JOIN crm_vendedores v ON c.vendedor_id = v.id
       LEFT JOIN crm_contatos ct ON c.id = ct.cliente_id
       LEFT JOIN crm_oportunidades o ON c.id = o.cliente_id
       WHERE c.id = $1
@@ -64,6 +68,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'editar');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -80,7 +87,7 @@ export async function PUT(
       telefone,
       email,
       website,
-      vendedor_responsavel_id,
+      vendedor_id,
       status,
       tags,
       observacoes,
@@ -101,7 +108,7 @@ export async function PUT(
         telefone = COALESCE($10, telefone),
         email = COALESCE($11, email),
         website = COALESCE($12, website),
-        vendedor_responsavel_id = COALESCE($13, vendedor_responsavel_id),
+        vendedor_id = COALESCE($13, vendedor_id),
         status = COALESCE($14, status),
         tags = COALESCE($15, tags),
         observacoes = COALESCE($16, observacoes),
@@ -110,7 +117,7 @@ export async function PUT(
         updated_at = NOW()
       WHERE id = $1
       RETURNING *`,
-      [id, razao_social, nome_fantasia, segmento, porte, endereco, cidade, estado, cep, telefone, email, website, vendedor_responsavel_id, status, tags, observacoes, score_credito, potencial]
+      [id, razao_social, nome_fantasia, segmento, porte, endereco, cidade, estado, cep, telefone, email, website, vendedor_id, status, tags, observacoes, score_credito, potencial]
     );
 
     if (!result?.rows[0]) {
@@ -138,12 +145,15 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verificarPermissao('COMERCIAL', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
   try {
     const { id } = await params;
 
     // Verifica se há oportunidades ativas
     const oportunidades = await query(
-      `SELECT COUNT(*) as total FROM crm_oportunidades WHERE cliente_id = $1 AND situacao NOT IN ('GANHA', 'PERDIDA', 'CANCELADA')`,
+      `SELECT COUNT(*) as total FROM crm_oportunidades WHERE cliente_id = $1 AND status NOT IN ('GANHA', 'PERDIDA', 'CANCELADA')`,
       [id]
     );
 
