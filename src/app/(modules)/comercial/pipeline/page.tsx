@@ -52,6 +52,8 @@ export default function PipelinePage() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [filtroVendedor, setFiltroVendedor] = useState<string>('');
   const [filtroProduto, setFiltroProduto] = useState<string>('');
+  const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
+  const [filtroDataFim, setFiltroDataFim] = useState<string>('');
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
   const router = useRouter();
   const { user, authenticated, loading: authLoading, isAdmin } = useAuth();
@@ -124,7 +126,17 @@ export default function PipelinePage() {
   const formatCurrency = (value: unknown) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 }).format(toNum(value));
 
-  const totalValor = oportunidades
+  const oportunidadesFiltradas = oportunidades.filter(o => {
+    if (filtroDataInicio) {
+      if (new Date(o.created_at) < new Date(filtroDataInicio)) return false;
+    }
+    if (filtroDataFim) {
+      if (new Date(o.created_at) > new Date(filtroDataFim + 'T23:59:59')) return false;
+    }
+    return true;
+  });
+
+  const totalValor = oportunidadesFiltradas
     .filter(o => o.status === 'ABERTA')
     .reduce((sum, o) => sum + toNum(o.valor_estimado), 0);
 
@@ -163,7 +175,7 @@ export default function PipelinePage() {
               <div>
                 <h1 className="text-lg sm:text-xl font-bold text-gray-900">Pipeline de Vendas</h1>
                 <p className="text-xs text-gray-500 hidden sm:block">
-                  {oportunidades.filter(o => o.status === 'ABERTA').length} oportunidades &bull; {formatCurrency(totalValor)}
+                  {oportunidadesFiltradas.filter(o => o.status === 'ABERTA').length} oportunidades &bull; {formatCurrency(totalValor)}
                 </p>
               </div>
             </div>
@@ -195,6 +207,19 @@ export default function PipelinePage() {
                 <option value="TOMBADOR">Tombador</option>
                 <option value="COLETOR">Coletor</option>
               </select>
+
+              {/* Filtro Período */}
+              <div className="hidden sm:flex items-center gap-1">
+                <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)}
+                  className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
+                <span className="text-gray-400 text-sm">a</span>
+                <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)}
+                  className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500" />
+                {(filtroDataInicio || filtroDataFim) && (
+                  <button onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
+                    className="text-gray-400 hover:text-red-500 text-sm font-bold px-1">x</button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -203,7 +228,7 @@ export default function PipelinePage() {
       {/* Main Content */}
       <main className="p-2 sm:p-4">
         <PipelineKanban
-          oportunidades={oportunidades}
+          oportunidades={oportunidadesFiltradas}
           onMoveOportunidade={handleMoveOportunidade}
           onClickOportunidade={handleClickOportunidade}
         />

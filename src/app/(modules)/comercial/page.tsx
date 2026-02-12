@@ -21,6 +21,8 @@ interface Oportunidade {
   status: string;
   numero_proposta?: string;
   data_abertura?: string;
+  data_previsao_fechamento?: string;
+  dias_no_estagio?: number;
   total_atividades?: number;
   atividades_atrasadas?: number;
   created_at: string;
@@ -78,6 +80,8 @@ export default function ComercialPage() {
   const [filtroBusca, setFiltroBusca] = useState<string>('');
   const [ordenacao, setOrdenacao] = useState<string>('valor');
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
+  const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
+  const [filtroDataFim, setFiltroDataFim] = useState<string>('');
 
   const router = useRouter();
   const { user, authenticated, loading: authLoading, logout, isAdmin } = useAuth();
@@ -197,12 +201,20 @@ export default function ComercialPage() {
         (o.cliente_cnpj || '').includes(b)
       );
     }
+    if (filtroDataInicio) {
+      const inicio = new Date(filtroDataInicio);
+      lista = lista.filter(o => new Date(o.data_abertura || o.created_at) >= inicio);
+    }
+    if (filtroDataFim) {
+      const fim = new Date(filtroDataFim + 'T23:59:59');
+      lista = lista.filter(o => new Date(o.data_abertura || o.created_at) <= fim);
+    }
     if (ordenacao === 'prob') lista.sort((a, b) => toNum(b.probabilidade) - toNum(a.probabilidade));
     else if (ordenacao === 'valor') lista.sort((a, b) => toNum(b.valor_estimado) - toNum(a.valor_estimado));
     else if (ordenacao === 'recente') lista.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     else if (ordenacao === 'proposta') lista.sort((a, b) => parseInt(b.numero_proposta || '0') - parseInt(a.numero_proposta || '0'));
     return lista;
-  }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, ordenacao]);
+  }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, filtroDataInicio, filtroDataFim, ordenacao]);
 
   const resumo = useMemo(() => {
     const base = listaFiltrada;
@@ -402,6 +414,17 @@ export default function ComercialPage() {
           <input type="text" value={filtroBusca} onChange={e => setFiltroBusca(e.target.value)}
             placeholder="Buscar..."
             className="px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm w-28 sm:w-40 text-gray-600 focus:ring-1 focus:ring-red-500" />
+          <div className="hidden sm:flex items-center gap-1">
+            <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)}
+              className="px-1 py-0.5 border border-gray-200 rounded text-xs text-gray-600 focus:ring-1 focus:ring-red-500" />
+            <span className="text-gray-300 text-xs">a</span>
+            <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)}
+              className="px-1 py-0.5 border border-gray-200 rounded text-xs text-gray-600 focus:ring-1 focus:ring-red-500" />
+            {(filtroDataInicio || filtroDataFim) && (
+              <button onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
+                className="text-gray-400 hover:text-red-500 text-xs font-bold">x</button>
+            )}
+          </div>
 
           {ultimoSync && (
             <span className="ml-auto text-[10px] text-gray-300 hidden lg:inline">
@@ -415,7 +438,7 @@ export default function ComercialPage() {
       <div className="flex flex-1">
         {/* SIDEBAR VENDEDORES - admin desktop only */}
         {isAdmin && (
-          <aside className="w-36 lg:w-40 bg-white border-r flex-shrink-0 hidden md:block text-sm sticky top-[calc(3.5rem+37px)] self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+          <aside className="w-40 lg:w-48 bg-white border-r flex-shrink-0 hidden md:block text-sm sticky top-[calc(3.5rem+37px)] self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div
               className={`px-3 py-1.5 border-b cursor-pointer transition hover:bg-gray-50 ${!filtroVendedor ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'}`}
               onClick={() => setFiltroVendedor(null)}
@@ -430,7 +453,7 @@ export default function ComercialPage() {
                 }`}
                 onClick={() => setFiltroVendedor(filtroVendedor === v.nome ? null : v.nome)}
               >
-                <div className="truncate text-xs" title={v.nome}>{abrevNome(v.nome)}</div>
+                <div className="truncate text-xs" title={v.nome}>{v.nome}</div>
                 <div className="text-[10px] text-gray-400 font-normal">{fmt(v.valorAtivo)} · {v.opsAtivas}</div>
               </div>
             ))}
@@ -447,14 +470,15 @@ export default function ComercialPage() {
               {/* Table header */}
               <div className={`grid gap-1 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
                 isAdmin
-                  ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_80px_72px]'
-                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_72px]'
+                  ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_1fr_100px_42px_88px_40px_100px_72px]'
+                  : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_40px_72px]'
               }`}>
                 <span className="text-center">#</span>
                 <span>Cliente</span>
                 <span className="text-right">Valor</span>
                 <span className="text-center">Prob</span>
                 <span className="text-center">Etapa</span>
+                <span className="hidden lg:block text-center">Dias</span>
                 {isAdmin && <span className="text-right hidden sm:block">Vendedor</span>}
                 {isAdmin && <span className="text-right sm:hidden">Vend.</span>}
                 <span className="hidden lg:block text-center">Data</span>
@@ -473,8 +497,8 @@ export default function ComercialPage() {
                     onClick={() => setSelectedOportunidadeId(op.id)}
                     className={`grid gap-1 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer items-center ${
                       isAdmin
-                        ? 'grid-cols-[30px_1fr_88px_38px_76px_68px] lg:grid-cols-[36px_1fr_108px_42px_92px_80px_72px]'
-                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_72px]'
+                        ? 'grid-cols-[30px_1fr_80px_38px_70px_68px] lg:grid-cols-[36px_1fr_100px_42px_88px_40px_100px_72px]'
+                        : 'grid-cols-[30px_1fr_88px_38px_76px] lg:grid-cols-[36px_1fr_108px_42px_92px_40px_72px]'
                     } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
                   >
                     {/* # Proposta */}
@@ -506,9 +530,13 @@ export default function ComercialPage() {
                         </span>
                       )}
                     </div>
+                    {/* Dias no estágio */}
+                    <div className="hidden lg:block text-center text-[11px] text-gray-500 tabular-nums">
+                      {toNum(op.dias_no_estagio) > 0 ? `${toNum(op.dias_no_estagio)}d` : '-'}
+                    </div>
                     {/* Vendedor - admin only */}
                     {isAdmin && (
-                      <div className="text-right text-[10px] sm:text-xs text-gray-500 truncate" title={op.vendedor_nome || ''}>{abrevNome(op.vendedor_nome || '')}</div>
+                      <div className="text-right text-[10px] sm:text-xs text-gray-500 truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</div>
                     )}
                     {/* Data - hidden on small */}
                     <div className="hidden lg:block text-center text-[11px] text-gray-400 tabular-nums">

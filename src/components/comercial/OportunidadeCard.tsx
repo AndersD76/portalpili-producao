@@ -156,12 +156,34 @@ export default function OportunidadeCard({
         </div>
       )}
 
-      {/* Row 5: Footer - Vendedor + data */}
+      {/* Row 5: Footer - Vendedor + data + mover */}
       <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1.5 border-t border-gray-100">
-        <span className="truncate max-w-[55%]" title={oportunidade.vendedor_nome}>{abrevNome(oportunidade.vendedor_nome)}</span>
+        <span className="truncate max-w-[45%]" title={oportunidade.vendedor_nome}>{oportunidade.vendedor_nome || '-'}</span>
         <div className="flex items-center gap-1.5 tabular-nums">
           {diasEstagio > 0 && <span className="text-gray-300">{diasEstagio}d</span>}
           <span>{fmtDate(oportunidade.created_at)}</span>
+          {onMove && (
+            <select
+              className="text-[10px] bg-gray-50 border border-gray-200 rounded px-0.5 py-0 text-gray-500 cursor-pointer hover:border-red-300 ml-1"
+              value=""
+              onChange={(e) => { e.stopPropagation(); if (e.target.value) onMove(e.target.value); }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="">Mover</option>
+              {[
+                { id: 'EM_ANALISE', nome: 'Em Análise' },
+                { id: 'EM_NEGOCIACAO', nome: 'Negociação' },
+                { id: 'POS_NEGOCIACAO', nome: 'Pós Negociação' },
+                { id: 'FECHADA', nome: 'Fechada' },
+                { id: 'PERDIDA', nome: 'Perdida' },
+                { id: 'TESTE', nome: 'Teste' },
+                { id: 'SUSPENSO', nome: 'Suspenso' },
+                { id: 'SUBSTITUIDO', nome: 'Substituído' },
+              ].filter(s => s.id !== oportunidade.estagio).map(s => (
+                <option key={s.id} value={s.id}>{s.nome}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
     </div>

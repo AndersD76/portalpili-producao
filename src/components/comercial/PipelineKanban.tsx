@@ -163,6 +163,10 @@ export default function PipelineKanban({
                     <OportunidadeCard
                       oportunidade={oportunidade}
                       onClick={() => onClickOportunidade?.(oportunidade)}
+                      onMove={async (novoEstagio) => {
+                        if (onMoveOportunidade) await onMoveOportunidade(oportunidade.id, novoEstagio);
+                        onClickOportunidade?.(oportunidade);
+                      }}
                       draggable
                     />
                   </div>
