@@ -78,7 +78,6 @@ export default function ComercialPage() {
   const [filtroBusca, setFiltroBusca] = useState<string>('');
   const [ordenacao, setOrdenacao] = useState<string>('valor');
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
-  const [showIA, setShowIA] = useState(false);
 
   const router = useRouter();
   const { user, authenticated, loading: authLoading, logout, isAdmin } = useAuth();
@@ -301,46 +300,31 @@ export default function ComercialPage() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-3">
+        <div className="px-2 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-12 sm:h-14">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition" title="Voltar">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </Link>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Pipeline Comercial</h1>
-                {user && <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>}
-              </div>
+              <h1 className="text-base sm:text-lg font-bold text-gray-900">Pipeline</h1>
             </div>
             <div className="flex items-center gap-1">
               {[
                 { href: '/comercial/pipeline', label: 'Kanban' },
                 { href: '/comercial/clientes', label: 'Clientes' },
-                { href: '/comercial/admin/precos', label: 'Preços' },
+                { href: '/comercial/admin/precos', label: 'Precos' },
               ].map(link => (
                 <Link key={link.href} href={link.href}
-                  className="hidden sm:inline-block px-3 py-1.5 text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+                  className="hidden sm:inline-block px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
                   {link.label}
                 </Link>
               ))}
               <button
-                onClick={() => setShowIA(!showIA)}
-                className={`hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                  showIA ? 'text-purple-700 bg-purple-50' : 'text-gray-500 hover:text-purple-600 hover:bg-gray-50'
-                }`}
-                title="Assistente IA"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                IA
-              </button>
-              <button
                 onClick={() => runSync(false)}
                 disabled={syncing}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition ${
+                className={`flex items-center gap-1 px-2 py-1 text-sm font-medium rounded-lg transition ${
                   syncing ? 'text-gray-400 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'
                 }`}
               >
@@ -361,7 +345,7 @@ export default function ComercialPage() {
 
       {/* SYNC BANNER */}
       {syncResult && (
-        <div className={`mx-4 mt-3 px-4 py-2 rounded-lg text-sm font-medium ${
+        <div className={`mx-2 sm:mx-4 mt-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
           syncResult.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
         }`}>
           {syncResult.message}
@@ -369,64 +353,64 @@ export default function ComercialPage() {
         </div>
       )}
 
-      {/* RESUMO BAR */}
-      <div className="bg-white border-b px-4 sm:px-6 py-2">
-        <div className="max-w-full mx-auto flex gap-6 items-center text-sm">
-          <span><strong className="text-gray-900">{resumo.total}</strong> <span className="text-gray-400">propostas</span></span>
-          <span><strong className="text-red-600">{fmt(resumo.valorPipeline)}</strong> <span className="text-gray-400">pipeline</span></span>
-          <span><strong className="text-green-600">{resumo.ganhos}</strong> <span className="text-gray-400">ganhos ({fmt(resumo.valorGanho)})</span></span>
-          <span><strong className="text-gray-700">{resumo.taxa}%</strong> <span className="text-gray-400">conversão</span></span>
+      {/* RESUMO + FILTROS - merged into one bar */}
+      <div className="bg-white border-b px-2 sm:px-4 py-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
+          {/* KPIs */}
+          <span><strong className="text-gray-900">{resumo.total}</strong> <span className="text-gray-400 hidden sm:inline">propostas</span></span>
+          <span><strong className="text-red-600">{fmt(resumo.valorPipeline)}</strong> <span className="text-gray-400 hidden sm:inline">pipeline</span></span>
+          <span><strong className="text-green-600">{resumo.ganhos}</strong> <span className="text-gray-400 hidden sm:inline">ganhos</span></span>
+          <span><strong className="text-gray-700">{resumo.taxa}%</strong> <span className="text-gray-400 hidden sm:inline">conv.</span></span>
+
+          {/* Separator */}
+          <span className="hidden md:inline text-gray-200">|</span>
+
+          {/* Filters */}
+          {isAdmin && (
+            <select value={filtroVendedor || ''} onChange={e => setFiltroVendedor(e.target.value || null)}
+              className="px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm text-gray-600 focus:ring-1 focus:ring-red-500 md:hidden">
+              <option value="">Vendedores</option>
+              {vendedoresComMetricas.map(v => <option key={v.id} value={v.nome}>{v.nome} ({v.opsAtivas})</option>)}
+            </select>
+          )}
+          <select value={filtroEstagio} onChange={e => setFiltroEstagio(e.target.value)}
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
+            <option value="">Etapas</option>
+            {estagiosAtivos.map(e => <option key={e.key} value={e.key}>{e.label} ({e.quantidade})</option>)}
+          </select>
+          <select value={filtroProb} onChange={e => setFiltroProb(e.target.value)}
+            className="hidden sm:inline px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
+            <option value="">Prob.</option>
+            <option value="alta">Alta 70%+</option>
+            <option value="media">Media 40-69%</option>
+            <option value="baixa">Baixa &lt;40%</option>
+          </select>
+          <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
+            <option value="valor">Valor</option>
+            <option value="proposta"># Prop.</option>
+            <option value="prob">Prob.</option>
+            <option value="recente">Recente</option>
+          </select>
+          <input type="text" value={filtroBusca} onChange={e => setFiltroBusca(e.target.value)}
+            placeholder="Buscar..."
+            className="px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm w-28 sm:w-40 text-gray-600 focus:ring-1 focus:ring-red-500" />
+
           {ultimoSync && (
-            <span className="ml-auto text-xs text-gray-300">
+            <span className="ml-auto text-[10px] text-gray-300 hidden lg:inline">
               Sync: {new Date(ultimoSync).toLocaleString('pt-BR')}
             </span>
           )}
         </div>
       </div>
 
-      {/* FILTROS */}
-      <div className="bg-white border-b px-4 sm:px-6 py-1.5">
-        <div className="max-w-full mx-auto flex gap-3 items-center text-sm">
-          {/* Dropdown vendedor - visível no mobile para admin */}
-          {isAdmin && (
-            <select value={filtroVendedor || ''} onChange={e => setFiltroVendedor(e.target.value || null)}
-              className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500 md:hidden">
-              <option value="">Todos vendedores</option>
-              {vendedoresComMetricas.map(v => <option key={v.id} value={v.nome}>{v.nome} ({v.opsAtivas})</option>)}
-            </select>
-          )}
-          <select value={filtroEstagio} onChange={e => setFiltroEstagio(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
-            <option value="">Todas etapas</option>
-            {estagiosAtivos.map(e => <option key={e.key} value={e.key}>{e.label} ({e.quantidade})</option>)}
-          </select>
-          <select value={filtroProb} onChange={e => setFiltroProb(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
-            <option value="">Todas prob.</option>
-            <option value="alta">Alta (70%+)</option>
-            <option value="media">Média (40-69%)</option>
-            <option value="baixa">Baixa (&lt;40%)</option>
-          </select>
-          <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
-            <option value="valor">Maior valor</option>
-            <option value="proposta"># Proposta</option>
-            <option value="prob">Maior prob.</option>
-            <option value="recente">Mais recente</option>
-          </select>
-          <input type="text" value={filtroBusca} onChange={e => setFiltroBusca(e.target.value)}
-            placeholder="Buscar cliente ou CNPJ..."
-            className="px-2 py-1 border border-gray-200 rounded text-sm w-48 text-gray-600 focus:ring-1 focus:ring-red-500" />
-        </div>
-      </div>
-
       {/* MAIN: SIDEBAR + LIST */}
-      <div className="flex" style={{ height: 'calc(100vh - 180px)' }}>
-        {/* SIDEBAR VENDEDORES - só para admin */}
+      <div className="flex flex-1">
+        {/* SIDEBAR VENDEDORES - admin desktop only */}
         {isAdmin && (
-          <aside className="w-48 bg-white border-r overflow-y-auto flex-shrink-0 hidden md:block text-sm">
+          <aside className="w-44 bg-white border-r flex-shrink-0 hidden md:block text-sm sticky top-[calc(3.5rem+37px)] self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div
-              className={`px-3 py-2 border-b cursor-pointer transition hover:bg-gray-50 ${!filtroVendedor ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'}`}
+              className={`px-3 py-1.5 border-b cursor-pointer transition hover:bg-gray-50 ${!filtroVendedor ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'}`}
               onClick={() => setFiltroVendedor(null)}
             >
               Todos <span className="text-gray-400 font-normal">({oportunidades.length})</span>
@@ -434,36 +418,39 @@ export default function ComercialPage() {
             {vendedoresComMetricas.map(v => (
               <div
                 key={v.id}
-                className={`px-3 py-2 border-b cursor-pointer transition hover:bg-gray-50 ${
+                className={`px-3 py-1.5 border-b cursor-pointer transition hover:bg-gray-50 ${
                   filtroVendedor === v.nome ? 'bg-red-50 font-semibold text-red-700' : 'text-gray-700'
                 }`}
                 onClick={() => setFiltroVendedor(filtroVendedor === v.nome ? null : v.nome)}
               >
-                <div className="truncate">{v.nome}</div>
-                <div className="text-xs text-gray-400 font-normal">{fmt(v.valorAtivo)} &middot; {v.opsAtivas}</div>
+                <div className="truncate text-xs">{v.nome}</div>
+                <div className="text-[10px] text-gray-400 font-normal">{fmt(v.valorAtivo)} · {v.opsAtivas}</div>
               </div>
             ))}
           </aside>
         )}
 
         {/* AREA DE PROPOSTAS */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 p-2 sm:p-3 min-w-0">
 
           {listaFiltrada.length === 0 ? (
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
               {/* Table header */}
-              <div className={`grid gap-2 px-4 py-2.5 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wide ${
-                isAdmin ? 'grid-cols-[50px_1fr_80px_110px_60px_95px_100px]' : 'grid-cols-[50px_1fr_80px_110px_60px_95px]'
+              <div className={`grid gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide ${
+                isAdmin
+                  ? 'grid-cols-[40px_1fr_90px_50px_80px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px_90px]'
+                  : 'grid-cols-[40px_1fr_90px_50px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px]'
               }`}>
                 <span className="text-center">#</span>
-                <span>Cliente / Produto</span>
-                <span className="text-center">Data</span>
+                <span>Cliente</span>
                 <span className="text-right">Valor</span>
-                <span className="text-center">Prob.</span>
+                <span className="text-center">Prob</span>
                 <span className="text-center">Etapa</span>
-                {isAdmin && <span className="text-right">Vendedor</span>}
+                {isAdmin && <span className="text-right hidden sm:block">Vendedor</span>}
+                {isAdmin && <span className="text-right sm:hidden">Vend.</span>}
+                <span className="hidden lg:block text-center">Data</span>
               </div>
               {/* Rows */}
               {listaFiltrada.map(op => {
@@ -477,47 +464,49 @@ export default function ComercialPage() {
                   <div
                     key={op.id}
                     onClick={() => setSelectedOportunidadeId(op.id)}
-                    className={`grid gap-2 px-4 py-2.5 border-b last:border-b-0 hover:bg-gray-50 transition cursor-pointer items-center ${
-                      isAdmin ? 'grid-cols-[50px_1fr_80px_110px_60px_95px_100px]' : 'grid-cols-[50px_1fr_80px_110px_60px_95px]'
+                    className={`grid gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 border-b last:border-b-0 hover:bg-gray-50 transition cursor-pointer items-center ${
+                      isAdmin
+                        ? 'grid-cols-[40px_1fr_90px_50px_80px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px_90px]'
+                        : 'grid-cols-[40px_1fr_90px_50px_80px] lg:grid-cols-[50px_1fr_70px_100px_50px_85px]'
                     } ${urgente ? 'bg-red-50/40' : ''}`}
                   >
                     {/* # Proposta */}
-                    <div className="text-center text-xs font-mono text-gray-500">
+                    <div className="text-center text-[10px] sm:text-xs font-mono text-gray-500">
                       {op.numero_proposta || '-'}
                     </div>
                     {/* Cliente + Produto */}
                     <div className="min-w-0">
-                      <div className="font-semibold text-gray-900 text-sm truncate">
+                      <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">
                         {op.cliente_nome || op.titulo}
-                        {urgente && <span className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500" title="Atividade atrasada" />}
+                        {urgente && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Atividade atrasada" />}
                       </div>
-                      <div className="text-xs text-gray-400 truncate">{op.produto || '-'}</div>
-                    </div>
-                    {/* Data */}
-                    <div className="text-center text-xs text-gray-500">
-                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                      <div className="text-[10px] sm:text-xs text-gray-400 truncate">{op.produto || '-'}</div>
                     </div>
                     {/* Valor */}
-                    <div className="text-right font-bold text-sm text-gray-800">{fmtFull(valor)}</div>
+                    <div className="text-right font-bold text-xs sm:text-sm text-gray-800">{fmtFull(valor)}</div>
                     {/* Probabilidade */}
                     <div className="text-center">
-                      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold ${probBg(prob)}`}>
+                      <span className={`inline-block px-1 py-0.5 rounded text-[10px] sm:text-xs font-semibold ${probBg(prob)}`}>
                         {prob}%
                       </span>
                     </div>
                     {/* Etapa */}
                     <div className="text-center">
                       {cfg && (
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium text-white whitespace-nowrap"
+                        <span className="inline-block px-1 py-0.5 rounded text-[10px] font-medium text-white whitespace-nowrap"
                           style={{ background: cfg.corHex }}>
                           {cfg.label}
                         </span>
                       )}
                     </div>
-                    {/* Vendedor - só para admin */}
+                    {/* Vendedor - admin only */}
                     {isAdmin && (
-                      <div className="text-right text-xs text-gray-500 truncate">{op.vendedor_nome || '-'}</div>
+                      <div className="text-right text-[10px] sm:text-xs text-gray-500 truncate">{op.vendedor_nome || '-'}</div>
                     )}
+                    {/* Data - hidden on small */}
+                    <div className="hidden lg:block text-center text-xs text-gray-500">
+                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
+                    </div>
                   </div>
                 );
               })}

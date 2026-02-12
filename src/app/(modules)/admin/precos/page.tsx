@@ -423,43 +423,43 @@ export default function AdminPrecosPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tamanho</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descricao</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Preco</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Motores</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Cilindros</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acoes</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Tipo</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Tamanho</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Descricao</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">Preco</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Motores</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Cilindros</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Status</th>
+                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase">Acoes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {precosBase.map((preco) => (
                   <tr key={preco.id} className={`${!preco.ativo ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
-                    <td className="px-4 py-3 text-sm font-medium">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm font-medium">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                         preco.tipo_produto === 'TOMBADOR' ? 'bg-blue-100 text-blue-800' :
                         preco.tipo_produto === 'COLETOR' ? 'bg-green-100 text-green-800' :
                         'bg-purple-100 text-purple-800'
                       }`}>{preco.tipo_produto}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm">{preco.modelo || '-'}</td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm hidden sm:table-cell">{preco.modelo || '-'}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm hidden md:table-cell">
                       {preco.comprimento ? (
                         preco.tipo_produto === 'COLETOR' ? `${preco.comprimento}\u00B0` : `${preco.comprimento}m`
                       ) : '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{preco.descricao}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-green-700 text-right">{formatCurrency(preco.preco)}</td>
-                    <td className="px-4 py-3 text-sm text-center">{preco.qt_motores || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-center">{preco.qt_cilindros || '-'}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm text-gray-600 hidden lg:table-cell">{preco.descricao}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm font-semibold text-green-700 text-right">{formatCurrency(preco.preco)}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm text-center hidden lg:table-cell">{preco.qt_motores || '-'}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm text-center hidden lg:table-cell">{preco.qt_cilindros || '-'}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center hidden sm:table-cell">
                       <span className={`px-2 py-1 rounded-full text-xs ${preco.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                         {preco.ativo ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => openEditBase(preco)}

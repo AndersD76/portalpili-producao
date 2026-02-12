@@ -116,7 +116,7 @@ export default function PipelineKanban({
   };
 
   return (
-    <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+    <div className="flex gap-2 sm:gap-4 overflow-x-auto overflow-y-hidden pb-4" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       {ESTAGIOS.map((estagio) => {
         const totais = getTotalPorEstagio(estagio.id);
         const ops = getOportunidadesPorEstagio(estagio.id);
@@ -124,7 +124,7 @@ export default function PipelineKanban({
         return (
           <div
             key={estagio.id}
-            className={`flex-shrink-0 w-72 bg-gray-100 rounded-lg transition-all duration-200 ${
+            className={`flex-shrink-0 w-60 sm:w-64 lg:w-72 bg-gray-100 rounded-lg transition-all duration-200 ${
               dragOverEstagio === estagio.id ? 'ring-2 ring-red-500 bg-red-50' : ''
             }`}
             onDragOver={(e) => handleDragOver(e, estagio.id)}
@@ -145,7 +145,7 @@ export default function PipelineKanban({
             </div>
 
             {/* Lista de oportunidades */}
-            <div className="p-2 space-y-2 min-h-[300px] max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="p-2 space-y-2 min-h-[200px] max-h-[60vh] lg:max-h-[calc(100vh-250px)] overflow-y-auto">
               {ops.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 text-sm">
                   Nenhuma oportunidade

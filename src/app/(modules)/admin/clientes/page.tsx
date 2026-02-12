@@ -115,37 +115,37 @@ export default function AdminClientesPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CNPJ</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cidade/UF</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contato</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendedor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">CNPJ</th>
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Cidade/UF</th>
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Contato</th>
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Vendedor</th>
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {clientesFiltrados.map((cliente) => (
                 <tr key={cliente.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{cliente.razao_social}</div>
+                  <td className="px-3 sm:px-6 py-2 sm:py-4">
+                    <div className="font-medium text-gray-900 text-sm">{cliente.razao_social}</div>
                     {cliente.nome_fantasia && (
-                      <div className="text-sm text-gray-500">{cliente.nome_fantasia}</div>
+                      <div className="text-xs sm:text-sm text-gray-500">{cliente.nome_fantasia}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-3 sm:px-6 py-2 sm:py-4 text-sm text-gray-600 hidden md:table-cell">
                     {cliente.cnpj || '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-3 sm:px-6 py-2 sm:py-4 text-sm text-gray-600 hidden lg:table-cell">
                     {cliente.cidade ? `${cliente.cidade}/${cliente.estado}` : '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-3 sm:px-6 py-2 sm:py-4 text-sm hidden lg:table-cell">
                     {cliente.email && <div className="text-gray-600">{cliente.email}</div>}
                     {cliente.telefone && <div className="text-gray-500">{cliente.telefone}</div>}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-3 sm:px-6 py-2 sm:py-4 text-sm text-gray-600 hidden sm:table-cell">
                     {cliente.vendedor_nome || '-'}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-6 py-2 sm:py-4">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(cliente.status)}`}>
                       {cliente.status}
                     </span>
@@ -154,7 +154,7 @@ export default function AdminClientesPage() {
               ))}
               {clientesFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-3 sm:px-6 py-12 text-center text-gray-500">
                     Nenhum cliente encontrado
                   </td>
                 </tr>
