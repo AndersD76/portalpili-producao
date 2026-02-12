@@ -82,19 +82,25 @@ export async function PUT(
       'situacao_final', 'responsavel_analise', 'data_analise', 'evidencias_anexos'
     ];
 
-    // Campos que precisam ser serializados como JSON
-    const jsonFields = ['acoes', 'equipe', 'documentos_atualizados', 'processos_envolvidos', 'subcausas', 'anexos', 'evidencias_anexos'];
+    // Campos JSONB no banco - precisam de valor JSON válido
+    const jsonbFields = ['acoes', 'equipe', 'documentos_atualizados', 'processos_envolvidos', 'anexos', 'evidencias_anexos'];
 
     for (const field of updateableFields) {
       if (body[field] !== undefined) {
         fields.push(`${field} = $${paramIndex}`);
-        if (jsonFields.includes(field)) {
-          // Se já é string, usar diretamente; se é objeto, serializar
+        if (jsonbFields.includes(field)) {
           const value = body[field];
           if (value === null || value === '') {
             values.push(null);
           } else if (typeof value === 'string') {
-            values.push(value);
+            // Verificar se já é JSON válido
+            try {
+              JSON.parse(value);
+              values.push(value);
+            } catch {
+              // Texto puro - converter para JSON string válido para JSONB
+              values.push(JSON.stringify(value));
+            }
           } else {
             values.push(JSON.stringify(value));
           }
@@ -133,11 +139,12 @@ export async function PUT(
       success: true,
       data: result.rows[0]
     });
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Erro ao atualizar ação corretiva:', error);
+    const detail = error?.message || 'Erro desconhecido';
     return NextResponse.json(
-      { success: false, error: 'Erro ao atualizar ação corretiva' },
+      { success: false, error: `Erro ao atualizar ação corretiva: ${detail}` },
       { status: 500 }
     );
   } finally {
