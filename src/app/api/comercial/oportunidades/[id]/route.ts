@@ -75,7 +75,7 @@ export async function GET(
     let propostas = null;
     try {
       const propRes = await query(
-        `SELECT id, numero, valor_total, situacao, created_at
+        `SELECT id, numero_proposta, valor_total, situacao, produto, data_proposta, created_at
         FROM crm_propostas WHERE oportunidade_id = $1 ORDER BY created_at DESC`,
         [id]
       );

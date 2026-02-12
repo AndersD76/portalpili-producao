@@ -15,10 +15,13 @@ interface Oportunidade {
   vendedor_nome?: string;
   vendedor_id?: number;
   tipo_produto?: string;
+  produto?: string;
   valor_estimado: number;
   probabilidade: number;
   estagio: string;
   status: string;
+  numero_proposta?: string;
+  data_abertura?: string;
   total_atividades?: number;
   atividades_atrasadas?: number;
   created_at: string;
@@ -199,6 +202,7 @@ export default function ComercialPage() {
     if (ordenacao === 'prob') lista.sort((a, b) => toNum(b.probabilidade) - toNum(a.probabilidade));
     else if (ordenacao === 'valor') lista.sort((a, b) => toNum(b.valor_estimado) - toNum(a.valor_estimado));
     else if (ordenacao === 'recente') lista.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    else if (ordenacao === 'proposta') lista.sort((a, b) => parseInt(b.numero_proposta || '0') - parseInt(a.numero_proposta || '0'));
     return lista;
   }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, ordenacao]);
 
@@ -407,6 +411,7 @@ export default function ComercialPage() {
           <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
             className="px-2 py-1 border border-gray-200 rounded text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
             <option value="valor">Maior valor</option>
+            <option value="proposta"># Proposta</option>
             <option value="prob">Maior prob.</option>
             <option value="recente">Mais recente</option>
           </select>
@@ -450,12 +455,16 @@ export default function ComercialPage() {
           ) : (
             <div className="bg-white rounded-lg border overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_180px_100px_100px_120px] gap-2 px-4 py-2.5 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <div className={`grid gap-2 px-4 py-2.5 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wide ${
+                isAdmin ? 'grid-cols-[50px_1fr_80px_110px_60px_95px_100px]' : 'grid-cols-[50px_1fr_80px_110px_60px_95px]'
+              }`}>
+                <span className="text-center">#</span>
                 <span>Cliente / Produto</span>
+                <span className="text-center">Data</span>
                 <span className="text-right">Valor</span>
                 <span className="text-center">Prob.</span>
                 <span className="text-center">Etapa</span>
-                <span className="text-right">Vendedor</span>
+                {isAdmin && <span className="text-right">Vendedor</span>}
               </div>
               {/* Rows */}
               {listaFiltrada.map(op => {
@@ -463,42 +472,53 @@ export default function ComercialPage() {
                 const valor = toNum(op.valor_estimado);
                 const cfg = ESTAGIO_CONFIG[op.estagio];
                 const urgente = toNum(op.atividades_atrasadas) > 0;
+                const dataRef = op.data_abertura || op.created_at;
 
                 return (
                   <div
                     key={op.id}
                     onClick={() => setSelectedOportunidadeId(op.id)}
-                    className={`grid grid-cols-[1fr_180px_100px_100px_120px] gap-2 px-4 py-3 border-b last:border-b-0 hover:bg-gray-50 transition cursor-pointer items-center ${
-                      urgente ? 'bg-red-50/40' : ''
-                    }`}
+                    className={`grid gap-2 px-4 py-2.5 border-b last:border-b-0 hover:bg-gray-50 transition cursor-pointer items-center ${
+                      isAdmin ? 'grid-cols-[50px_1fr_80px_110px_60px_95px_100px]' : 'grid-cols-[50px_1fr_80px_110px_60px_95px]'
+                    } ${urgente ? 'bg-red-50/40' : ''}`}
                   >
+                    {/* # Proposta */}
+                    <div className="text-center text-xs font-mono text-gray-500">
+                      {op.numero_proposta || '-'}
+                    </div>
                     {/* Cliente + Produto */}
                     <div className="min-w-0">
                       <div className="font-semibold text-gray-900 text-sm truncate">
-                        {op.cliente_nome}
+                        {op.cliente_nome || op.titulo}
                         {urgente && <span className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500" title="Atividade atrasada" />}
                       </div>
-                      <div className="text-xs text-gray-400 truncate">{op.tipo_produto || op.titulo}</div>
+                      <div className="text-xs text-gray-400 truncate">{op.produto || op.tipo_produto || '-'}</div>
+                    </div>
+                    {/* Data */}
+                    <div className="text-center text-xs text-gray-500">
+                      {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
                     </div>
                     {/* Valor */}
                     <div className="text-right font-bold text-sm text-gray-800">{fmtFull(valor)}</div>
                     {/* Probabilidade */}
                     <div className="text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${probBg(prob)}`}>
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-semibold ${probBg(prob)}`}>
                         {prob}%
                       </span>
                     </div>
                     {/* Etapa */}
                     <div className="text-center">
                       {cfg && (
-                        <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium text-white"
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[11px] font-medium text-white whitespace-nowrap"
                           style={{ background: cfg.corHex }}>
                           {cfg.label}
                         </span>
                       )}
                     </div>
-                    {/* Vendedor */}
-                    <div className="text-right text-xs text-gray-500 truncate">{op.vendedor_nome || '-'}</div>
+                    {/* Vendedor - só para admin */}
+                    {isAdmin && (
+                      <div className="text-right text-xs text-gray-500 truncate">{op.vendedor_nome || '-'}</div>
+                    )}
                   </div>
                 );
               })}

@@ -182,14 +182,23 @@ export default function ModalDetalheOportunidade({
         {/* HEADER */}
         <div className="border-b px-6 py-4 flex items-start justify-between flex-shrink-0">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              {data.numero_proposta && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-gray-800 text-white">
+                  #{data.numero_proposta}
+                </span>
+              )}
               <span className="text-xs font-bold px-2 py-0.5 rounded text-white" style={{ background: ESTAGIO_COLORS[data.estagio] || '#6b7280' }}>
                 {ESTAGIOS_OPTIONS.find(e => e.value === data.estagio)?.label || data.estagio}
               </span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded ${STATUS_COLORS[data.status] || 'bg-gray-100 text-gray-600'}`}>
                 {data.status}
               </span>
-              <span className="text-xs text-gray-400">#{data.id}</span>
+              {data.data_abertura && (
+                <span className="text-xs text-gray-400">
+                  {formatDate(data.data_abertura)}
+                </span>
+              )}
             </div>
             <h3 className="text-lg font-bold text-gray-900 truncate">{data.titulo}</h3>
             <p className="text-sm text-gray-500">{data.produto || '-'} &bull; {data.vendedor_nome || '-'}</p>
@@ -250,26 +259,26 @@ export default function ModalDetalheOportunidade({
               </div>
 
               {/* Financeiro */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="bg-green-50 rounded-lg p-3 text-center">
-                  <div className="text-xs text-green-600">Valor Estimado</div>
+                  <div className="text-xs text-green-600">Valor</div>
                   <div className="font-bold text-green-800">{formatCurrency(data.valor_estimado)}</div>
                 </div>
-                {toNum(data.valor_final) > 0 && (
-                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
-                    <div className="text-xs text-emerald-600">Valor Final</div>
-                    <div className="font-bold text-emerald-800">{formatCurrency(data.valor_final)}</div>
-                  </div>
-                )}
                 <div className="bg-blue-50 rounded-lg p-3 text-center">
                   <div className="text-xs text-blue-600">Probabilidade</div>
                   <div className="font-bold text-blue-800">{toNum(data.probabilidade)}%</div>
                 </div>
                 <div className="bg-orange-50 rounded-lg p-3 text-center">
-                  <div className="text-xs text-orange-600">Previsão</div>
-                  <div className="font-bold text-orange-800 text-sm">{formatDate(data.data_previsao_fechamento)}</div>
+                  <div className="text-xs text-orange-600">Data Proposta</div>
+                  <div className="font-bold text-orange-800 text-sm">{formatDate(data.data_abertura)}</div>
                 </div>
               </div>
+              {toNum(data.valor_final) > 0 && (
+                <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                  <div className="text-xs text-emerald-600">Valor Final</div>
+                  <div className="font-bold text-emerald-800">{formatCurrency(data.valor_final)}</div>
+                </div>
+              )}
 
               {/* Atividades resumo */}
               {atividades.length > 0 && (
@@ -282,23 +291,35 @@ export default function ModalDetalheOportunidade({
                 </div>
               )}
 
-              {/* Detalhes técnicos */}
+              {/* Detalhes */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Detalhes</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Detalhes da Oportunidade</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-600">
+                  {data.numero_proposta && <div><span className="text-gray-400">Proposta:</span> <span className="font-semibold">#{data.numero_proposta}</span></div>}
+                  {data.produto && <div><span className="text-gray-400">Produto:</span> {data.produto}</div>}
                   {data.tamanho_interesse && <div><span className="text-gray-400">Tamanho:</span> {data.tamanho_interesse}m</div>}
                   {data.tipo_interesse && <div><span className="text-gray-400">Tipo:</span> {data.tipo_interesse}</div>}
                   {data.fonte && <div><span className="text-gray-400">Fonte:</span> {data.fonte}</div>}
-                  {data.temperatura && <div><span className="text-gray-400">Temperatura:</span> {data.temperatura}</div>}
-                  {data.concorrente && <div><span className="text-gray-400">Concorrente:</span> {data.concorrente}</div>}
-                  {data.motivo_perda && <div><span className="text-gray-400">Motivo perda:</span> {data.motivo_perda}</div>}
-                  {data.justificativa_perda && <div className="col-span-2"><span className="text-gray-400">Justificativa:</span> {data.justificativa_perda}</div>}
                   <div><span className="text-gray-400">Dias no estágio:</span> {toNum(data.dias_no_estagio)}</div>
-                  <div><span className="text-gray-400">Criado em:</span> {formatDate(data.created_at)}</div>
                   {data.data_abertura && <div><span className="text-gray-400">Data abertura:</span> {formatDate(data.data_abertura)}</div>}
+                  <div><span className="text-gray-400">Criado em:</span> {formatDate(data.created_at)}</div>
+                  {data.data_previsao_fechamento && <div><span className="text-gray-400">Previsão fech.:</span> {formatDate(data.data_previsao_fechamento)}</div>}
                   {data.data_fechamento && <div><span className="text-gray-400">Data fechamento:</span> {formatDate(data.data_fechamento)}</div>}
+                  {data.temperatura && <div><span className="text-gray-400">Temperatura:</span> {data.temperatura}</div>}
                 </div>
               </div>
+
+              {/* Perda / Concorrente */}
+              {(data.motivo_perda || data.concorrente || data.justificativa_perda) && (
+                <div className="bg-red-50 rounded-lg p-4">
+                  <h4 className="text-xs font-semibold text-red-600 uppercase mb-2">Perda / Concorrente</h4>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-700">
+                    {data.concorrente && <div><span className="text-red-400">Concorrente:</span> {data.concorrente}</div>}
+                    {data.motivo_perda && <div><span className="text-red-400">Motivo:</span> {data.motivo_perda}</div>}
+                    {data.justificativa_perda && <div className="col-span-2"><span className="text-red-400">Justificativa:</span> {data.justificativa_perda}</div>}
+                  </div>
+                </div>
+              )}
 
               {/* Observações */}
               {data.observacoes && (
@@ -449,8 +470,11 @@ export default function ModalDetalheOportunidade({
                 propostas.map((p: any, i: number) => (
                   <div key={p.id || i} className="flex items-center justify-between p-3 rounded-lg border bg-white">
                     <div>
-                      <div className="text-sm font-semibold text-gray-900">Proposta #{p.numero || p.id}</div>
-                      <div className="text-xs text-gray-500">{formatDate(p.created_at)}</div>
+                      <div className="text-sm font-semibold text-gray-900">Proposta #{p.numero_proposta || p.id}</div>
+                      <div className="text-xs text-gray-500">
+                        {p.produto && <span className="mr-2">{p.produto}</span>}
+                        {formatDate(p.data_proposta || p.created_at)}
+                      </div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-green-700 text-sm">{formatCurrency(p.valor_total)}</div>

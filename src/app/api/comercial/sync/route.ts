@@ -342,11 +342,17 @@ async function syncOportunidade(
     parseValorBR(prop.valor_equipamento_coletor);
   const probabilidade = parseProbabilidade(prop.probabilidade);
 
-  // Encontrar vendedor
+  // Encontrar vendedor (Levenshtein + containment fallback)
   let vendedorId: number | null = null;
   if (prop.vendedor_nome) {
+    const nomeNorm = prop.vendedor_nome.toUpperCase().trim();
     const v = vendedores.find(
       v => calcularSimilaridade(prop.vendedor_nome, v.nome) > 0.6
+    ) || vendedores.find(
+      v => {
+        const vNorm = v.nome.toUpperCase().trim();
+        return vNorm.includes(nomeNorm) || nomeNorm.includes(vNorm);
+      }
     );
     if (v) vendedorId = v.id;
   }
