@@ -132,8 +132,6 @@ export async function DELETE(
 ) {
   try {
     const { tipo, id } = await params;
-    const { searchParams } = new URL(request.url);
-    const usuario_id = searchParams.get('usuario_id');
 
     if (!TABELAS_VALIDAS.includes(tipo)) {
       return NextResponse.json(
@@ -157,13 +155,7 @@ export async function DELETE(
       );
     }
 
-    // Registra no histórico
-    await query(
-      `INSERT INTO crm_precos_historico (tabela, registro_id, campo, valor_anterior, valor_novo, usuario_id, motivo)
-       VALUES ($1, $2, 'ativo', 'true', 'false', $3, 'Desativação')`,
-      [tabela, id, usuario_id]
-    );
-
+    // Historico registrado automaticamente pelo trigger fn_precos_auditoria()
     // Invalida cache
     invalidarCachePrecos();
 
