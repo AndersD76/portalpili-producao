@@ -13,8 +13,6 @@ export async function POST(request: Request) {
       percentual,
       tipo_produto, // opcional - filtra por tipo
       categoria_id, // opcional - filtra por categoria
-      usuario_id,
-      motivo,
     } = body;
 
     if (!percentual || percentual === 0) {
@@ -36,25 +34,19 @@ export async function POST(request: Request) {
 
     // Reajusta preços base
     if (tipo === 'base' || tipo === 'todos') {
-      const qtdBase = await reajustarPrecosBase(percentual, tipo_produto, usuario_id);
+      const qtdBase = await reajustarPrecosBase(percentual, tipo_produto);
       totalAtualizados += qtdBase;
       detalhes.push({ tabela: 'crm_precos_base', registros: qtdBase });
     }
 
     // Reajusta opcionais
     if (tipo === 'opcoes' || tipo === 'todos') {
-      const qtdOpcoes = await reajustarOpcionais(percentual, categoria_id, usuario_id);
+      const qtdOpcoes = await reajustarOpcionais(percentual, categoria_id);
       totalAtualizados += qtdOpcoes;
       detalhes.push({ tabela: 'crm_precos_opcoes', registros: qtdOpcoes });
     }
 
-    // Registra reajuste geral no histórico
-    await query(
-      `INSERT INTO crm_precos_historico (tabela, registro_id, campo, valor_anterior, valor_novo, usuario_id, motivo)
-       VALUES ('REAJUSTE_GERAL', 0, 'percentual', '0', $1, $2, $3)`,
-      [String(percentual), usuario_id, motivo || `Reajuste de ${percentual}%`]
-    );
-
+    // Historico registrado automaticamente pelos triggers
     // Invalida cache
     invalidarCachePrecos();
 

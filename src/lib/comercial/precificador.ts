@@ -44,9 +44,9 @@ export async function carregarPrecos(forcarReload = false): Promise<CachePrecos>
   }
 
   const [precosBaseRes, opcoesRes, descontosRes, configRes, regrasRes] = await Promise.all([
-    query(`SELECT * FROM crm_precos_base WHERE ativo = true ORDER BY tipo_produto, modelo, comprimento`),
-    query(`SELECT * FROM crm_precos_opcoes WHERE ativo = true ORDER BY categoria_id, ordem`),
-    query(`SELECT * FROM crm_precos_descontos WHERE ativo = true ORDER BY tipo, valor_minimo`),
+    query(`SELECT *, produto as tipo_produto, tipo as modelo, tamanho as comprimento FROM crm_precos_base WHERE ativo = true ORDER BY produto, tipo, tamanho`),
+    query(`SELECT *, preco_tipo as tipo_valor, preco as valor, produto as tipo_produto_aplicavel FROM crm_precos_opcoes WHERE ativo = true ORDER BY categoria_id, ordem_exibicao`),
+    query(`SELECT * FROM crm_precos_descontos WHERE ativo = true ORDER BY created_at`),
     query(`SELECT * FROM crm_precos_config WHERE ativo = true`),
     query(`SELECT * FROM crm_precos_regras WHERE ativo = true ORDER BY prioridade DESC`),
   ]);
@@ -462,9 +462,8 @@ export async function gerarCamposProposta(
 export async function reajustarPrecosBase(
   percentual: number,
   tipoProduto?: ProdutoTipo,
-  usuarioId?: string
 ): Promise<number> {
-  const whereClause = tipoProduto ? `WHERE tipo_produto = $2` : '';
+  const whereClause = tipoProduto ? `WHERE produto = $2` : '';
   const params = tipoProduto
     ? [percentual, tipoProduto]
     : [percentual];
@@ -478,25 +477,7 @@ export async function reajustarPrecosBase(
     params
   );
 
-  // Invalida cache após atualização
   invalidarCachePrecos();
-
-  // Registra no histórico
-  if (result?.rows) {
-    for (const row of result.rows) {
-      await query(
-        `INSERT INTO crm_precos_historico (tabela, registro_id, campo, valor_anterior, valor_novo, usuario_id, motivo)
-         SELECT 'crm_precos_base', id, 'preco',
-                (preco / (1 + $1::numeric / 100))::text,
-                preco::text,
-                $2,
-                $3
-         FROM crm_precos_base WHERE id = $4`,
-        [percentual, usuarioId, `Reajuste de ${percentual}%`, row.id]
-      );
-    }
-  }
-
   return result?.rows?.length || 0;
 }
 
@@ -506,16 +487,15 @@ export async function reajustarPrecosBase(
 export async function reajustarOpcionais(
   percentual: number,
   categoriaId?: number,
-  usuarioId?: string
 ): Promise<number> {
-  const whereClause = categoriaId ? `WHERE categoria_id = $2 AND tipo_valor = 'FIXO'` : `WHERE tipo_valor = 'FIXO'`;
+  const whereClause = categoriaId ? `WHERE categoria_id = $2 AND preco_tipo = 'FIXO'` : `WHERE preco_tipo = 'FIXO'`;
   const params = categoriaId
     ? [percentual, categoriaId]
     : [percentual];
 
   const result = await query(
     `UPDATE crm_precos_opcoes
-     SET valor = valor * (1 + $1::numeric / 100),
+     SET preco = preco * (1 + $1::numeric / 100),
          updated_at = NOW()
      ${whereClause}
      RETURNING id`,
@@ -523,6 +503,5 @@ export async function reajustarOpcionais(
   );
 
   invalidarCachePrecos();
-
   return result?.rows?.length || 0;
 }

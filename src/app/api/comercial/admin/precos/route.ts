@@ -122,7 +122,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { tipo, dados, usuario_id } = body;
+    const { tipo, dados } = body;
 
     if (!tipo || !dados) {
       return NextResponse.json(
@@ -223,13 +223,7 @@ export async function POST(request: Request) {
 
     result = await query(sql, params);
 
-    // Registra no histórico
-    await query(
-      `INSERT INTO crm_precos_historico (tabela, registro_id, campo, valor_anterior, valor_novo, usuario_id, motivo)
-       VALUES ($1, $2, 'CRIACAO', NULL, $3, $4, 'Novo registro')`,
-      [`crm_precos_${tipo}`, result?.rows[0]?.id, JSON.stringify(result?.rows[0]), usuario_id]
-    );
-
+    // Historico registrado automaticamente pelo trigger fn_precos_auditoria()
     // Invalida cache
     invalidarCachePrecos();
 
