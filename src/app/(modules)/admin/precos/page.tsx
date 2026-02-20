@@ -71,10 +71,6 @@ export default function AdminPrecosPage() {
     comprimento: '',
     descricao: '',
     preco: '',
-    qt_cilindros: '',
-    qt_motores: '',
-    qt_oleo: '',
-    angulo_inclinacao: '',
   });
 
   // Modal de novo/editar opcional
@@ -82,12 +78,11 @@ export default function AdminPrecosPage() {
   const [editingOpcional, setEditingOpcional] = useState<PrecoOpcional | null>(null);
   const [formOpcional, setFormOpcional] = useState({
     codigo: '',
-    nome: '',
     descricao: '',
     preco_tipo: 'FIXO',
     preco: '',
     produto: '',
-    tamanhos_aplicaveis: '' as string,
+    tamanhos_selecionados: [] as number[],
   });
 
   const router = useRouter();
@@ -172,10 +167,6 @@ export default function AdminPrecosPage() {
       comprimento: '',
       descricao: '',
       preco: '',
-      qt_cilindros: '',
-      qt_motores: '',
-      qt_oleo: '',
-      angulo_inclinacao: '',
     });
     setShowModal(true);
   };
@@ -188,10 +179,6 @@ export default function AdminPrecosPage() {
       comprimento: item.comprimento ? String(item.comprimento) : '',
       descricao: item.descricao || '',
       preco: String(item.preco),
-      qt_cilindros: item.qt_cilindros ? String(item.qt_cilindros) : '',
-      qt_motores: item.qt_motores ? String(item.qt_motores) : '',
-      qt_oleo: item.qt_oleo ? String(item.qt_oleo) : '',
-      angulo_inclinacao: item.angulo_inclinacao || '',
     });
     setShowModal(true);
   };
@@ -215,10 +202,6 @@ export default function AdminPrecosPage() {
               tamanho: formBase.comprimento ? parseInt(formBase.comprimento) : 0,
               descricao: formBase.descricao,
               preco: parseFloat(formBase.preco),
-              qt_cilindros: formBase.qt_cilindros ? parseInt(formBase.qt_cilindros) : null,
-              qt_motores: formBase.qt_motores ? parseInt(formBase.qt_motores) : null,
-              qt_oleo: formBase.qt_oleo ? parseInt(formBase.qt_oleo) : null,
-              angulo_inclinacao: formBase.angulo_inclinacao || null,
             }
           }),
         });
@@ -243,10 +226,6 @@ export default function AdminPrecosPage() {
               tamanho: formBase.comprimento ? parseInt(formBase.comprimento) : 0,
               descricao: formBase.descricao,
               preco: parseFloat(formBase.preco),
-              qt_cilindros: formBase.qt_cilindros ? parseInt(formBase.qt_cilindros) : null,
-              qt_motores: formBase.qt_motores ? parseInt(formBase.qt_motores) : null,
-              qt_oleo: formBase.qt_oleo ? parseInt(formBase.qt_oleo) : null,
-              angulo_inclinacao: formBase.angulo_inclinacao || null,
             }
           }),
         });
@@ -267,7 +246,7 @@ export default function AdminPrecosPage() {
   // === CRUD Opcional ===
   const openNewOpcional = () => {
     setEditingOpcional(null);
-    setFormOpcional({ codigo: '', nome: '', descricao: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_aplicaveis: '' });
+    setFormOpcional({ codigo: '', descricao: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_selecionados: [] });
     setShowModalOpcional(true);
   };
 
@@ -275,24 +254,23 @@ export default function AdminPrecosPage() {
     setEditingOpcional(item);
     setFormOpcional({
       codigo: item.codigo || '',
-      nome: item.nome || '',
-      descricao: '',
+      descricao: item.nome || '',
       preco_tipo: item.tipo_valor || 'FIXO',
       preco: String(item.valor),
       produto: item.produto || '',
-      tamanhos_aplicaveis: item.tamanhos_aplicaveis ? item.tamanhos_aplicaveis.join(', ') : '',
+      tamanhos_selecionados: item.tamanhos_aplicaveis || [],
     });
     setShowModalOpcional(true);
   };
 
   const handleSaveOpcional = async () => {
-    if (!formOpcional.nome || !formOpcional.preco) {
-      setMensagem({ tipo: 'erro', texto: 'Preencha pelo menos nome e preco' });
+    if (!formOpcional.descricao || !formOpcional.preco) {
+      setMensagem({ tipo: 'erro', texto: 'Preencha pelo menos descricao e preco' });
       return;
     }
     try {
-      const tamArr = formOpcional.tamanhos_aplicaveis
-        ? formOpcional.tamanhos_aplicaveis.split(/[,;\s]+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+      const tamArr = formOpcional.tamanhos_selecionados.length > 0
+        ? formOpcional.tamanhos_selecionados
         : null;
 
       if (editingOpcional) {
@@ -302,7 +280,7 @@ export default function AdminPrecosPage() {
           body: JSON.stringify({
             dados: {
               codigo: formOpcional.codigo,
-              nome: formOpcional.nome,
+              nome: formOpcional.descricao,
               descricao: formOpcional.descricao,
               preco_tipo: formOpcional.preco_tipo,
               preco: parseFloat(formOpcional.preco),
@@ -326,8 +304,8 @@ export default function AdminPrecosPage() {
           body: JSON.stringify({
             tipo: 'opcoes',
             dados: {
-              codigo: formOpcional.codigo || formOpcional.nome.substring(0, 10).toUpperCase().replace(/\s/g, '_'),
-              nome: formOpcional.nome,
+              codigo: formOpcional.codigo || formOpcional.descricao.substring(0, 10).toUpperCase().replace(/\s/g, '_'),
+              nome: formOpcional.descricao,
               descricao: formOpcional.descricao,
               preco_tipo: formOpcional.preco_tipo,
               preco: parseFloat(formOpcional.preco),
@@ -496,8 +474,6 @@ export default function AdminPrecosPage() {
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Tamanho</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Descricao</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase">Preco</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Motores</th>
-                  <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Cilindros</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Status</th>
                   <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase">Acoes</th>
                 </tr>
@@ -520,8 +496,6 @@ export default function AdminPrecosPage() {
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm text-gray-600 hidden lg:table-cell">{preco.descricao}</td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm font-semibold text-green-700 text-right">{formatCurrency(preco.preco)}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm text-center hidden lg:table-cell">{preco.qt_motores || '-'}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-3 text-sm text-center hidden lg:table-cell">{preco.qt_cilindros || '-'}</td>
                     <td className="px-2 sm:px-4 py-2 sm:py-3 text-center hidden sm:table-cell">
                       <span className={`px-2 py-1 rounded-full text-xs ${preco.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                         {preco.ativo ? 'Ativo' : 'Inativo'}
@@ -562,7 +536,7 @@ export default function AdminPrecosPage() {
                 ))}
                 {precosBase.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                       Nenhum preco base encontrado
                     </td>
                   </tr>
@@ -614,11 +588,20 @@ export default function AdminPrecosPage() {
                     <td className="px-4 py-3 text-sm font-semibold text-right">
                       {opc.tipo_valor === 'PERCENTUAL' ? `${opc.valor}%` : formatCurrency(opc.valor)}
                     </td>
-                    <td className="px-4 py-3 text-center text-xs">
+                    <td className="px-4 py-3 text-xs">
                       {opc.tamanhos_aplicaveis && opc.tamanhos_aplicaveis.length > 0 ? (
-                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">{opc.tamanhos_aplicaveis.join(', ')}m</span>
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {opc.tamanhos_aplicaveis.map(tam => {
+                            const base = precosBase.find(p => p.comprimento === tam && (!opc.produto || p.tipo_produto === opc.produto));
+                            return (
+                              <span key={tam} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded" title={base?.descricao || ''}>
+                                {tam}m
+                              </span>
+                            );
+                          })}
+                        </div>
                       ) : (
-                        <span className="text-gray-400">Todos</span>
+                        <span className="text-gray-400 text-center block">Todos</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -814,45 +797,6 @@ export default function AdminPrecosPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cilindros</label>
-                  <input
-                    type="number"
-                    value={formBase.qt_cilindros}
-                    onChange={e => setFormBase({...formBase, qt_cilindros: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Motores</label>
-                  <input
-                    type="number"
-                    value={formBase.qt_motores}
-                    onChange={e => setFormBase({...formBase, qt_motores: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Oleo (L)</label>
-                  <input
-                    type="number"
-                    value={formBase.qt_oleo}
-                    onChange={e => setFormBase({...formBase, qt_oleo: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Angulo Inclinacao</label>
-                <input
-                  type="text"
-                  value={formBase.angulo_inclinacao}
-                  onChange={e => setFormBase({...formBase, angulo_inclinacao: e.target.value})}
-                  placeholder="Ex: 40"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                />
-              </div>
             </div>
             <div className="p-5 border-t flex items-center justify-end gap-3">
               <button
@@ -875,7 +819,7 @@ export default function AdminPrecosPage() {
       {/* === MODAL: Novo Opcional === */}
       {showModalOpcional && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModalOpcional(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">{editingOpcional ? 'Editar Opcional' : 'Novo Opcional'}</h3>
               <button onClick={() => setShowModalOpcional(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
@@ -906,24 +850,49 @@ export default function AdminPrecosPage() {
                   </select>
                 </div>
               </div>
+              {/* Checkboxes de Precos Base aplicaveis */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                <input
-                  type="text"
-                  value={formOpcional.nome}
-                  onChange={e => setFormOpcional({...formOpcional, nome: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tamanhos aplicaveis (metros)</label>
-                <input
-                  type="text"
-                  value={formOpcional.tamanhos_aplicaveis}
-                  onChange={e => setFormOpcional({...formOpcional, tamanhos_aplicaveis: e.target.value})}
-                  placeholder="Ex: 11, 12, 18 (vazio = todos)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Aplicavel a quais precos base?</label>
+                {precosBase.filter(p => p.ativo && (!formOpcional.produto || p.tipo_produto === formOpcional.produto)).length > 0 ? (
+                  <div className="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                    {precosBase
+                      .filter(p => p.ativo && (!formOpcional.produto || p.tipo_produto === formOpcional.produto))
+                      .map(p => {
+                        const checked = formOpcional.tamanhos_selecionados.includes(p.comprimento || 0);
+                        return (
+                          <label key={p.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                const tam = p.comprimento || 0;
+                                setFormOpcional(prev => ({
+                                  ...prev,
+                                  tamanhos_selecionados: checked
+                                    ? prev.tamanhos_selecionados.filter(t => t !== tam)
+                                    : [...prev.tamanhos_selecionados, tam],
+                                }));
+                              }}
+                              className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {p.descricao || `${p.tipo_produto} ${p.modelo || ''} ${p.comprimento || ''}m`}
+                            </span>
+                            <span className="text-xs text-gray-400 ml-auto">{formatCurrency(p.preco)}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500">
+                    Nenhum preco base cadastrado. Cadastre precos base primeiro na aba "Precos Base".
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  {formOpcional.tamanhos_selecionados.length === 0
+                    ? 'Nenhum selecionado = aplica a todos'
+                    : `${formOpcional.tamanhos_selecionados.length} selecionado(s)`}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
