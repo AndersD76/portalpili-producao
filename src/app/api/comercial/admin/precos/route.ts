@@ -71,7 +71,7 @@ export async function GET(request: Request) {
           sql += ` AND ativo = $${paramIndex++}`;
           params.push(ativo === 'true');
         }
-        sql += ` ORDER BY tipo, valor_minimo`;
+        sql += ` ORDER BY ordem_exibicao, created_at`;
         break;
 
       case 'regras':
@@ -139,8 +139,8 @@ export async function POST(request: Request) {
       case 'base':
         sql = `
           INSERT INTO crm_precos_base (
-            produto, tipo, tamanho, descricao, preco, categoria_id, qt_cilindros, qt_motores, qt_oleo, angulo_inclinacao
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            produto, tipo, tamanho, descricao, preco, qt_cilindros, qt_motores, qt_oleo, angulo_inclinacao
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING id, produto as tipo_produto, tipo as modelo, tamanho as comprimento, descricao, preco, ativo
         `;
         params = [
@@ -149,7 +149,6 @@ export async function POST(request: Request) {
           dados.comprimento || dados.tamanho,
           dados.descricao,
           dados.preco,
-          dados.categoria_id,
           dados.qt_cilindros || null,
           dados.qt_motores || null,
           dados.qt_oleo || null,
@@ -160,12 +159,12 @@ export async function POST(request: Request) {
       case 'opcoes':
         sql = `
           INSERT INTO crm_precos_opcoes (
-            categoria_id, codigo, nome, descricao, preco_tipo, preco, ordem_exibicao, produto
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            categoria_id, codigo, nome, descricao, preco_tipo, preco, ordem_exibicao, produto, tamanhos_aplicaveis
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING *
         `;
         params = [
-          dados.categoria_id,
+          dados.categoria_id || null,
           dados.codigo,
           dados.nome,
           dados.descricao,
@@ -173,6 +172,7 @@ export async function POST(request: Request) {
           dados.preco || dados.valor,
           dados.ordem_exibicao || dados.ordem || 0,
           dados.produto || dados.tipo_produto_aplicavel,
+          dados.tamanhos_aplicaveis || null,
         ];
         break;
 
