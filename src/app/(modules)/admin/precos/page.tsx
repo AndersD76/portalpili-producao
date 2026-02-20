@@ -152,9 +152,12 @@ export default function AdminPrecosPage() {
       if (result.success) {
         setMensagem({ tipo: 'sucesso', texto: `Item ${!ativo ? 'ativado' : 'desativado'} com sucesso` });
         fetchData();
+      } else {
+        setMensagem({ tipo: 'erro', texto: result.error || `Erro ao ${ativo ? 'desativar' : 'ativar'}` });
       }
     } catch (error) {
       console.error('Erro ao atualizar:', error);
+      setMensagem({ tipo: 'erro', texto: 'Erro de conexao ao atualizar preco' });
     }
   };
 
