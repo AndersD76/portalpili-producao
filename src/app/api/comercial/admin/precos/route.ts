@@ -53,7 +53,7 @@ export async function GET(request: Request) {
                  po.preco_tipo as tipo_valor,
                  COALESCE(po.preco, 0) as valor,
                  po.ativo,
-                 po.produto, po.ordem_exibicao, pc.nome as categoria_nome
+                 po.produto, po.tamanhos_aplicaveis, po.ordem_exibicao, pc.nome as categoria_nome
           FROM crm_precos_opcoes po
           LEFT JOIN crm_precos_categorias pc ON po.categoria_id = pc.id
           WHERE 1=1

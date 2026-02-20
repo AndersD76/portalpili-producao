@@ -30,6 +30,7 @@ interface PrecoOpcional {
   valor: number;
   ativo: boolean;
   produto: string;
+  tamanhos_aplicaveis?: number[];
 }
 
 interface SimulacaoReajuste {
@@ -86,6 +87,7 @@ export default function AdminPrecosPage() {
     preco_tipo: 'FIXO',
     preco: '',
     produto: '',
+    tamanhos_aplicaveis: '' as string,
   });
 
   const router = useRouter();
@@ -265,7 +267,7 @@ export default function AdminPrecosPage() {
   // === CRUD Opcional ===
   const openNewOpcional = () => {
     setEditingOpcional(null);
-    setFormOpcional({ codigo: '', nome: '', descricao: '', preco_tipo: 'FIXO', preco: '', produto: '' });
+    setFormOpcional({ codigo: '', nome: '', descricao: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_aplicaveis: '' });
     setShowModalOpcional(true);
   };
 
@@ -278,6 +280,7 @@ export default function AdminPrecosPage() {
       preco_tipo: item.tipo_valor || 'FIXO',
       preco: String(item.valor),
       produto: item.produto || '',
+      tamanhos_aplicaveis: item.tamanhos_aplicaveis ? item.tamanhos_aplicaveis.join(', ') : '',
     });
     setShowModalOpcional(true);
   };
@@ -288,6 +291,10 @@ export default function AdminPrecosPage() {
       return;
     }
     try {
+      const tamArr = formOpcional.tamanhos_aplicaveis
+        ? formOpcional.tamanhos_aplicaveis.split(/[,;\s]+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+        : null;
+
       if (editingOpcional) {
         const res = await fetch(`/api/comercial/admin/precos/opcoes/${editingOpcional.id}`, {
           method: 'PUT',
@@ -300,6 +307,7 @@ export default function AdminPrecosPage() {
               preco_tipo: formOpcional.preco_tipo,
               preco: parseFloat(formOpcional.preco),
               produto: formOpcional.produto || null,
+              tamanhos_aplicaveis: tamArr && tamArr.length > 0 ? `{${tamArr.join(',')}}` : null,
             }
           }),
         });
@@ -324,6 +332,7 @@ export default function AdminPrecosPage() {
               preco_tipo: formOpcional.preco_tipo,
               preco: parseFloat(formOpcional.preco),
               produto: formOpcional.produto || null,
+              tamanhos_aplicaveis: tamArr && tamArr.length > 0 ? `{${tamArr.join(',')}}` : null,
             }
           }),
         });
@@ -588,7 +597,7 @@ export default function AdminPrecosPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Produto</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tamanhos</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acoes</th>
                 </tr>
@@ -606,8 +615,8 @@ export default function AdminPrecosPage() {
                       {opc.tipo_valor === 'PERCENTUAL' ? `${opc.valor}%` : formatCurrency(opc.valor)}
                     </td>
                     <td className="px-4 py-3 text-center text-xs">
-                      {opc.produto ? (
-                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">{opc.produto}</span>
+                      {opc.tamanhos_aplicaveis && opc.tamanhos_aplicaveis.length > 0 ? (
+                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">{opc.tamanhos_aplicaveis.join(', ')}m</span>
                       ) : (
                         <span className="text-gray-400">Todos</span>
                       )}
@@ -903,6 +912,16 @@ export default function AdminPrecosPage() {
                   type="text"
                   value={formOpcional.nome}
                   onChange={e => setFormOpcional({...formOpcional, nome: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tamanhos aplicaveis (metros)</label>
+                <input
+                  type="text"
+                  value={formOpcional.tamanhos_aplicaveis}
+                  onChange={e => setFormOpcional({...formOpcional, tamanhos_aplicaveis: e.target.value})}
+                  placeholder="Ex: 11, 12, 18 (vazio = todos)"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                 />
               </div>
