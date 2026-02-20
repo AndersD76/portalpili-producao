@@ -266,37 +266,93 @@ export default function AdminPrecosPage() {
     setShowModalOpcional(true);
   };
 
+  const openEditOpcional = (item: PrecoOpcional) => {
+    setEditingOpcional(item);
+    setFormOpcional({
+      codigo: item.codigo || '',
+      nome: item.nome || '',
+      descricao: '',
+      preco_tipo: item.tipo_valor || 'FIXO',
+      preco: String(item.valor),
+      produto: item.produto || '',
+    });
+    setShowModalOpcional(true);
+  };
+
   const handleSaveOpcional = async () => {
     if (!formOpcional.nome || !formOpcional.preco) {
       setMensagem({ tipo: 'erro', texto: 'Preencha pelo menos nome e preco' });
       return;
     }
     try {
-      const res = await fetch('/api/comercial/admin/precos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo: 'opcoes',
-          dados: {
-            codigo: formOpcional.codigo || formOpcional.nome.substring(0, 10).toUpperCase().replace(/\s/g, '_'),
-            nome: formOpcional.nome,
-            descricao: formOpcional.descricao,
-            preco_tipo: formOpcional.preco_tipo,
-            preco: parseFloat(formOpcional.preco),
-            produto: formOpcional.produto || null,
-          }
-        }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        setMensagem({ tipo: 'sucesso', texto: 'Opcional criado com sucesso' });
-        setShowModalOpcional(false);
-        fetchOpcoes();
+      if (editingOpcional) {
+        const res = await fetch(`/api/comercial/admin/precos/opcoes/${editingOpcional.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dados: {
+              codigo: formOpcional.codigo,
+              nome: formOpcional.nome,
+              descricao: formOpcional.descricao,
+              preco_tipo: formOpcional.preco_tipo,
+              preco: parseFloat(formOpcional.preco),
+              produto: formOpcional.produto || null,
+            }
+          }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          setMensagem({ tipo: 'sucesso', texto: 'Opcional atualizado com sucesso' });
+          setShowModalOpcional(false);
+          fetchOpcoes();
+        } else {
+          setMensagem({ tipo: 'erro', texto: result.error || 'Erro ao atualizar' });
+        }
       } else {
-        setMensagem({ tipo: 'erro', texto: result.error || 'Erro ao criar' });
+        const res = await fetch('/api/comercial/admin/precos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'opcoes',
+            dados: {
+              codigo: formOpcional.codigo || formOpcional.nome.substring(0, 10).toUpperCase().replace(/\s/g, '_'),
+              nome: formOpcional.nome,
+              descricao: formOpcional.descricao,
+              preco_tipo: formOpcional.preco_tipo,
+              preco: parseFloat(formOpcional.preco),
+              produto: formOpcional.produto || null,
+            }
+          }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          setMensagem({ tipo: 'sucesso', texto: 'Opcional criado com sucesso' });
+          setShowModalOpcional(false);
+          fetchOpcoes();
+        } else {
+          setMensagem({ tipo: 'erro', texto: result.error || 'Erro ao criar' });
+        }
       }
     } catch (error) {
       setMensagem({ tipo: 'erro', texto: 'Erro ao salvar opcional' });
+    }
+  };
+
+  const handleDelete = async (tipo: string, id: number, nome: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir "${nome}"? Esta acao nao pode ser desfeita.`)) return;
+    try {
+      const response = await fetch(`/api/comercial/admin/precos/${tipo}/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setMensagem({ tipo: 'sucesso', texto: 'Item excluido com sucesso' });
+        fetchData();
+      } else {
+        setMensagem({ tipo: 'erro', texto: result.error || 'Erro ao excluir' });
+      }
+    } catch (error) {
+      setMensagem({ tipo: 'erro', texto: 'Erro ao excluir' });
     }
   };
 
@@ -479,6 +535,15 @@ export default function AdminPrecosPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={preco.ativo ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
                           </svg>
                         </button>
+                        <button
+                          onClick={() => handleDelete('base', preco.id, preco.descricao)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          title="Excluir"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -550,15 +615,35 @@ export default function AdminPrecosPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => handleToggleAtivo('opcoes', opc.id, opc.ativo)}
-                        className={`p-1.5 rounded transition ${opc.ativo ? 'text-gray-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
-                        title={opc.ativo ? 'Desativar' : 'Ativar'}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={opc.ativo ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
-                        </svg>
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => openEditOpcional(opc)}
+                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                          title="Editar"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleToggleAtivo('opcoes', opc.id, opc.ativo)}
+                          className={`p-1.5 rounded transition ${opc.ativo ? 'text-gray-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
+                          title={opc.ativo ? 'Desativar' : 'Ativar'}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={opc.ativo ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDelete('opcoes', opc.id, opc.nome)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          title="Excluir"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -780,7 +865,7 @@ export default function AdminPrecosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModalOpcional(false)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Novo Opcional</h3>
+              <h3 className="text-lg font-bold text-gray-900">{editingOpcional ? 'Editar Opcional' : 'Novo Opcional'}</h3>
               <button onClick={() => setShowModalOpcional(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             <div className="p-5 space-y-4">
@@ -865,7 +950,7 @@ export default function AdminPrecosPage() {
                 onClick={handleSaveOpcional}
                 className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
               >
-                Criar Opcional
+                {editingOpcional ? 'Salvar Alteracoes' : 'Criar Opcional'}
               </button>
             </div>
           </div>

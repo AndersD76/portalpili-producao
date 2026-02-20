@@ -91,7 +91,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Simula reajuste em preços base
+    // Simula reajuste em precos base
     let sqlBase = `
       SELECT
         id, descricao, preco as preco_atual,
@@ -104,20 +104,20 @@ export async function PUT(request: Request) {
     let paramIndex = 2;
 
     if (tipo_produto) {
-      sqlBase += ` AND tipo_produto = $${paramIndex++}`;
+      sqlBase += ` AND produto = $${paramIndex++}`;
       paramsBase.push(tipo_produto);
     }
 
-    sqlBase += ` ORDER BY tipo_produto, modelo, comprimento`;
+    sqlBase += ` ORDER BY produto, tipo, tamanho`;
 
     // Simula reajuste em opcionais
     let sqlOpcoes = `
       SELECT
-        id, nome, valor as valor_atual,
-        ROUND(valor * (1 + $1::numeric / 100), 2) as valor_novo,
-        ROUND(valor * $1::numeric / 100, 2) as diferenca
+        id, nome, preco as valor_atual,
+        ROUND(preco * (1 + $1::numeric / 100), 2) as valor_novo,
+        ROUND(preco * $1::numeric / 100, 2) as diferenca
       FROM crm_precos_opcoes
-      WHERE ativo = true AND tipo_valor = 'FIXO'
+      WHERE ativo = true AND preco_tipo = 'FIXO'
     `;
     const paramsOpcoes: unknown[] = [percentual];
     let paramIndexOpcoes = 2;
@@ -127,7 +127,7 @@ export async function PUT(request: Request) {
       paramsOpcoes.push(categoria_id);
     }
 
-    sqlOpcoes += ` ORDER BY categoria_id, ordem`;
+    sqlOpcoes += ` ORDER BY categoria_id, ordem_exibicao`;
 
     const [resultBase, resultOpcoes] = await Promise.all([
       tipo !== 'opcoes' ? query(sqlBase, paramsBase) : Promise.resolve({ rows: [] }),
