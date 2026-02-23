@@ -1022,25 +1022,51 @@ export default function ModalVisualizarFormulario({
               // Construct URL from arquivo data - try multiple possible paths
               const getDocUrl = () => {
                 if (doc.arquivo?.url) return doc.arquivo.url;
-                if (doc.arquivo?.filename) return `/api/uploads/${doc.arquivo.filename}`;
+                if (doc.arquivo?.filename) return `/api/files/${doc.arquivo.filename}`;
                 if (doc.url) return doc.url;
-                if (doc.filename) return `/api/uploads/${doc.filename}`;
+                if (doc.filename) return `/api/files/${doc.filename}`;
                 return null;
               };
               const docUrl = getDocUrl();
 
-              return (
-                <a
-                  key={index}
-                  href={docUrl || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (!docUrl) {
-                      e.preventDefault();
-                      alert('URL do documento não encontrada');
+              // Abrir arquivo - data URLs precisam ser convertidas em Blob
+              const abrirArquivo = (e: React.MouseEvent) => {
+                e.preventDefault();
+                if (!docUrl) {
+                  alert('URL do documento não encontrada');
+                  return;
+                }
+                // Se for data URL, converter para Blob e abrir
+                if (docUrl.startsWith('data:')) {
+                  try {
+                    const parts = docUrl.split(',');
+                    const mimeMatch = parts[0].match(/data:(.*?);/);
+                    const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+                    const byteString = atob(parts[1]);
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) {
+                      ia[i] = byteString.charCodeAt(i);
                     }
-                  }}
+                    const blob = new Blob([ab], { type: mime });
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                  } catch (err) {
+                    console.error('Erro ao abrir arquivo:', err);
+                    alert('Erro ao abrir o arquivo. Tente novamente.');
+                  }
+                } else {
+                  // URL normal - abrir direto
+                  window.open(docUrl, '_blank');
+                }
+              };
+
+              return (
+                <div
+                  key={index}
+                  onClick={abrirArquivo}
+                  role="button"
+                  tabIndex={0}
                   className={`block bg-white rounded-lg p-4 border border-gray-200 hover:border-blue-400 hover:shadow-md transition cursor-pointer ${!docUrl ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-center gap-3">
@@ -1076,7 +1102,7 @@ export default function ModalVisualizarFormulario({
                       </span>
                     )}
                   </div>
-                </a>
+                </div>
               );
             })}
           </div>

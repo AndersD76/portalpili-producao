@@ -199,7 +199,7 @@ export default function QualidadeDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'ncs' | 'reclamacoes' | 'acoes'>('ncs');
   const router = useRouter();
-  const { user, authenticated, loading: authLoading } = useAuth();
+  const { user, authenticated, loading: authLoading, logout } = useAuth();
 
   // Filtros
   const [filtroLocal, setFiltroLocal] = useState<string>('todos');
@@ -250,15 +250,8 @@ export default function QualidadeDashboardPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      localStorage.removeItem('authenticated');
-      localStorage.removeItem('user_data');
-      router.push('/login');
-    } catch (err) {
-      console.error('Erro ao fazer logout:', err);
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   const limparFiltros = () => {

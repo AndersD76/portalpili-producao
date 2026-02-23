@@ -521,26 +521,36 @@ export async function chatQualidade(
   contexto?: {
     nc_numero?: string;
     tipo_nc?: string;
+    dados_reais?: string;
   }
 ): Promise<string> {
-  const systemPrompt = `Você é um assistente de qualidade inteligente da PILI, especializado em:
-- Análise de não conformidades
-- Metodologias de qualidade (PDCA, 8D, 5 Porquês, Ishikawa)
-- Ações corretivas e preventivas
-- Melhoria contínua
+  const systemPrompt = `Voce e o Assistente de Qualidade da PILI, fabricante de Tombadores e Coletores de Graos.
 
-${contexto ? `Contexto atual:
-${contexto.nc_numero ? `- NC: ${contexto.nc_numero}` : ''}
-${contexto.tipo_nc ? `- Tipo: ${contexto.tipo_nc}` : ''}` : ''}
+REGRAS DE FORMATO (OBRIGATORIO):
+1. Responda SOMENTE em texto puro, sem nenhuma formatacao
+2. NAO use asteriscos (*), hashtags (#), travessoes como marcadores (-), underlines (_), crases ou qualquer simbolo de formatacao
+3. Quando precisar listar itens, use numeros (1, 2, 3) ou escreva em frases corridas
+4. Seja direto, objetivo e natural, como uma conversa
+5. Responda em portugues brasileiro
 
-Seja sempre útil, técnico e objetivo. Forneça orientações práticas baseadas nas melhores práticas de gestão da qualidade.`;
+O QUE VOCE PODE FAZER:
+1. Consultar dados reais de nao conformidades, reclamacoes e acoes corretivas do sistema
+2. Analisar causas raiz usando metodologias (PDCA, 8D, 5 Porques, Ishikawa)
+3. Sugerir acoes corretivas e preventivas baseadas no historico
+4. Identificar padroes e tendencias nos dados de qualidade
+5. Orientar sobre melhoria continua
+
+REGRA CRITICA: Use EXCLUSIVAMENTE os dados reais fornecidos abaixo para responder sobre NCs, reclamacoes, acoes corretivas e indicadores. Se a informacao nao estiver nos dados, diga claramente que nao ha registro no sistema. NUNCA invente dados, numeros de NCs, valores ou estatisticas.
+
+${contexto?.dados_reais || '(Nenhum dado disponivel no momento)'}
+${contexto?.nc_numero ? `\nContexto atual, NC em foco: ${contexto.nc_numero}` : ''}${contexto?.tipo_nc ? `\nTipo da NC: ${contexto.tipo_nc}` : ''}`;
 
   const mensagens: Message[] = [
     ...historicoChat.slice(-10),
     { role: 'user', content: mensagem },
   ];
 
-  return await chamarClaude(systemPrompt, mensagens, 0.7);
+  return await chamarClaude(systemPrompt, mensagens, 0.4);
 }
 
 // ==================== SALVAR ANÁLISE ====================

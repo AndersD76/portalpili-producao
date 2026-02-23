@@ -56,7 +56,7 @@ export default function ConfiguradorPage() {
   const [observacoes, setObservacoes] = useState('');
 
   const router = useRouter();
-  const { authenticated, loading: authLoading, usuario } = useAuth();
+  const { authenticated, loading: authLoading, user: usuario } = useAuth();
 
   useEffect(() => {
     if (authLoading) return;

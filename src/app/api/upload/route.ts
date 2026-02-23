@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,20 +31,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Converter arquivo para Base64
+    // Salvar arquivo no banco de dados
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString('base64');
-    const dataUrl = `data:${file.type};base64,${base64}`;
+
+    const result = await query(
+      `INSERT INTO arquivos (filename, mime_type, tamanho, dados)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [file.name, file.type, file.size, buffer]
+    );
+
+    const fileId = result?.rows[0]?.id;
+    const fileUrl = `/api/files/${fileId}`;
 
     return NextResponse.json({
       success: true,
-      url: dataUrl,
+      url: fileUrl,
       filename: file.name,
       size: file.size,
-      // Manter compatibilidade com formato antigo
       file: {
-        url: dataUrl,
+        url: fileUrl,
         filename: file.name,
         size: file.size,
       },

@@ -193,23 +193,30 @@ export default function FormularioColetorPintura({ opd, cliente, atividadeId, on
     }
   };
 
-  const renderCQField = (label: string, fieldName: string, criterio: string) => (
-    <div className="border rounded-lg p-4 bg-white mb-3">
-      <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
-      <p className="text-sm text-blue-700 mb-2">Critérios: {criterio}</p>
-      <select
-        name={`${fieldName}_status`}
-        value={(formData as any)[`${fieldName}_status`]}
-        onChange={handleChange}
-        required
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-      >
-        <option value="">Selecione</option>
-        <option value="Conforme">Conforme</option>
-        <option value="Não conforme">Não conforme</option>
-      </select>
-    </div>
-  );
+  const renderCQField = (label: string, fieldName: string, criterio: string) => {
+    const codigo = fieldName.toUpperCase();
+    const opcoesDB = perguntasOpcoes[codigo];
+    const opcoes = opcoesDB || ['Conforme', 'Não conforme', 'Não Aplicável'];
+
+    return (
+      <div className="border rounded-lg p-4 bg-white mb-3">
+        <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
+        <p className="text-sm text-blue-700 mb-2">Critérios: {criterio}</p>
+        <select
+          name={`${fieldName}_status`}
+          value={(formData as any)[`${fieldName}_status`]}
+          onChange={handleChange}
+          required
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+        >
+          <option value="">Selecione</option>
+          {opcoes.map((opcao) => (
+            <option key={opcao} value={opcao}>{opcao}</option>
+          ))}
+        </select>
+      </div>
+    );
+  };
 
   const renderTextField = (label: string, fieldName: string) => (
     <div className="border rounded-lg p-4 bg-white mb-3">

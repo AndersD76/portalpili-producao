@@ -36,7 +36,7 @@ export default function QualidadePage() {
   const [recentReclamacoes, setRecentReclamacoes] = useState<ReclamacaoCliente[]>([]);
   const [recentAcoes, setRecentAcoes] = useState<AcaoCorretiva[]>([]);
   const router = useRouter();
-  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao, logout } = useAuth();
 
   useEffect(() => {
     if (authLoading) return;
@@ -106,15 +106,8 @@ export default function QualidadePage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      localStorage.removeItem('authenticated');
-      localStorage.removeItem('user_data');
-      router.push('/login');
-    } catch (err) {
-      console.error('Erro ao fazer logout:', err);
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   const formatDate = (dateString: string | null | undefined) => {
