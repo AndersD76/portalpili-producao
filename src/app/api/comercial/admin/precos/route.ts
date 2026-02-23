@@ -156,7 +156,20 @@ export async function POST(request: Request) {
         ];
         break;
 
-      case 'opcoes':
+      case 'opcoes': {
+        // Garante código único: se já existe, adiciona sufixo _2, _3, etc.
+        let codigoBase = dados.codigo;
+        let codigoFinal = codigoBase;
+        const existente = await query(
+          `SELECT codigo FROM crm_precos_opcoes WHERE codigo = $1`, [codigoBase]
+        );
+        if (existente?.rows.length) {
+          const similares = await query(
+            `SELECT codigo FROM crm_precos_opcoes WHERE codigo LIKE $1`, [codigoBase + '%']
+          );
+          codigoFinal = `${codigoBase}_${(similares?.rows.length || 0) + 1}`;
+        }
+
         sql = `
           INSERT INTO crm_precos_opcoes (
             categoria_id, codigo, nome, descricao, preco_tipo, preco, ordem_exibicao, produto, tamanhos_aplicaveis
@@ -165,7 +178,7 @@ export async function POST(request: Request) {
         `;
         params = [
           dados.categoria_id || null,
-          dados.codigo,
+          codigoFinal,
           dados.nome,
           dados.descricao,
           dados.preco_tipo || dados.tipo_valor || 'FIXO',
@@ -175,6 +188,7 @@ export async function POST(request: Request) {
           dados.tamanhos_aplicaveis || null,
         ];
         break;
+      }
 
       case 'descontos':
         sql = `
