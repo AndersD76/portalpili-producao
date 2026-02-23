@@ -146,7 +146,7 @@ export async function POST(request: Request) {
         params = [
           dados.tipo_produto || dados.produto,
           dados.modelo || dados.tipo,
-          dados.comprimento || dados.tamanho,
+          dados.comprimento ?? dados.tamanho ?? null,
           dados.descricao,
           dados.preco,
           dados.qt_cilindros || null,
@@ -169,9 +169,9 @@ export async function POST(request: Request) {
           dados.nome,
           dados.descricao,
           dados.preco_tipo || dados.tipo_valor || 'FIXO',
-          dados.preco || dados.valor,
-          dados.ordem_exibicao || dados.ordem || 0,
-          dados.produto || dados.tipo_produto_aplicavel,
+          dados.preco ?? dados.valor ?? 0,
+          dados.ordem_exibicao ?? dados.ordem ?? 0,
+          dados.produto || dados.tipo_produto_aplicavel || null,
           dados.tamanhos_aplicaveis || null,
         ];
         break;
@@ -234,8 +234,9 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar preço:', error);
+    const msg = error instanceof Error ? error.message : 'Erro ao criar preço';
     return NextResponse.json(
-      { success: false, error: 'Erro ao criar preço' },
+      { success: false, error: msg },
       { status: 500 }
     );
   }
