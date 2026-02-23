@@ -157,17 +157,15 @@ export async function POST(request: Request) {
         break;
 
       case 'opcoes': {
-        // Garante código único: se já existe, adiciona sufixo _2, _3, etc.
-        let codigoBase = dados.codigo;
-        let codigoFinal = codigoBase;
-        const existente = await query(
-          `SELECT codigo FROM crm_precos_opcoes WHERE codigo = $1`, [codigoBase]
-        );
-        if (existente?.rows.length) {
-          const similares = await query(
-            `SELECT codigo FROM crm_precos_opcoes WHERE codigo LIKE $1`, [codigoBase + '%']
+        // Código sequencial automático: próximo número disponível
+        let codigoFinal = dados.codigo;
+        if (!codigoFinal || codigoFinal === 'AUTO' || codigoFinal === '') {
+          const ultimo = await query(
+            `SELECT COALESCE(MAX(CAST(codigo AS INTEGER)), 0) + 1 as prox
+             FROM crm_precos_opcoes
+             WHERE codigo ~ '^[0-9]+$'`
           );
-          codigoFinal = `${codigoBase}_${(similares?.rows.length || 0) + 1}`;
+          codigoFinal = String(ultimo?.rows[0]?.prox || 1);
         }
 
         sql = `
