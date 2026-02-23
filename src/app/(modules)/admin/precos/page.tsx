@@ -304,7 +304,7 @@ export default function AdminPrecosPage() {
           body: JSON.stringify({
             tipo: 'opcoes',
             dados: {
-              codigo: formOpcional.codigo || formOpcional.descricao.substring(0, 10).toUpperCase().replace(/\s/g, '_'),
+              codigo: formOpcional.codigo || formOpcional.descricao.substring(0, 30).toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/_$/, ''),
               nome: formOpcional.descricao,
               descricao: formOpcional.descricao,
               preco_tipo: formOpcional.preco_tipo,
