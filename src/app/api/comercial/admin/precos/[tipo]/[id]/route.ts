@@ -142,9 +142,8 @@ export async function DELETE(
 
     const tabela = `crm_precos_${tipo}`;
 
-    // Soft delete - desativa o registro
     const result = await query(
-      `UPDATE ${tabela} SET ativo = false, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      `DELETE FROM ${tabela} WHERE id = $1 RETURNING *`,
       [id]
     );
 
@@ -156,12 +155,11 @@ export async function DELETE(
     }
 
     // Historico registrado automaticamente pelo trigger fn_precos_auditoria()
-    // Invalida cache
     invalidarCachePrecos();
 
     return NextResponse.json({
       success: true,
-      message: 'Registro desativado com sucesso',
+      message: 'Registro excluído com sucesso',
     });
   } catch (error) {
     console.error('Erro ao desativar preço:', error);
