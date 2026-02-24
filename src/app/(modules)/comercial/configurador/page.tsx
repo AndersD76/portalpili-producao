@@ -115,18 +115,21 @@ export default function ConfiguradorPage() {
 
   const calcularPrecoOpcional = (opc: PrecoOpcional): number => {
     if (!precoSelecionado) return 0;
+    const val = Number(opc.valor) || 0;
+    const precoBase = Number(precoSelecionado.preco) || 0;
+    const comprimento = Number(precoSelecionado.comprimento) || 1;
     switch (opc.tipo_valor) {
-      case 'POR_METRO': return opc.valor * (precoSelecionado.comprimento || 1);
-      case 'PERCENTUAL': return (precoSelecionado.preco * opc.valor) / 100;
-      case 'POR_UNIDADE': return opc.valor;
-      case 'POR_LITRO': return opc.valor;
-      default: return opc.valor; // FIXO
+      case 'POR_METRO': return val * comprimento;
+      case 'PERCENTUAL': return (precoBase * val) / 100;
+      case 'POR_UNIDADE': return val;
+      case 'POR_LITRO': return val;
+      default: return val; // FIXO
     }
   };
 
   const calculo = useMemo(() => {
     if (!precoSelecionado) return null;
-    const precoBaseVal = precoSelecionado.preco;
+    const precoBaseVal = Number(precoSelecionado.preco) || 0;
     let subtotalOpcionais = 0;
     const itensOpcionais: ItemOrcamento[] = [];
 
