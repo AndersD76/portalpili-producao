@@ -62,7 +62,7 @@ export async function GET(request: Request) {
           sql += ` AND po.ativo = $${paramIndex++}`;
           params.push(ativo === 'true');
         }
-        sql += ` ORDER BY pc.ordem_exibicao, po.ordem_exibicao`;
+        sql += ` ORDER BY pc.nome ASC NULLS LAST, CASE WHEN po.codigo ~ '^[0-9]+$' THEN CAST(po.codigo AS INTEGER) ELSE 999999 END ASC, po.codigo ASC`;
         break;
 
       case 'descontos':
