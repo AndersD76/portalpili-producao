@@ -621,17 +621,17 @@ export default function AdminPrecosPage() {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Codigo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tamanhos</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acoes</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[12%]">Categoria</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[6%]">Codigo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[28%]">Nome</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-[7%]">Tipo</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-[12%]">Valor</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[15%]">Tamanhos</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[8%]">Status</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-[12%]">Acoes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -639,7 +639,7 @@ export default function AdminPrecosPage() {
                   <tr key={opc.id} className={`${!opc.ativo ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}`}>
                     <td className="px-4 py-3 text-sm">{opc.categoria_nome || '-'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{opc.codigo}</td>
-                    <td className="px-4 py-3 text-sm">{opc.nome}</td>
+                    <td className="px-4 py-3 text-sm truncate" title={opc.nome}>{opc.nome}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className="px-2 py-1 bg-gray-100 rounded text-xs">{opc.tipo_valor}</span>
                     </td>
