@@ -90,8 +90,12 @@ export default function AdminPrecosPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!authenticated || !isAdmin) {
+    if (!authenticated) {
       router.push('/login');
+      return;
+    }
+    if (!isAdmin) {
+      router.push('/');
       return;
     }
     fetchData();

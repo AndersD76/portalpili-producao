@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import ModalPoliticaQualidade from '@/components/ModalPoliticaQualidade';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -82,12 +83,17 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
-            <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
+          <div className="inline-flex items-center justify-center bg-white rounded-2xl shadow-lg px-8 py-5 mb-4">
+            <Image
+              src="/logo-pili.png"
+              alt="PILI"
+              width={220}
+              height={74}
+              priority
+              className="h-14 w-auto"
+            />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Portal Pili</h1>
+          <p className="text-red-100 text-lg font-medium tracking-wide">Portal de Gestao</p>
         </div>
 
         {/* Login Form */}

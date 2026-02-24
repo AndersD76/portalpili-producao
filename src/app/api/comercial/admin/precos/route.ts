@@ -157,15 +157,40 @@ export async function POST(request: Request) {
         break;
 
       case 'opcoes': {
-        // Código sequencial automático: próximo número disponível
+        // Código sequencial automático com retry para evitar conflitos
         let codigoFinal = dados.codigo;
-        if (!codigoFinal || codigoFinal === 'AUTO' || codigoFinal === '') {
+        const isAutoCode = !codigoFinal || codigoFinal === 'AUTO' || codigoFinal === '';
+
+        if (isAutoCode) {
           const ultimo = await query(
             `SELECT COALESCE(MAX(CAST(codigo AS INTEGER)), 0) + 1 as prox
              FROM crm_precos_opcoes
              WHERE codigo ~ '^[0-9]+$'`
           );
           codigoFinal = String(ultimo?.rows[0]?.prox || 1);
+        }
+
+        // Verificar se código já existe antes de inserir
+        const existente = await query(
+          `SELECT id FROM crm_precos_opcoes WHERE codigo = $1`,
+          [codigoFinal]
+        );
+        if (existente?.rows?.length) {
+          if (isAutoCode) {
+            // Tentar próximo código disponível
+            const proximo = await query(
+              `SELECT COALESCE(MAX(CAST(codigo AS INTEGER)), 0) + 1 as prox
+               FROM crm_precos_opcoes
+               WHERE codigo ~ '^[0-9]+$' AND CAST(codigo AS INTEGER) >= $1`,
+              [parseInt(codigoFinal)]
+            );
+            codigoFinal = String(proximo?.rows[0]?.prox || parseInt(codigoFinal) + 1);
+          } else {
+            return NextResponse.json(
+              { success: false, error: `Código "${codigoFinal}" já existe. Use outro código ou deixe vazio para gerar automaticamente.` },
+              { status: 400 }
+            );
+          }
         }
 
         sql = `
@@ -246,7 +271,16 @@ export async function POST(request: Request) {
     }, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar preço:', error);
-    const msg = error instanceof Error ? error.message : 'Erro ao criar preço';
+    const rawMsg = error instanceof Error ? error.message : 'Erro ao criar preço';
+    // Mensagem amigável para violação de chave única
+    let msg = rawMsg;
+    if (rawMsg.includes('unique constraint') || rawMsg.includes('duplicate key')) {
+      if (rawMsg.includes('codigo')) {
+        msg = 'Código já existe. Use um código diferente ou deixe vazio para gerar automaticamente.';
+      } else {
+        msg = 'Registro duplicado. Verifique os dados e tente novamente.';
+      }
+    }
     return NextResponse.json(
       { success: false, error: msg },
       { status: 500 }

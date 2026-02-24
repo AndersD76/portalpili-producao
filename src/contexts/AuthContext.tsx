@@ -164,24 +164,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         if (data.success) {
           const perms = data.data || [];
-          const admin = data.isAdmin || false;
+          const admin = data.isAdmin === true;
           setPermissoes(perms);
           setIsAdmin(admin);
           setPermissoesCache(user.id, perms, admin);
+        } else {
+          // API retornou success=false, manter isAdmin do localStorage
+          setIsAdmin(user.is_admin === true);
         }
+      } else {
+        // API retornou erro HTTP, manter isAdmin do localStorage
+        setIsAdmin(user.is_admin === true);
       }
     } catch (error) {
       console.error('[AuthContext] Erro ao buscar permissões:', error);
-      // Tentar usar cache expirado como fallback
-      const cached = getPermissoesCache(user.id);
-      if (cached) {
-        setPermissoes(cached.permissoes);
-        setIsAdmin(cached.isAdmin);
+      // Em caso de erro de rede, manter isAdmin do localStorage
+      setIsAdmin(user.is_admin === true);
+      // Tentar usar cache expirado como fallback para permissões
+      try {
+        const raw = sessionStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const cache: CacheEntry = JSON.parse(raw);
+          if (cache.userId === user.id) {
+            setPermissoes(cache.permissoes);
+          }
+        }
+      } catch {
+        // Ignore cache errors
       }
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.is_admin]);
 
   useEffect(() => {
     if (user?.id) {
