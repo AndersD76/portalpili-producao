@@ -23,6 +23,7 @@ interface PrecoBase {
 
 interface PrecoOpcional {
   id: number;
+  categoria_id: number | null;
   categoria_nome: string;
   codigo: string;
   nome: string;
@@ -31,6 +32,16 @@ interface PrecoOpcional {
   ativo: boolean;
   produto: string;
   tamanhos_aplicaveis?: number[];
+}
+
+interface PrecoCategoria {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao?: string;
+  produto?: string;
+  ordem_exibicao: number;
+  ativo: boolean;
 }
 
 interface SimulacaoReajuste {
@@ -57,6 +68,7 @@ export default function AdminPrecosPage() {
   const [produtoFiltro, setProdutoFiltro] = useState<string>('');
   const [precosBase, setPrecosBase] = useState<PrecoBase[]>([]);
   const [opcionais, setOpcionais] = useState<PrecoOpcional[]>([]);
+  const [categorias, setCategorias] = useState<PrecoCategoria[]>([]);
   const [mensagem, setMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
   const [reajustePercentual, setReajustePercentual] = useState<string>('');
   const [reajusteTipo, setReajusteTipo] = useState<string>('todos');
@@ -78,7 +90,10 @@ export default function AdminPrecosPage() {
   const [editingOpcional, setEditingOpcional] = useState<PrecoOpcional | null>(null);
   const [formOpcional, setFormOpcional] = useState({
     codigo: '',
+    nome: '',
     descricao: '',
+    categoria_id: '' as string,
+    nova_categoria: '',
     preco_tipo: 'FIXO',
     preco: '',
     produto: '',
@@ -110,7 +125,7 @@ export default function AdminPrecosPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchBase(), fetchOpcoes()]);
+      await Promise.all([fetchBase(), fetchOpcoes(), fetchCategorias()]);
     } finally {
       setLoading(false);
     }
@@ -135,6 +150,16 @@ export default function AdminPrecosPage() {
       if (data.success) setOpcionais(data.data || []);
     } catch (error) {
       console.error('Erro ao buscar opcionais:', error);
+    }
+  };
+
+  const fetchCategorias = async () => {
+    try {
+      const res = await fetch('/api/comercial/admin/precos?tipo=categorias');
+      const data = await res.json();
+      if (data.success) setCategorias(data.data || []);
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
     }
   };
 
@@ -250,7 +275,7 @@ export default function AdminPrecosPage() {
   // === CRUD Opcional ===
   const openNewOpcional = () => {
     setEditingOpcional(null);
-    setFormOpcional({ codigo: '', descricao: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_selecionados: [] });
+    setFormOpcional({ codigo: '', nome: '', descricao: '', categoria_id: '', nova_categoria: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_selecionados: [] });
     setShowModalOpcional(true);
   };
 
@@ -258,7 +283,10 @@ export default function AdminPrecosPage() {
     setEditingOpcional(item);
     setFormOpcional({
       codigo: item.codigo || '',
-      descricao: item.nome || '',
+      nome: item.nome || '',
+      descricao: '',
+      categoria_id: item.categoria_id ? String(item.categoria_id) : '',
+      nova_categoria: '',
       preco_tipo: item.tipo_valor || 'FIXO',
       preco: String(item.valor),
       produto: item.produto || '',
@@ -268,14 +296,38 @@ export default function AdminPrecosPage() {
   };
 
   const handleSaveOpcional = async () => {
-    if (!formOpcional.descricao || !formOpcional.preco) {
-      setMensagem({ tipo: 'erro', texto: 'Preencha pelo menos descricao e preco' });
+    if (!formOpcional.nome) {
+      setMensagem({ tipo: 'erro', texto: 'Preencha o nome do opcional' });
       return;
     }
     try {
       const tamArr = formOpcional.tamanhos_selecionados.length > 0
         ? formOpcional.tamanhos_selecionados
         : null;
+
+      // Se selecionou "nova categoria", criar primeiro
+      let categoriaId: number | null = formOpcional.categoria_id ? parseInt(formOpcional.categoria_id) : null;
+      if (formOpcional.categoria_id === 'NOVA' && formOpcional.nova_categoria.trim()) {
+        const catRes = await fetch('/api/comercial/admin/precos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'categorias',
+            dados: {
+              codigo: formOpcional.nova_categoria.trim().toUpperCase().replace(/\s+/g, '_'),
+              nome: formOpcional.nova_categoria.trim(),
+            }
+          }),
+        });
+        const catResult = await catRes.json();
+        if (catResult.success && catResult.data?.id) {
+          categoriaId = catResult.data.id;
+          fetchCategorias();
+        } else {
+          setMensagem({ tipo: 'erro', texto: catResult.error || 'Erro ao criar categoria' });
+          return;
+        }
+      }
 
       if (editingOpcional) {
         const res = await fetch(`/api/comercial/admin/precos/opcoes/${editingOpcional.id}`, {
@@ -284,10 +336,11 @@ export default function AdminPrecosPage() {
           body: JSON.stringify({
             dados: {
               codigo: formOpcional.codigo,
-              nome: formOpcional.descricao,
-              descricao: formOpcional.descricao,
+              categoria_id: categoriaId,
+              nome: formOpcional.nome,
+              descricao: formOpcional.descricao || formOpcional.nome,
               preco_tipo: formOpcional.preco_tipo,
-              preco: parseFloat(formOpcional.preco),
+              preco: parseFloat(formOpcional.preco || '0'),
               produto: formOpcional.produto || null,
               tamanhos_aplicaveis: tamArr && tamArr.length > 0 ? `{${tamArr.join(',')}}` : null,
             }
@@ -309,10 +362,11 @@ export default function AdminPrecosPage() {
             tipo: 'opcoes',
             dados: {
               codigo: formOpcional.codigo || 'AUTO',
-              nome: formOpcional.descricao,
-              descricao: formOpcional.descricao,
+              categoria_id: categoriaId,
+              nome: formOpcional.nome,
+              descricao: formOpcional.descricao || formOpcional.nome,
               preco_tipo: formOpcional.preco_tipo,
-              preco: parseFloat(formOpcional.preco),
+              preco: parseFloat(formOpcional.preco || '0'),
               produto: formOpcional.produto || null,
               tamanhos_aplicaveis: tamArr && tamArr.length > 0 ? `{${tamArr.join(',')}}` : null,
             }
@@ -829,6 +883,44 @@ export default function AdminPrecosPage() {
               <button onClick={() => setShowModalOpcional(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
             <div className="p-5 space-y-4">
+              {/* Nome do opcional */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                <input
+                  type="text"
+                  value={formOpcional.nome}
+                  onChange={e => setFormOpcional({...formOpcional, nome: e.target.value})}
+                  placeholder="Ex: INCLINAÇÃO 35°, KIT HIDRÁULICO..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select
+                  value={formOpcional.categoria_id}
+                  onChange={e => setFormOpcional({...formOpcional, categoria_id: e.target.value, nova_categoria: ''})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="">Sem categoria</option>
+                  {categorias.filter(c => c.ativo).map(c => (
+                    <option key={c.id} value={String(c.id)}>{c.nome}</option>
+                  ))}
+                  <option value="NOVA">+ Nova Categoria...</option>
+                </select>
+                {formOpcional.categoria_id === 'NOVA' && (
+                  <input
+                    type="text"
+                    value={formOpcional.nova_categoria}
+                    onChange={e => setFormOpcional({...formOpcional, nova_categoria: e.target.value})}
+                    placeholder="Nome da nova categoria"
+                    className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    autoFocus
+                  />
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Codigo</label>
@@ -899,11 +991,12 @@ export default function AdminPrecosPage() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descricao (opcional)</label>
                 <input
                   type="text"
                   value={formOpcional.descricao}
                   onChange={e => setFormOpcional({...formOpcional, descricao: e.target.value})}
+                  placeholder="Detalhes adicionais..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                 />
               </div>

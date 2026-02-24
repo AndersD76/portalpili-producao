@@ -157,40 +157,22 @@ export async function POST(request: Request) {
         break;
 
       case 'opcoes': {
-        // Código sequencial automático com retry para evitar conflitos
+        // Código sequencial automático - reinicia por categoria
         let codigoFinal = dados.codigo;
         const isAutoCode = !codigoFinal || codigoFinal === 'AUTO' || codigoFinal === '';
+        const catId = dados.categoria_id || null;
 
         if (isAutoCode) {
+          // Gerar código sequencial dentro da mesma categoria
+          const catFilter = catId
+            ? `AND categoria_id = ${parseInt(catId)}`
+            : `AND categoria_id IS NULL`;
           const ultimo = await query(
             `SELECT COALESCE(MAX(CAST(codigo AS INTEGER)), 0) + 1 as prox
              FROM crm_precos_opcoes
-             WHERE codigo ~ '^[0-9]+$'`
+             WHERE codigo ~ '^[0-9]+$' ${catFilter}`
           );
           codigoFinal = String(ultimo?.rows[0]?.prox || 1);
-        }
-
-        // Verificar se código já existe antes de inserir
-        const existente = await query(
-          `SELECT id FROM crm_precos_opcoes WHERE codigo = $1`,
-          [codigoFinal]
-        );
-        if (existente?.rows?.length) {
-          if (isAutoCode) {
-            // Tentar próximo código disponível
-            const proximo = await query(
-              `SELECT COALESCE(MAX(CAST(codigo AS INTEGER)), 0) + 1 as prox
-               FROM crm_precos_opcoes
-               WHERE codigo ~ '^[0-9]+$' AND CAST(codigo AS INTEGER) >= $1`,
-              [parseInt(codigoFinal)]
-            );
-            codigoFinal = String(proximo?.rows[0]?.prox || parseInt(codigoFinal) + 1);
-          } else {
-            return NextResponse.json(
-              { success: false, error: `Código "${codigoFinal}" já existe. Use outro código ou deixe vazio para gerar automaticamente.` },
-              { status: 400 }
-            );
-          }
         }
 
         sql = `
@@ -231,6 +213,21 @@ export async function POST(request: Request) {
           dados.quantidade_minima,
           dados.segmentos_aplicaveis,
           dados.regioes_aplicaveis,
+        ];
+        break;
+
+      case 'categorias':
+        sql = `
+          INSERT INTO crm_precos_categorias (
+            codigo, nome, descricao, produto, ordem_exibicao
+          ) VALUES ($1, $2, $3, $4, COALESCE((SELECT MAX(ordem_exibicao) + 1 FROM crm_precos_categorias), 1))
+          RETURNING *
+        `;
+        params = [
+          dados.codigo,
+          dados.nome,
+          dados.descricao || null,
+          dados.produto || null,
         ];
         break;
 
