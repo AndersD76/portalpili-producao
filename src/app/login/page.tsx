@@ -79,101 +79,91 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-red-800">
-      <div className="w-full max-w-md">
-        {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center bg-white rounded-2xl shadow-lg px-8 py-5 mb-4">
-            <Image
-              src="/logo-pili.png"
-              alt="PILI"
-              width={220}
-              height={74}
-              priority
-              className="h-14 w-auto"
-            />
-          </div>
-          <p className="text-red-100 text-lg font-medium tracking-wide">Portal de Gestao</p>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-red-600 to-red-800">
+      {/* Top section with logo */}
+      <div className="flex-shrink-0 flex items-center justify-center pt-12 pb-6 sm:pt-16 sm:pb-8">
+        <Image
+          src="/logo-pili.png"
+          alt="PILI"
+          width={280}
+          height={94}
+          priority
+          className="h-16 sm:h-20 w-auto drop-shadow-lg brightness-0 invert"
+        />
+      </div>
 
-        {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Entrar</h2>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* ID */}
-            <div>
-              <label htmlFor="idFuncionario" className="block text-sm font-semibold text-gray-700 mb-2">
-                ID do Usuário
-              </label>
-              <input
-                type="text"
-                id="idFuncionario"
-                value={idFuncionario}
-                onChange={(e) => setIdFuncionario(e.target.value)}
-                placeholder="Digite seu ID (ex: 100 ou USER100)"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
-                disabled={loading}
-              />
+      {/* Card centralizado */}
+      <div className="flex-1 flex items-start sm:items-center justify-center px-4 pb-8">
+        <div className="w-full max-w-sm">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+            {/* Header do card */}
+            <div className="bg-gray-50 px-8 pt-8 pb-5 text-center border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800">Portal de Gestao</h2>
+              <p className="text-sm text-gray-500 mt-1">Entre com suas credenciais</p>
             </div>
 
-            {/* Senha */}
-            <div>
-              <label htmlFor="senha" className="block text-sm font-semibold text-gray-700 mb-2">
-                Senha
-              </label>
-              <input
-                type="password"
-                id="senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                placeholder="Digite sua senha"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="p-8 space-y-5">
+              <div>
+                <label htmlFor="idFuncionario" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  ID do Usuario
+                </label>
+                <input
+                  type="text"
+                  id="idFuncionario"
+                  value={idFuncionario}
+                  onChange={(e) => setIdFuncionario(e.target.value)}
+                  placeholder="Ex: 100"
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                  disabled={loading}
+                />
               </div>
-            )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Entrando...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Entrar</span>
-                </>
+              <div>
+                <label htmlFor="senha" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  id="senha"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="Digite sua senha"
+                  required
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+                  disabled={loading}
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                  {error}
+                </div>
               )}
-            </button>
-          </form>
 
-          {/* Footer Info */}
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Entre com seu ID e senha</p>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 text-white py-3.5 rounded-xl font-semibold hover:bg-red-700 active:scale-[0.98] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-red-600/30"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Entrando...</span>
+                  </>
+                ) : (
+                  <span>Entrar</span>
+                )}
+              </button>
+            </form>
           </div>
         </div>
+      </div>
 
-        {/* Version Info */}
-        <div className="text-center mt-6 text-red-100 text-sm">
-          <p>Portal Pili v1.0</p>
-        </div>
+      {/* Version Info */}
+      <div className="flex-shrink-0 text-center py-4 text-red-200 text-xs tracking-wide">
+        <p>Portal Pili v1.0</p>
       </div>
 
       {/* Modal de Política da Qualidade */}

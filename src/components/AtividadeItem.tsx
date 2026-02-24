@@ -539,10 +539,10 @@ export default function AtividadeItem({ atividade, tipoProduto, onUpdate, onRefr
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 max-w-[45%] sm:max-w-none flex-wrap justify-end">
             {/* Timer Display - só mostra se em andamento, pausada ou se tem tempo > 0 */}
             {(atividade.status === 'EM ANDAMENTO' || atividade.status === 'PAUSADA' || (atividade.tempo_acumulado_segundos !== null && atividade.tempo_acumulado_segundos > 0)) && (
-              <div className={`font-mono text-sm sm:text-lg font-bold ${
+              <div className={`font-mono text-xs sm:text-lg font-bold ${
                 atividade.status === 'EM ANDAMENTO' ? 'text-yellow-600' :
                 atividade.status === 'PAUSADA' ? 'text-orange-600' : 'text-gray-600'
               }`}>
@@ -557,7 +557,7 @@ export default function AtividadeItem({ atividade, tipoProduto, onUpdate, onRefr
                   e.stopPropagation();
                   setShowFormModal(true);
                 }}
-                className="px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition flex items-center gap-1"
+                className="p-1.5 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition flex items-center gap-1"
                 title="Preencher formulário"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -584,7 +584,7 @@ export default function AtividadeItem({ atividade, tipoProduto, onUpdate, onRefr
               </button>
             )}
 
-            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusColor(atividade.status)}`}>
+            <div className={`px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold border whitespace-nowrap ${getStatusColor(atividade.status)}`}>
               <span className="hidden sm:inline">{atividade.status}</span>
               <span className="sm:hidden">{atividade.status === 'EM ANDAMENTO' ? 'ANDAMENTO' : atividade.status === 'A REALIZAR' ? 'REALIZAR' : atividade.status}</span>
             </div>
