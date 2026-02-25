@@ -264,9 +264,11 @@ export default function ModalDetalheOportunidade({
                   <div className="text-xs text-green-600">Valor</div>
                   <div className="font-bold text-green-800">{formatCurrency(data.valor_estimado)}</div>
                 </div>
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                <div className="bg-blue-50 rounded-lg p-3 text-center cursor-default"
+                  title={data.prob_fatores ? `Estágio: ${data.prob_fatores.estagio}pts\nVendedor: ${data.prob_fatores.vendedor}pts\nAging: ${data.prob_fatores.aging}pts\nConcorrente: ${data.prob_fatores.concorrente}pts\nAtividade: ${data.prob_fatores.atividade}pts\nValor: ${data.prob_fatores.valor}pts\nRecência: ${data.prob_fatores.recencia}pts` : ''}
+                >
                   <div className="text-xs text-blue-600">Probabilidade</div>
-                  <div className="font-bold text-blue-800">{toNum(data.probabilidade)}%</div>
+                  <div className="font-bold text-blue-800">{toNum(data.probabilidade_smart ?? data.probabilidade)}%</div>
                 </div>
                 <div className="bg-orange-50 rounded-lg p-3 text-center">
                   <div className="text-xs text-orange-600">Data Proposta</div>

@@ -26,10 +26,14 @@ export async function enviarMensagemWhatsApp(
     return { success: false, error: 'WHATSAPP_TOKEN não configurado' };
   }
 
-  // Limpar telefone (só números)
-  const tel = telefone.replace(/\D/g, '');
+  // Limpar telefone (só números) e garantir código do país 55
+  let tel = telefone.replace(/\D/g, '');
   if (!tel || tel.length < 10) {
     return { success: false, error: `Telefone inválido: ${telefone}` };
+  }
+  // Adicionar código do país 55 se não presente
+  if (!tel.startsWith('55')) {
+    tel = '55' + tel;
   }
 
   try {

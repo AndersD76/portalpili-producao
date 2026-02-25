@@ -100,6 +100,17 @@ export async function gerarFollowUp(
   const oportunidade = opp.rows[0];
   const vId = vendedorId || oportunidade.vendedor_id;
 
+  // Verificar se já existe follow-up PENDENTE do mesmo tipo para esta oportunidade
+  const existente = await query(
+    `SELECT id FROM crm_atividades
+     WHERE oportunidade_id = $1 AND tipo = $2 AND status = 'PENDENTE'
+     LIMIT 1`,
+    [oportunidadeId, config.tipo]
+  );
+  if (existente?.rows?.length) {
+    return { created: false, message: `Já existe follow-up pendente do tipo ${config.tipo} para esta oportunidade` };
+  }
+
   // Calcular data agendada
   const dataAgendada = new Date();
   dataAgendada.setDate(dataAgendada.getDate() + config.prazo_dias);

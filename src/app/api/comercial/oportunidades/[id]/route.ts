@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, withTransaction } from '@/lib/db';
 import { gerarSugestoes } from '@/lib/comercial/ia';
+import { calcularProbabilidadeSmart } from '@/lib/comercial/probabilidade';
 import { registrarMudancaEstagio } from '@/lib/comercial/stageChange';
 import { verificarPermissao } from '@/lib/auth';
 
@@ -94,10 +95,48 @@ export async function GET(
       // IA não disponível - continua sem sugestões
     }
 
+    // Calcular probabilidade smart
+    let probabilidade_smart = 0;
+    let prob_fatores = null;
+    try {
+      // Buscar stats do vendedor
+      let vendedorWinRate = 0;
+      let vendedorTotalDeals = 0;
+      if (oportunidade.vendedor_id) {
+        const statsRes = await query(
+          `SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE estagio = 'FECHADA') as ganhas
+           FROM crm_oportunidades WHERE vendedor_id = $1`,
+          [oportunidade.vendedor_id]
+        );
+        const total = parseInt(statsRes?.rows[0]?.total) || 0;
+        const ganhas = parseInt(statsRes?.rows[0]?.ganhas) || 0;
+        vendedorWinRate = total > 0 ? (ganhas / total) * 100 : 0;
+        vendedorTotalDeals = total;
+      }
+      const breakdown = calcularProbabilidadeSmart({
+        estagio: String(oportunidade.estagio || ''),
+        status: String(oportunidade.status || ''),
+        dias_no_estagio: toNum(oportunidade.dias_no_estagio),
+        valor_estimado: parseFloat(String(oportunidade.valor_estimado)) || 0,
+        produto: String(oportunidade.produto || ''),
+        concorrente: String(oportunidade.concorrente || ''),
+        temperatura: String(oportunidade.temperatura || ''),
+        total_atividades: atividades?.length || 0,
+        atividades_atrasadas: atividades?.filter((a: any) => a.status === 'ATRASADA' || (!a.concluida && a.data_agendada && new Date(a.data_agendada) < new Date())).length || 0,
+        ultimo_contato: null,
+        vendedor_win_rate: vendedorWinRate,
+        vendedor_total_deals: vendedorTotalDeals,
+      });
+      probabilidade_smart = breakdown.score;
+      prob_fatores = breakdown.fatores;
+    } catch { /* ignore */ }
+
     return NextResponse.json({
       success: true,
       data: {
         ...oportunidade,
+        probabilidade_smart,
+        prob_fatores,
         atividades,
         interacoes,
         propostas,
