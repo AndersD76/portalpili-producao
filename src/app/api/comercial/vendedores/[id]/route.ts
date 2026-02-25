@@ -70,6 +70,7 @@ export async function PUT(
       nome,
       email,
       telefone,
+      whatsapp,
       cargo,
       meta_mensal,
       comissao_padrao,
@@ -83,16 +84,17 @@ export async function PUT(
         nome = COALESCE($2, nome),
         email = COALESCE($3, email),
         telefone = COALESCE($4, telefone),
-        cargo = COALESCE($5, cargo),
-        meta_mensal = COALESCE($6, meta_mensal),
-        comissao_padrao = COALESCE($7, comissao_padrao),
-        avatar_url = COALESCE($8, avatar_url),
-        ativo = COALESCE($9, ativo),
-        tipo = COALESCE($10, tipo),
+        whatsapp = COALESCE($5, whatsapp),
+        cargo = COALESCE($6, cargo),
+        meta_mensal = COALESCE($7, meta_mensal),
+        comissao_padrao = COALESCE($8, comissao_padrao),
+        avatar_url = COALESCE($9, avatar_url),
+        ativo = COALESCE($10, ativo),
+        tipo = COALESCE($11, tipo),
         updated_at = NOW()
       WHERE id = $1
       RETURNING *`,
-      [id, nome, email, telefone, cargo, meta_mensal, comissao_padrao, avatar_url, ativo, tipo]
+      [id, nome, email, telefone, whatsapp, cargo, meta_mensal, comissao_padrao, avatar_url, ativo, tipo]
     );
 
     if (!result?.rows[0]) {

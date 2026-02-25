@@ -7,6 +7,7 @@ interface Vendedor {
   nome: string;
   email: string;
   telefone?: string;
+  whatsapp?: string;
   cargo?: string;
   tipo?: string;
   comissao_padrao: string;
@@ -31,6 +32,7 @@ export default function AdminVendedoresPage() {
     nome: '',
     email: '',
     telefone: '',
+    whatsapp: '',
     cargo: 'VENDEDOR',
     comissao_padrao: '0.048',
     tipo: 'REPRESENTANTE',
@@ -83,6 +85,7 @@ export default function AdminVendedoresPage() {
           nome: '',
           email: '',
           telefone: '',
+          whatsapp: '',
           cargo: 'VENDEDOR',
           comissao_padrao: '0.048',
           tipo: 'REPRESENTANTE',
@@ -103,6 +106,7 @@ export default function AdminVendedoresPage() {
       nome: vendedor.nome,
       email: vendedor.email,
       telefone: vendedor.telefone || '',
+      whatsapp: vendedor.whatsapp || '',
       cargo: vendedor.cargo || 'VENDEDOR',
       comissao_padrao: vendedor.comissao_padrao || '0.048',
       tipo: vendedor.tipo || (vendedor.usuario_id ? 'INTERNO' : 'REPRESENTANTE'),
@@ -172,6 +176,7 @@ export default function AdminVendedoresPage() {
               nome: '',
               email: '',
               telefone: '',
+              whatsapp: '',
               cargo: 'VENDEDOR',
               comissao_padrao: '0.048',
               tipo: 'REPRESENTANTE',
@@ -331,14 +336,27 @@ export default function AdminVendedoresPage() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                <input
-                  type="text"
-                  value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                  <input
+                    type="text"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    placeholder="(54) 99624-5246"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <input
+                    type="text"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    placeholder="5554996245246"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

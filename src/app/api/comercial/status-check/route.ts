@@ -78,7 +78,9 @@ export async function POST(request: Request) {
     // Enviar WhatsApp
     const link = formatarLinkStatusCheck(token);
     const mensagem = montarMensagemStatusCheck(vendedor.nome, oportunidade_ids.length, link);
+    console.log(`[StatusCheck] Enviando WhatsApp para ${vendedor.nome} (${whatsappNum}), ${oportunidade_ids.length} propostas`);
     const whatsappResult = await enviarMensagemWhatsApp(whatsappNum, mensagem);
+    console.log(`[StatusCheck] WhatsApp result:`, JSON.stringify(whatsappResult));
 
     // Salvar ID da mensagem
     if (whatsappResult.message_id) {
@@ -94,20 +96,27 @@ export async function POST(request: Request) {
         await query(
           `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
            VALUES ($1, 'WHATSAPP', $2)`,
-          [oppId, `Status check enviado via WhatsApp para ${vendedor.nome}`]
+          [oppId, whatsappResult.success
+            ? `Status check enviado via WhatsApp para ${vendedor.nome}`
+            : `Status check criado (WhatsApp falhou: ${whatsappResult.error})`]
         );
       } catch { /* ignore */ }
+    }
+
+    if (!whatsappResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: `WhatsApp falhou: ${whatsappResult.error}. Link criado: ${link}`,
+        token,
+        link,
+      });
     }
 
     return NextResponse.json({
       success: true,
       token,
       link,
-      whatsapp_enviado: whatsappResult.success,
-      whatsapp_erro: whatsappResult.error || null,
-      message: whatsappResult.success
-        ? `Status check enviado via WhatsApp para ${vendedor.nome}`
-        : `Status check criado, mas WhatsApp falhou: ${whatsappResult.error}. Link: ${link}`,
+      message: `Status check enviado via WhatsApp para ${vendedor.nome}`,
     });
   } catch (error) {
     console.error('Erro ao criar status check:', error);

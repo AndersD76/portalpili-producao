@@ -64,6 +64,7 @@ export async function POST(request: Request) {
       nome,
       email,
       telefone,
+      whatsapp,
       cargo,
       meta_mensal,
       comissao_padrao,
@@ -93,14 +94,15 @@ export async function POST(request: Request) {
 
     const result = await query(
       `INSERT INTO crm_vendedores (
-        nome, email, telefone, cargo, meta_mensal,
+        nome, email, telefone, whatsapp, cargo, meta_mensal,
         comissao_padrao, avatar_url, tipo
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *`,
       [
         nome,
         email,
         telefone || null,
+        whatsapp || null,
         cargo || 'VENDEDOR',
         meta_mensal || 0,
         comissao_padrao || 0.048,

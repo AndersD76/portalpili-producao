@@ -398,7 +398,13 @@ export default function ComercialPage() {
         });
         cancelSelection();
       } else {
-        alert(json.error || 'Erro ao enviar status check');
+        setSyncResult({
+          message: json.error || 'Erro ao enviar status check',
+          type: 'error',
+        });
+        if (json.link) {
+          cancelSelection();
+        }
       }
     } catch {
       alert('Erro de conexão');
