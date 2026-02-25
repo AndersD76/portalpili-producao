@@ -18,6 +18,7 @@ interface Oportunidade {
   valor_estimado: number;
   probabilidade: number;
   probabilidade_smart?: number;
+  prob_fatores?: { estagio: number; vendedor: number; aging: number; concorrente: number; atividade: number; valor: number; recencia: number };
   estagio: string;
   status: string;
   numero_proposta?: string;
@@ -683,7 +684,9 @@ export default function ComercialPage() {
                           <div className="text-[10px] text-gray-400 truncate">{op.produto || '-'}</div>
                         </td>
                         <td className="px-2 py-1.5 text-right font-bold text-xs sm:text-sm text-gray-800 tabular-nums whitespace-nowrap">{fmtFull(valor)}</td>
-                        <td className="px-2 py-1.5 text-center hidden sm:table-cell">
+                        <td className="px-2 py-1.5 text-center hidden sm:table-cell"
+                          title={op.prob_fatores ? `Estágio: ${op.prob_fatores.estagio}pts\nVendedor: ${op.prob_fatores.vendedor}pts\nAging: ${op.prob_fatores.aging}pts\nConcorrente: ${op.prob_fatores.concorrente}pts\nAtividade: ${op.prob_fatores.atividade}pts\nValor: ${op.prob_fatores.valor}pts\nRecência: ${op.prob_fatores.recencia}pts` : ''}
+                        >
                           <span className={`inline-block px-1 py-0.5 rounded text-[10px] font-bold ${probBg(prob)}`}>
                             {prob}%
                           </span>
