@@ -81,13 +81,14 @@ export async function enviarNotificacaoPush(data: NotificationData): Promise<{ e
         await webpush.sendNotification(pushSubscription, payload);
         enviados++;
       } catch (error: any) {
-        const errorMsg = `[Sub ${sub.id}] ${error.statusCode || 'ERR'}: ${error.message}`;
-        errosDetalhados.push(errorMsg);
-        falhas++;
-
         if (error.statusCode === 404 || error.statusCode === 410) {
           subscriptionsParaRemover.push(sub.id);
+        } else {
+          const errorMsg = `[Sub ${sub.id}] ${error.statusCode || 'ERR'}: ${error.message}`;
+          errosDetalhados.push(errorMsg);
+          console.error(`[Notificação] ${errorMsg}`);
         }
+        falhas++;
       }
     });
 
