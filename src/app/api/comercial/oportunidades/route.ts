@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { verificarPermissao } from '@/lib/auth';
+import { calcularProbabilidadeSmart } from '@/lib/comercial/probabilidade';
 
 export async function GET(request: Request) {
   const auth = await verificarPermissao('COMERCIAL', 'visualizar');
@@ -165,6 +166,45 @@ export async function GET(request: Request) {
 
     const result = await query(sql, params);
 
+    // Buscar win rate por vendedor para cálculo de probabilidade inteligente
+    const vendedorStatsResult = await query(`
+      SELECT
+        vendedor_id,
+        COUNT(*) FILTER (WHERE estagio IN ('FECHADA', 'PERDIDA')) as total_deals,
+        COUNT(*) FILTER (WHERE estagio = 'FECHADA') as ganhas
+      FROM crm_oportunidades
+      GROUP BY vendedor_id
+    `);
+    const vendedorStats: Record<number, { win_rate: number; total_deals: number }> = {};
+    for (const row of vendedorStatsResult?.rows || []) {
+      const total = parseInt(row.total_deals) || 0;
+      const ganhas = parseInt(row.ganhas) || 0;
+      vendedorStats[row.vendedor_id] = {
+        total_deals: total,
+        win_rate: total > 0 ? (ganhas / total) * 100 : 0,
+      };
+    }
+
+    // Calcular probabilidade_smart para cada oportunidade
+    const rows = (result?.rows || []).map((op: Record<string, unknown>) => {
+      const stats = vendedorStats[op.vendedor_id as number] || { win_rate: 0, total_deals: 0 };
+      const { score } = calcularProbabilidadeSmart({
+        estagio: String(op.estagio || ''),
+        status: String(op.status || ''),
+        dias_no_estagio: Number(op.dias_no_estagio) || 0,
+        valor_estimado: parseFloat(String(op.valor_estimado)) || 0,
+        produto: String(op.produto || ''),
+        concorrente: String(op.concorrente || ''),
+        temperatura: String(op.temperatura || ''),
+        total_atividades: Number(op.total_atividades) || 0,
+        atividades_atrasadas: Number(op.atividades_atrasadas) || 0,
+        ultimo_contato: op.ultimo_contato as string | null,
+        vendedor_win_rate: stats.win_rate,
+        vendedor_total_deals: stats.total_deals,
+      });
+      return { ...op, probabilidade_smart: score };
+    });
+
     // Conta total para paginação (com mesmos filtros)
     let countSql = `SELECT COUNT(DISTINCT o.id) as total FROM crm_oportunidades o WHERE 1=1`;
     const countParams: unknown[] = [];
@@ -192,7 +232,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: result?.rows || [],
+      data: rows,
       pipeline: pipelineData,
       pagination: {
         page,

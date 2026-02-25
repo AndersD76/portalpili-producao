@@ -17,6 +17,7 @@ interface Oportunidade {
   produto?: string;
   valor_estimado: number;
   probabilidade: number;
+  probabilidade_smart?: number;
   estagio: string;
   status: string;
   numero_proposta?: string;
@@ -78,7 +79,7 @@ export default function ComercialPage() {
   const [filtroEstagio, setFiltroEstagio] = useState<string>('');
   const [filtroProb, setFiltroProb] = useState<string>('');
   const [filtroBusca, setFiltroBusca] = useState<string>('');
-  const [ordenacao, setOrdenacao] = useState<string>('valor');
+  const [sortConfig, setSortConfig] = useState<{ campo: string; direcao: 'asc' | 'desc' }>({ campo: 'valor', direcao: 'desc' });
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
@@ -193,9 +194,9 @@ export default function ComercialPage() {
     let lista = [...oportunidades];
     if (filtroVendedor) lista = lista.filter(o => o.vendedor_nome === filtroVendedor);
     if (filtroEstagio) lista = lista.filter(o => o.estagio === filtroEstagio);
-    if (filtroProb === 'alta') lista = lista.filter(o => toNum(o.probabilidade) >= 70);
-    else if (filtroProb === 'media') lista = lista.filter(o => toNum(o.probabilidade) >= 40 && toNum(o.probabilidade) < 70);
-    else if (filtroProb === 'baixa') lista = lista.filter(o => toNum(o.probabilidade) < 40);
+    if (filtroProb === 'alta') lista = lista.filter(o => toNum(o.probabilidade_smart) >= 50);
+    else if (filtroProb === 'media') lista = lista.filter(o => toNum(o.probabilidade_smart) >= 25 && toNum(o.probabilidade_smart) < 50);
+    else if (filtroProb === 'baixa') lista = lista.filter(o => toNum(o.probabilidade_smart) < 25);
     if (filtroBusca) {
       const b = filtroBusca.toLowerCase();
       lista = lista.filter(o =>
@@ -212,12 +213,43 @@ export default function ComercialPage() {
       const fim = new Date(filtroDataFim + 'T23:59:59');
       lista = lista.filter(o => new Date(o.data_abertura || o.created_at) <= fim);
     }
-    if (ordenacao === 'prob') lista.sort((a, b) => toNum(b.probabilidade) - toNum(a.probabilidade));
-    else if (ordenacao === 'valor') lista.sort((a, b) => toNum(b.valor_estimado) - toNum(a.valor_estimado));
-    else if (ordenacao === 'recente') lista.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    else if (ordenacao === 'proposta') lista.sort((a, b) => parseInt(b.numero_proposta || '0') - parseInt(a.numero_proposta || '0'));
+    // Sorting por coluna clicável
+    const ESTAGIO_ORDER: Record<string, number> = { EM_ANALISE: 1, EM_NEGOCIACAO: 2, POS_NEGOCIACAO: 3, FECHADA: 4, PERDIDA: 5, TESTE: 6, SUSPENSO: 7, SUBSTITUIDO: 8 };
+    const dir = sortConfig.direcao === 'asc' ? 1 : -1;
+    lista.sort((a, b) => {
+      let cmp = 0;
+      switch (sortConfig.campo) {
+        case 'proposta':
+          cmp = parseInt(a.numero_proposta || '0') - parseInt(b.numero_proposta || '0');
+          break;
+        case 'cliente':
+          cmp = (a.cliente_nome || '').localeCompare(b.cliente_nome || '', 'pt-BR');
+          break;
+        case 'valor':
+          cmp = toNum(a.valor_estimado) - toNum(b.valor_estimado);
+          break;
+        case 'prob':
+          cmp = toNum(a.probabilidade_smart) - toNum(b.probabilidade_smart);
+          break;
+        case 'estagio':
+          cmp = (ESTAGIO_ORDER[a.estagio] || 99) - (ESTAGIO_ORDER[b.estagio] || 99);
+          break;
+        case 'dias':
+          cmp = toNum(a.dias_no_estagio) - toNum(b.dias_no_estagio);
+          break;
+        case 'vendedor':
+          cmp = (a.vendedor_nome || '').localeCompare(b.vendedor_nome || '', 'pt-BR');
+          break;
+        case 'data':
+          cmp = new Date(a.data_abertura || a.created_at).getTime() - new Date(b.data_abertura || b.created_at).getTime();
+          break;
+        default:
+          cmp = toNum(a.valor_estimado) - toNum(b.valor_estimado);
+      }
+      return cmp * dir;
+    });
     return lista;
-  }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, filtroDataInicio, filtroDataFim, ordenacao]);
+  }, [oportunidades, filtroVendedor, filtroEstagio, filtroProb, filtroBusca, filtroDataInicio, filtroDataFim, sortConfig]);
 
   const resumo = useMemo(() => {
     const base = listaFiltrada;
@@ -291,8 +323,8 @@ export default function ComercialPage() {
   const diasNoFunil = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
 
   const probBg = (p: number) => {
-    if (p >= 70) return 'bg-green-100 text-green-800';
-    if (p >= 40) return 'bg-yellow-100 text-yellow-800';
+    if (p >= 50) return 'bg-green-100 text-green-800';
+    if (p >= 25) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
@@ -301,6 +333,19 @@ export default function ComercialPage() {
     const p = nome.trim().split(/\s+/);
     if (p.length <= 1) return nome;
     return `${p[0]} ${p[p.length - 1][0]}.`;
+  };
+
+  const handleSort = (campo: string) => {
+    setSortConfig(prev =>
+      prev.campo === campo
+        ? { campo, direcao: prev.direcao === 'asc' ? 'desc' : 'asc' }
+        : { campo, direcao: campo === 'cliente' || campo === 'vendedor' ? 'asc' : 'desc' }
+    );
+  };
+
+  const SortArrow = ({ campo }: { campo: string }) => {
+    if (sortConfig.campo !== campo) return <span className="text-gray-300 ml-0.5">&#8597;</span>;
+    return <span className="text-red-500 ml-0.5">{sortConfig.direcao === 'asc' ? '\u25B2' : '\u25BC'}</span>;
   };
 
   // ==================== LOADING ====================
@@ -417,16 +462,9 @@ export default function ComercialPage() {
           <select value={filtroProb} onChange={e => setFiltroProb(e.target.value)}
             className="hidden sm:inline px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
             <option value="">Prob.</option>
-            <option value="alta">Alta 70%+</option>
-            <option value="media">Media 40-69%</option>
-            <option value="baixa">Baixa &lt;40%</option>
-          </select>
-          <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
-            className="px-1.5 py-0.5 border border-gray-200 rounded text-xs sm:text-sm text-gray-600 focus:ring-1 focus:ring-red-500">
-            <option value="valor">Valor</option>
-            <option value="proposta"># Prop.</option>
-            <option value="prob">Prob.</option>
-            <option value="recente">Recente</option>
+            <option value="alta">Alta 50%+</option>
+            <option value="media">Media 25-49%</option>
+            <option value="baixa">Baixa &lt;25%</option>
           </select>
           <input type="text" value={filtroBusca} onChange={e => setFiltroBusca(e.target.value)}
             placeholder="Buscar..."
@@ -486,20 +524,20 @@ export default function ComercialPage() {
             <div className="bg-white rounded-lg border overflow-hidden">
               <table className="w-full table-fixed">
                 <thead>
-                  <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell">#</th>
-                    <th className="px-2 py-2 text-left w-[40%]">Cliente</th>
-                    <th className="px-2 py-2 text-right w-[100px]">Valor</th>
-                    <th className="px-2 py-2 text-center w-[44px] hidden sm:table-cell">Prob</th>
-                    <th className="px-2 py-2 text-center w-[90px]">Etapa</th>
-                    <th className="px-2 py-2 text-center w-[44px] hidden lg:table-cell">Dias</th>
-                    {isAdmin && <th className="px-2 py-2 text-left w-[140px] hidden sm:table-cell">Vendedor</th>}
-                    <th className="px-2 py-2 text-center w-[76px] hidden lg:table-cell">Data</th>
+                  <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide select-none">
+                    <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
+                    <th className="px-2 py-2 text-left w-[40%] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('cliente')}>Cliente <SortArrow campo="cliente" /></th>
+                    <th className="px-2 py-2 text-right w-[100px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('valor')}>Valor <SortArrow campo="valor" /></th>
+                    <th className="px-2 py-2 text-center w-[44px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
+                    <th className="px-2 py-2 text-center w-[90px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
+                    <th className="px-2 py-2 text-center w-[44px] hidden lg:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('dias')}>Dias <SortArrow campo="dias" /></th>
+                    {isAdmin && <th className="px-2 py-2 text-left w-[140px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
+                    <th className="px-2 py-2 text-center w-[76px] hidden lg:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
                   </tr>
                 </thead>
                 <tbody>
                   {listaFiltrada.map((op, idx) => {
-                    const prob = toNum(op.probabilidade);
+                    const prob = toNum(op.probabilidade_smart);
                     const valor = toNum(op.valor_estimado);
                     const cfg = ESTAGIO_CONFIG[op.estagio];
                     const urgente = toNum(op.atividades_atrasadas) > 0;

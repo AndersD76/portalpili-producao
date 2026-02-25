@@ -184,6 +184,7 @@ export interface Oportunidade {
   temperatura: ClienteTemperatura;
   proxima_acao?: string;
   data_proxima_acao?: string;
+  probabilidade_smart?: number;
   created_at: string;
   updated_at: string;
 }
