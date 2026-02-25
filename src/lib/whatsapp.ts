@@ -7,7 +7,7 @@
 
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '999238453273170';
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
-const API_VERSION = 'v21.0';
+const API_VERSION = 'v22.0';
 
 export interface WhatsAppResult {
   success: boolean;
