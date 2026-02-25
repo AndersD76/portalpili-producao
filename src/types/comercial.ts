@@ -974,6 +974,37 @@ export const SITUACOES_PROPOSTA: Array<{
   { id: 'SUBSTITUIDA', nome: 'Substituída', cor: '#78716c' },
 ];
 
+// =============================================
+// INTERFACES - STATUS CHECK (WhatsApp)
+// =============================================
+
+export interface StatusCheck {
+  id: number;
+  token: string;
+  vendedor_id: number;
+  vendedor_nome?: string;
+  criado_por: number;
+  status: 'PENDENTE' | 'PARCIAL' | 'CONCLUIDO' | 'EXPIRADO';
+  total_oportunidades: number;
+  total_respondidas: number;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface StatusCheckItem {
+  id: number;
+  status_check_id: number;
+  oportunidade_id: number;
+  cliente_nome?: string;
+  valor_estimado?: number;
+  produto?: string;
+  numero_proposta?: string;
+  estagio_anterior: string;
+  estagio_novo?: string;
+  observacao?: string;
+  respondido_at?: string;
+}
+
 export const SEGMENTOS_CLIENTE: Array<{
   id: ClienteSegmento;
   nome: string;

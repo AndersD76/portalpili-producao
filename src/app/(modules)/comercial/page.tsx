@@ -83,6 +83,15 @@ export default function ComercialPage() {
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [sendingStatusCheck, setSendingStatusCheck] = useState(false);
+
+  // Reset selection when vendedor filter changes
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, [filtroVendedor]);
 
   const router = useRouter();
   const { user, authenticated, loading: authLoading, logout, isAdmin } = useAuth();
@@ -335,6 +344,68 @@ export default function ComercialPage() {
     return `${p[0]} ${p[p.length - 1][0]}.`;
   };
 
+  // ==================== STATUS CHECK ====================
+
+  const emNegociacaoIds = useMemo(() => {
+    return new Set(listaFiltrada.filter(o => o.estagio === 'EM_NEGOCIACAO').map(o => o.id));
+  }, [listaFiltrada]);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === emNegociacaoIds.size && emNegociacaoIds.size > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(emNegociacaoIds));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const cancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleEnviarStatusCheck = async () => {
+    if (selectedIds.size === 0 || !filtroVendedor) return;
+    const vendedor = vendedoresComMetricas.find(v => v.nome === filtroVendedor);
+    if (!vendedor) {
+      alert('Vendedor não encontrado');
+      return;
+    }
+    setSendingStatusCheck(true);
+    try {
+      const res = await fetch('/api/comercial/status-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendedor_id: vendedor.id,
+          oportunidade_ids: Array.from(selectedIds),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSyncResult({
+          message: json.message || 'Status check enviado com sucesso!',
+          type: 'success',
+        });
+        cancelSelection();
+      } else {
+        alert(json.error || 'Erro ao enviar status check');
+      }
+    } catch {
+      alert('Erro de conexão');
+    } finally {
+      setSendingStatusCheck(false);
+    }
+  };
+
   const handleSort = (campo: string) => {
     setSortConfig(prev =>
       prev.campo === campo
@@ -481,7 +552,31 @@ export default function ComercialPage() {
             )}
           </div>
 
-          {ultimoSync && (
+          {/* Solicitar Status - admin + vendedor selecionado */}
+          {isAdmin && filtroVendedor && !selectionMode && (
+            <button
+              onClick={() => { setSelectionMode(true); setFiltroEstagio('EM_NEGOCIACAO'); }}
+              className="ml-auto flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition"
+              title="Solicitar atualização de status via WhatsApp"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Solicitar Status
+            </button>
+          )}
+          {selectionMode && (
+            <button
+              onClick={cancelSelection}
+              className="ml-auto flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancelar Seleção
+            </button>
+          )}
+          {ultimoSync && !selectionMode && !(isAdmin && filtroVendedor) && (
             <span className="ml-auto text-[10px] text-gray-300 hidden lg:inline">
               Sync: {new Date(ultimoSync).toLocaleString('pt-BR')}
             </span>
@@ -516,7 +611,7 @@ export default function ComercialPage() {
         )}
 
         {/* AREA DE PROPOSTAS */}
-        <div className="flex-1 p-2 sm:p-3 min-w-0">
+        <div className={`flex-1 p-2 sm:p-3 min-w-0 ${selectionMode && selectedIds.size > 0 ? 'pb-20' : ''}`}>
 
           {listaFiltrada.length === 0 ? (
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
@@ -525,6 +620,16 @@ export default function ComercialPage() {
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide select-none">
+                    {selectionMode && (
+                      <th className="px-1 py-2 text-center w-[32px]">
+                        <input
+                          type="checkbox"
+                          checked={emNegociacaoIds.size > 0 && selectedIds.size === emNegociacaoIds.size}
+                          onChange={toggleSelectAll}
+                          className="w-3.5 h-3.5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
                     <th className="px-2 py-2 text-left w-[40%] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('cliente')}>Cliente <SortArrow campo="cliente" /></th>
                     <th className="px-2 py-2 text-right w-[100px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('valor')}>Valor <SortArrow campo="valor" /></th>
@@ -542,15 +647,31 @@ export default function ComercialPage() {
                     const cfg = ESTAGIO_CONFIG[op.estagio];
                     const urgente = toNum(op.atividades_atrasadas) > 0;
                     const dataRef = op.data_abertura || op.created_at;
+                    const over60 = dataRef ? diasNoFunil(dataRef) > 60 : false;
+                    const isEmNeg = op.estagio === 'EM_NEGOCIACAO';
 
                     return (
                       <tr
                         key={op.id}
                         onClick={() => setSelectedOportunidadeId(op.id)}
                         className={`border-b last:border-b-0 hover:bg-blue-50/60 transition cursor-pointer ${
-                          urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''
-                        }`}
+                          over60 ? 'border-l-4 border-l-amber-400' : ''
+                        } ${urgente ? 'bg-red-50/50' : idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}
                       >
+                        {selectionMode && (
+                          <td className="px-1 py-1.5 text-center" onClick={e => e.stopPropagation()}>
+                            {isEmNeg ? (
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.has(op.id)}
+                                onChange={() => toggleSelect(op.id)}
+                                className="w-3.5 h-3.5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                              />
+                            ) : (
+                              <span className="inline-block w-3.5 h-3.5" />
+                            )}
+                          </td>
+                        )}
                         <td className="px-2 py-1.5 text-center text-[10px] font-mono text-gray-400 hidden sm:table-cell">
                           {op.numero_proposta || '-'}
                         </td>
@@ -575,7 +696,7 @@ export default function ComercialPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-2 py-1.5 text-center text-[11px] text-gray-500 tabular-nums hidden lg:table-cell">
+                        <td className={`px-2 py-1.5 text-center text-[11px] tabular-nums hidden lg:table-cell ${over60 ? 'text-amber-600 font-semibold' : 'text-gray-500'}`}>
                           {dataRef ? `${diasNoFunil(dataRef)}d` : '-'}
                         </td>
                         {isAdmin && (
@@ -595,6 +716,37 @@ export default function ComercialPage() {
           )}
         </div>
       </div>
+
+      {/* Floating Status Check Bar */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              {selectedIds.size} proposta{selectedIds.size > 1 ? 's' : ''} selecionada{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={cancelSelection}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEnviarStatusCheck}
+                disabled={sendingStatusCheck}
+                className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
+                  sendingStatusCheck ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {sendingStatusCheck ? 'Enviando...' : 'Enviar via WhatsApp'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Detalhe Oportunidade */}
       {selectedOportunidadeId && (

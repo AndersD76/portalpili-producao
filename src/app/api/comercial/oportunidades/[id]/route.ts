@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, withTransaction } from '@/lib/db';
 import { gerarSugestoes } from '@/lib/comercial/ia';
-import { gerarFollowUp } from '@/lib/comercial/followup';
+import { registrarMudancaEstagio } from '@/lib/comercial/stageChange';
 import { verificarPermissao } from '@/lib/auth';
 
 const toNum = (v: unknown): number => {
@@ -206,23 +206,16 @@ export async function PUT(
 
     if (estagio) {
       try {
-        await query(
-          `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
-           VALUES ($1, 'ANOTACAO', $2)`,
-          [id, `Oportunidade movida para estágio: ${estagio}`]
-        );
-      } catch (e) {
-        console.log('Erro ao registrar interação de estágio:', e);
-      }
-
-      try {
-        followup = await gerarFollowUp(
+        const stageResult = await registrarMudancaEstagio(
           parseInt(id),
           estagio,
-          result.rows[0].vendedor_id
+          result.rows[0].vendedor_id,
+          'PORTAL',
+          true // skip UPDATE, já feito na query principal
         );
-      } catch (followupError) {
-        console.log('Erro ao gerar follow-up automático:', followupError);
+        followup = stageResult.followup;
+      } catch (e) {
+        console.log('Erro no registrarMudancaEstagio:', e);
       }
     }
 
