@@ -1241,43 +1241,6 @@ export default function ModalVisualizarFormulario({
 
         {formulario && !loading && !error && (
           <>
-            {/* Informações de preenchimento */}
-            <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-              {(() => {
-                // Coletar usuarios unicos dos checks individuais
-                const dados = formulario.dados_formulario
-                  ? (typeof formulario.dados_formulario === 'string'
-                    ? JSON.parse(formulario.dados_formulario)
-                    : formulario.dados_formulario)
-                  : {};
-                const usuariosUnicos = new Set<string>();
-                Object.entries(dados).forEach(([key, value]) => {
-                  if (key.endsWith('_usuario') && value) usuariosUnicos.add(value as string);
-                });
-                if (usuariosUnicos.size > 0) {
-                  return (
-                    <>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-semibold">Verificado por:</span>{' '}
-                        {Array.from(usuariosUnicos).join(', ')}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <span className="font-semibold">Finalizado por:</span> {formulario.preenchido_por}
-                      </p>
-                    </>
-                  );
-                }
-                return (
-                  <p className="text-sm text-gray-700">
-                    <span className="font-semibold">Preenchido por:</span> {formulario.preenchido_por}
-                  </p>
-                );
-              })()}
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">Data:</span> {new Date(formulario.data_preenchimento || formulario.created).toLocaleString('pt-BR')}
-              </p>
-            </div>
-
             {/* Seção de Anexos - Ícone de Clips */}
             {(() => {
               const dados = formulario.dados_formulario
