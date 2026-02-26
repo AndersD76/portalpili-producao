@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { verificarPermissao } from '@/lib/auth';
-import { enviarMensagemWhatsApp, formatarLinkAnalise, montarMensagemAnalise } from '@/lib/whatsapp';
+import { enviarAnaliseOrcamento, formatarLinkAnalise } from '@/lib/whatsapp';
 import crypto from 'crypto';
 
 /**
@@ -143,7 +143,9 @@ export async function POST(request: Request) {
     let whatsappSent = false;
 
     if (analistaWhatsApp) {
-      const mensagem = montarMensagemAnalise(
+      console.log(`[AnaliseOrcamento] Enviando WhatsApp para analista (${analistaWhatsApp})`);
+      const whatsappResult = await enviarAnaliseOrcamento(
+        analistaWhatsApp,
         vendedor.nome,
         cliente_empresa,
         produto,
@@ -151,8 +153,6 @@ export async function POST(request: Request) {
         numeroProposta,
         link
       );
-      console.log(`[AnaliseOrcamento] Enviando WhatsApp para analista (${analistaWhatsApp})`);
-      const whatsappResult = await enviarMensagemWhatsApp(analistaWhatsApp, mensagem);
       console.log(`[AnaliseOrcamento] WhatsApp result:`, JSON.stringify(whatsappResult));
       whatsappSent = whatsappResult.success;
 

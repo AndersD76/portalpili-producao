@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import {
-  enviarMensagemWhatsApp,
-  montarMensagemRejeicao,
-} from '@/lib/whatsapp';
+import { enviarPropostaRejeitada } from '@/lib/whatsapp';
 
 /**
  * GET /api/public/analise/[token]
@@ -213,15 +210,15 @@ export async function PUT(
         [analise.proposta_id]
       );
 
-      // Enviar WhatsApp de rejeicao ao vendedor
+      // Enviar WhatsApp de rejeicao ao vendedor (template com fallback)
       const vendedorWhats = analise.vendedor_whatsapp || analise.vendedor_telefone;
       if (vendedorWhats) {
-        const msg = montarMensagemRejeicao(
+        await enviarPropostaRejeitada(
+          vendedorWhats,
           analise.vendedor_nome,
           analise.numero_proposta,
           observacoes_analista || ''
-        );
-        await enviarMensagemWhatsApp(vendedorWhats, msg).catch(e =>
+        ).catch(e =>
           console.error('[AnalisePublic] Erro WhatsApp rejeicao:', e)
         );
       }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { verificarPermissao } from '@/lib/auth';
-import { enviarMensagemWhatsApp, formatarLinkStatusCheck, montarMensagemStatusCheck } from '@/lib/whatsapp';
+import { enviarStatusCheck, formatarLinkStatusCheck } from '@/lib/whatsapp';
 import crypto from 'crypto';
 
 /**
@@ -75,11 +75,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Enviar WhatsApp
+    // Enviar WhatsApp (template com fallback para texto livre)
     const link = formatarLinkStatusCheck(token);
-    const mensagem = montarMensagemStatusCheck(vendedor.nome, oportunidade_ids.length, link);
     console.log(`[StatusCheck] Enviando WhatsApp para ${vendedor.nome} (${whatsappNum}), ${oportunidade_ids.length} propostas`);
-    const whatsappResult = await enviarMensagemWhatsApp(whatsappNum, mensagem);
+    const whatsappResult = await enviarStatusCheck(whatsappNum, vendedor.nome, oportunidade_ids.length, link);
     console.log(`[StatusCheck] WhatsApp result:`, JSON.stringify(whatsappResult));
 
     // Salvar ID da mensagem

@@ -13,7 +13,16 @@ export interface WhatsAppResult {
   success: boolean;
   message_id?: string;
   error?: string;
+  usou_template?: boolean;
 }
+
+// Nomes dos templates criados na Meta Business
+const TEMPLATES = {
+  STATUS_CHECK: 'status_check_propostas',
+  ANALISE_ORCAMENTO: 'analise_orcamento',
+  PROPOSTA_APROVADA: 'proposta_aprovada',
+  PROPOSTA_REJEITADA: 'proposta_rejeitada',
+} as const;
 
 /**
  * Envia mensagem de texto via WhatsApp Cloud API
@@ -67,6 +76,178 @@ export async function enviarMensagemWhatsApp(
     console.error('[WhatsApp] Exception:', msg);
     return { success: false, error: msg };
   }
+}
+
+/**
+ * Envia mensagem de template via WhatsApp Cloud API
+ * Templates não precisam de janela de 24h (podem iniciar conversa)
+ */
+export async function enviarMensagemWhatsAppTemplate(
+  telefone: string,
+  templateName: string,
+  parametros: string[],
+  idioma: string = 'pt_BR'
+): Promise<WhatsAppResult> {
+  if (!WHATSAPP_TOKEN) {
+    return { success: false, error: 'WHATSAPP_TOKEN não configurado' };
+  }
+
+  let tel = telefone.replace(/\D/g, '');
+  if (!tel || tel.length < 10) {
+    return { success: false, error: `Telefone inválido: ${telefone}` };
+  }
+  if (!tel.startsWith('55')) {
+    tel = '55' + tel;
+  }
+
+  try {
+    const url = `https://graph.facebook.com/${API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+
+    const components: Array<Record<string, unknown>> = [];
+    if (parametros.length > 0) {
+      components.push({
+        type: 'body',
+        parameters: parametros.map(p => ({ type: 'text', text: p })),
+      });
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: tel,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: idioma },
+          components,
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.messages?.[0]?.id) {
+      return { success: true, message_id: data.messages[0].id, usou_template: true };
+    }
+
+    const errorMsg = data.error?.message || JSON.stringify(data);
+    console.error(`[WhatsApp] Erro template ${templateName}:`, errorMsg);
+    return { success: false, error: errorMsg };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('[WhatsApp] Exception template:', msg);
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Envia template com fallback para texto livre se o template falhar
+ */
+async function enviarComFallback(
+  telefone: string,
+  templateName: string,
+  parametros: string[],
+  mensagemFallback: string
+): Promise<WhatsAppResult> {
+  // Tentar template primeiro
+  const resultado = await enviarMensagemWhatsAppTemplate(telefone, templateName, parametros);
+  if (resultado.success) {
+    return resultado;
+  }
+
+  // Se template falhou (pendente, rejeitado, etc.), tentar texto livre
+  console.log(`[WhatsApp] Template ${templateName} falhou (${resultado.error}), tentando texto livre...`);
+  const fallback = await enviarMensagemWhatsApp(telefone, mensagemFallback);
+  return { ...fallback, usou_template: false };
+}
+
+// === Funções de envio por tipo ===
+
+/**
+ * Envia status check ao vendedor (template ou fallback)
+ */
+export async function enviarStatusCheck(
+  telefone: string,
+  vendedorNome: string,
+  totalPropostas: number,
+  link: string
+): Promise<WhatsAppResult> {
+  const primeiroNome = vendedorNome.split(' ')[0];
+  return enviarComFallback(
+    telefone,
+    TEMPLATES.STATUS_CHECK,
+    [primeiroNome, String(totalPropostas), link],
+    montarMensagemStatusCheck(vendedorNome, totalPropostas, link)
+  );
+}
+
+/**
+ * Envia notificação de análise ao analista (template ou fallback)
+ */
+export async function enviarAnaliseOrcamento(
+  telefone: string,
+  vendedorNome: string,
+  clienteEmpresa: string,
+  produto: string,
+  valorTotal: number,
+  numeroProposta: number,
+  link: string
+): Promise<WhatsAppResult> {
+  const valorFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotal);
+  const numFmt = String(numeroProposta).padStart(4, '0');
+  return enviarComFallback(
+    telefone,
+    TEMPLATES.ANALISE_ORCAMENTO,
+    [numFmt, vendedorNome, clienteEmpresa, produto, valorFmt, link],
+    montarMensagemAnalise(vendedorNome, clienteEmpresa, produto, valorTotal, numeroProposta, link)
+  );
+}
+
+/**
+ * Envia notificação de aprovação ao vendedor (template ou fallback)
+ */
+export async function enviarPropostaAprovada(
+  telefone: string,
+  vendedorNome: string,
+  numeroProposta: number,
+  clienteEmpresa: string,
+  produto: string,
+  valorFinal: number,
+  linkPDF: string
+): Promise<WhatsAppResult> {
+  const primeiroNome = vendedorNome.split(' ')[0];
+  const valorFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorFinal);
+  const numFmt = String(numeroProposta).padStart(4, '0');
+  return enviarComFallback(
+    telefone,
+    TEMPLATES.PROPOSTA_APROVADA,
+    [primeiroNome, numFmt, clienteEmpresa, produto, valorFmt, linkPDF],
+    montarMensagemAprovacao(vendedorNome, numeroProposta, clienteEmpresa, produto, valorFinal, linkPDF)
+  );
+}
+
+/**
+ * Envia notificação de rejeição ao vendedor (template ou fallback)
+ */
+export async function enviarPropostaRejeitada(
+  telefone: string,
+  vendedorNome: string,
+  numeroProposta: number,
+  motivo: string
+): Promise<WhatsAppResult> {
+  const primeiroNome = vendedorNome.split(' ')[0];
+  const numFmt = String(numeroProposta).padStart(4, '0');
+  return enviarComFallback(
+    telefone,
+    TEMPLATES.PROPOSTA_REJEITADA,
+    [primeiroNome, numFmt, motivo || 'Ajustes necessários'],
+    montarMensagemRejeicao(vendedorNome, numeroProposta, motivo)
+  );
 }
 
 /**

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import {
-  enviarMensagemWhatsApp,
+  enviarPropostaAprovada,
   formatarLinkPDFAnalise,
-  montarMensagemAprovacao,
 } from '@/lib/whatsapp';
 
 /**
@@ -85,7 +84,9 @@ export async function POST(
     }
 
     if (vendedorWhats) {
-      const msg = montarMensagemAprovacao(
+      console.log(`[AnalisePDF] Enviando WhatsApp ao vendedor ${analise.vendedor_nome} (${vendedorWhats})`);
+      const result = await enviarPropostaAprovada(
+        vendedorWhats,
         analise.vendedor_nome,
         analise.numero_proposta,
         analise.cliente_nome || 'Cliente',
@@ -93,8 +94,6 @@ export async function POST(
         valorFinal,
         linkPDF
       );
-      console.log(`[AnalisePDF] Enviando WhatsApp ao vendedor ${analise.vendedor_nome} (${vendedorWhats})`);
-      const result = await enviarMensagemWhatsApp(vendedorWhats, msg);
       whatsappSent = result.success;
 
       if (result.message_id) {
