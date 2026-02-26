@@ -93,3 +93,72 @@ export function montarMensagemStatusCheck(
     `Este link e valido por 7 dias.\nObrigado!`
   );
 }
+
+// === Analise de Orcamento ===
+
+export function formatarLinkAnalise(token: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://portalpili-producao-production.up.railway.app';
+  return `${baseUrl}/analise/${token}`;
+}
+
+export function formatarLinkPDFAnalise(token: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://portalpili-producao-production.up.railway.app';
+  return `${baseUrl}/api/public/analise/${token}/pdf`;
+}
+
+export function montarMensagemAnalise(
+  vendedorNome: string,
+  clienteEmpresa: string,
+  produto: string,
+  valorTotal: number,
+  numeroProposta: number,
+  link: string
+): string {
+  const valorFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotal);
+  const numFmt = String(numeroProposta).padStart(4, '0');
+  return (
+    `Nova proposta para analise comercial!\n\n` +
+    `Proposta N. ${numFmt}\n` +
+    `Vendedor: ${vendedorNome}\n` +
+    `Cliente: ${clienteEmpresa}\n` +
+    `Produto: ${produto}\n` +
+    `Valor: ${valorFmt}\n\n` +
+    `Acesse para revisar e aprovar:\n${link}\n\n` +
+    `Link valido por 7 dias.`
+  );
+}
+
+export function montarMensagemAprovacao(
+  vendedorNome: string,
+  numeroProposta: number,
+  clienteEmpresa: string,
+  produto: string,
+  valorFinal: number,
+  linkPDF: string
+): string {
+  const primeiroNome = vendedorNome.split(' ')[0];
+  const valorFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorFinal);
+  const numFmt = String(numeroProposta).padStart(4, '0');
+  return (
+    `Ola ${primeiroNome}! Sua proposta N. ${numFmt} foi aprovada!\n\n` +
+    `Cliente: ${clienteEmpresa}\n` +
+    `Produto: ${produto}\n` +
+    `Valor Final: ${valorFmt}\n\n` +
+    `Baixe o PDF do orcamento:\n${linkPDF}\n\n` +
+    `Este link e valido por 7 dias.`
+  );
+}
+
+export function montarMensagemRejeicao(
+  vendedorNome: string,
+  numeroProposta: number,
+  motivo: string
+): string {
+  const primeiroNome = vendedorNome.split(' ')[0];
+  const numFmt = String(numeroProposta).padStart(4, '0');
+  return (
+    `Ola ${primeiroNome}, a proposta N. ${numFmt} precisa de ajustes.\n\n` +
+    (motivo ? `Motivo: ${motivo}\n\n` : '') +
+    `Acesse o configurador para revisar e reenviar.`
+  );
+}

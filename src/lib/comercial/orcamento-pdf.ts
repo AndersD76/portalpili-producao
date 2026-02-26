@@ -10,6 +10,8 @@ export interface ItemOrcamento {
 }
 
 export interface DadosOrcamento {
+  numeroProposta?: number;
+
   clienteNome?: string;
   clienteEmpresa?: string;
   clienteCNPJ?: string;
@@ -53,25 +55,31 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
+function _buildOrcamentoDoc(dados: DadosOrcamento): jsPDF {
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageW = doc.internal.pageSize.width;
   const hoje = new Date();
   const validade = new Date(hoje);
   validade.setDate(validade.getDate() + (dados.validadeDias || 30));
 
+  const numeroStr = dados.numeroProposta ? String(dados.numeroProposta).padStart(4, '0') : '';
+
   // === HEADER ===
   doc.setFillColor(220, 38, 38);
-  doc.rect(0, 0, pageW, 30, 'F');
+  doc.rect(0, 0, pageW, 32, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('PILI', 14, 14);
+  doc.text('PILI EQUIPAMENTOS INDUSTRIAIS', 14, 13);
 
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text('ORCAMENTO', 14, 24);
+  if (numeroStr) {
+    doc.text(`ORCAMENTO N. ${numeroStr}`, 14, 22);
+  } else {
+    doc.text('ORCAMENTO', 14, 22);
+  }
 
   doc.setFontSize(9);
   doc.text(`Data: ${hoje.toLocaleDateString('pt-BR')}`, pageW - 14, 12, { align: 'right' });
@@ -79,11 +87,22 @@ export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
   doc.text(`Qtd: ${dados.quantidade} unidade(s)`, pageW - 14, 24, { align: 'right' });
 
   doc.setTextColor(0, 0, 0);
-  let y = 38;
+  let y = 40;
+
+  // === SAUDACAO / APRESENTACAO ===
+  const nomeCliente = dados.clienteNome || dados.clienteEmpresa || 'Cliente';
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(55, 65, 81);
+  const saudacao = `Prezado(a) ${nomeCliente}, e com satisfacao que a Pili Equipamentos Industriais, referencia em solucoes para movimentacao de graos, apresenta este orcamento para o equipamento abaixo.`;
+  const linhasSaudacao = doc.splitTextToSize(saudacao, pageW - 28);
+  doc.text(linhasSaudacao, 14, y);
+  y += linhasSaudacao.length * 4.5 + 4;
+
+  doc.setTextColor(0, 0, 0);
 
   // === CLIENTE ===
   if (dados.clienteNome || dados.clienteEmpresa || dados.clienteCNPJ) {
-    // Calcular altura do bloco
     let blockH = 18;
     if (dados.clienteEmpresa && dados.clienteNome) blockH = 22;
     if (dados.clienteCNPJ) blockH += 5;
@@ -172,10 +191,8 @@ export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
     formatCurrency(item.valorTotal),
   ]);
 
-  // Subtotal row
   bodyRows.push(['', '', '', 'Subtotal', formatCurrency(dados.subtotal)]);
 
-  // Discount row
   if (dados.descontoValor && dados.descontoValor > 0) {
     const descLabel = dados.descontoPercentual
       ? `Desconto (${dados.descontoPercentual}%)`
@@ -282,14 +299,39 @@ export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
     doc.line(14, pageH - 16, pageW - 14, pageH - 16);
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
-    doc.text('PILI Equipamentos Industriais | Portal Pili - Sistema de Gestao Comercial', 14, pageH - 10);
+    const footerLeft = numeroStr
+      ? `Orcamento N. ${numeroStr} | PILI Equipamentos Industriais | Portal Pili`
+      : 'PILI Equipamentos Industriais | Portal Pili - Sistema de Gestao Comercial';
+    doc.text(footerLeft, 14, pageH - 10);
     if (dados.vendedorNome) {
       doc.text(`Vendedor: ${dados.vendedorNome}${dados.vendedorEmail ? ` (${dados.vendedorEmail})` : ''}`, 14, pageH - 6);
     }
     doc.text(`Pagina ${i} de ${pageCount}`, pageW - 14, pageH - 10, { align: 'right' });
   }
 
-  // Download
-  const nomeArquivo = `orcamento-pili-${dados.produto.toLowerCase()}-${hoje.toISOString().split('T')[0]}.pdf`;
-  doc.save(nomeArquivo);
+  return doc;
+}
+
+function _buildNomeArquivo(dados: DadosOrcamento): string {
+  const data = new Date().toISOString().split('T')[0];
+  const produto = dados.produto.toLowerCase();
+  if (dados.numeroProposta) {
+    const num = String(dados.numeroProposta).padStart(4, '0');
+    return `orcamento-pili-${num}-${produto}-${data}.pdf`;
+  }
+  return `orcamento-pili-${produto}-${data}.pdf`;
+}
+
+export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
+  const doc = _buildOrcamentoDoc(dados);
+  doc.save(_buildNomeArquivo(dados));
+}
+
+export function gerarOrcamentoPDFBlob(dados: DadosOrcamento): Blob {
+  const doc = _buildOrcamentoDoc(dados);
+  return doc.output('blob');
+}
+
+export function getNomeArquivoPDF(dados: DadosOrcamento): string {
+  return _buildNomeArquivo(dados);
 }

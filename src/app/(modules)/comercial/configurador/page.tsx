@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { gerarOrcamentoPDF, DadosOrcamento, ItemOrcamento } from '@/lib/comercial/orcamento-pdf';
+import { DadosOrcamento, ItemOrcamento } from '@/lib/comercial/orcamento-pdf';
 import CampoCNPJ from '@/components/comercial/CampoCNPJ';
 
 interface PrecoBase {
@@ -65,6 +65,13 @@ export default function ConfiguradorPage() {
 
   // Vendedor logado (para validacao)
   const [vendedorDados, setVendedorDados] = useState<{ telefone?: string; email?: string; whatsapp?: string } | null>(null);
+
+  // Enviar para analise
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+  const [resultadoEnvio, setResultadoEnvio] = useState<{ numeroProposta?: number; link?: string } | null>(null);
 
   const router = useRouter();
   const { authenticated, loading: authLoading, user: usuario } = useAuth();
@@ -304,9 +311,14 @@ export default function ConfiguradorPage() {
     return Object.keys(erros).length === 0;
   };
 
-  const handleGerarPDF = () => {
+  const handleAbrirConfirmacao = () => {
     if (!precoSelecionado || !calculo) return;
     if (!validarFormulario()) return;
+    setShowConfirmModal(true);
+  };
+
+  const buildDadosOrcamento = (): { dados: DadosOrcamento; itens: ItemOrcamento[] } | null => {
+    if (!precoSelecionado || !calculo) return null;
 
     const itens: ItemOrcamento[] = [
       {
@@ -354,7 +366,53 @@ export default function ConfiguradorPage() {
       vendedorEmail: usuario?.email,
     };
 
-    gerarOrcamentoPDF(dados);
+    return { dados, itens };
+  };
+
+  const handleEnviarAnalise = async () => {
+    const result = buildDadosOrcamento();
+    if (!result || !precoSelecionado || !calculo) return;
+
+    setEnviando(true);
+    setErroEnvio(null);
+
+    try {
+      const res = await fetch('/api/comercial/analise-orcamento', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dados_configurador: result.dados,
+          produto: precoSelecionado.tipo_produto,
+          quantidade,
+          desconto_percentual: descontoManual,
+          prazo_entrega: prazoEntrega,
+          garantia_meses: garantiaMeses,
+          forma_pagamento: formaPagamento || 'A combinar',
+          observacoes: observacoes || null,
+          cnpj: cnpj,
+          cliente_empresa: clienteEmpresa,
+          cliente_nome: clienteNome,
+          decisor_nome: decisorNome,
+          decisor_telefone: decisorTelefone,
+          decisor_email: decisorEmail,
+          valor_total: calculo.valorFinal,
+          valor_equipamento: precoSelecionado.preco,
+          valor_opcionais: calculo.subtotalOpcionais,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEnviado(true);
+        setResultadoEnvio({ numeroProposta: data.numero_proposta, link: data.link });
+        setShowConfirmModal(false);
+      } else {
+        setErroEnvio(data.error || 'Erro ao enviar proposta');
+      }
+    } catch {
+      setErroEnvio('Erro de conexao. Tente novamente.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   if (loading) {
@@ -375,7 +433,7 @@ export default function ConfiguradorPage() {
           <span className="text-gray-900 font-medium">Configurador</span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Configurador de Orcamento</h1>
-        <p className="text-gray-600 text-sm">Monte o equipamento e gere o PDF do orcamento</p>
+        <p className="text-gray-600 text-sm">Monte o equipamento e envie para analise comercial</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -751,20 +809,93 @@ export default function ConfiguradorPage() {
                   </div>
                 )}
 
-                <button
-                  onClick={handleGerarPDF}
-                  className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-bold flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Gerar Orcamento PDF
-                </button>
+                {enviado ? (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                    <svg className="w-8 h-8 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <p className="text-green-800 font-semibold">Proposta enviada para analise!</p>
+                    {resultadoEnvio?.numeroProposta && (
+                      <p className="text-green-700 text-sm mt-1">
+                        Proposta N. {String(resultadoEnvio.numeroProposta).padStart(4, '0')}
+                      </p>
+                    )}
+                    <p className="text-green-600 text-xs mt-1">O analista comercial recebera o link via WhatsApp.</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleAbrirConfirmacao}
+                    className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-bold flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    Enviar para Analise Comercial
+                  </button>
+                )}
+
+                {erroEnvio && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">{erroEnvio}</p>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmacao */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Enviar para Analise Comercial?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              O analista comercial recebera um link via WhatsApp para revisar e aprovar esta proposta.
+            </p>
+
+            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Cliente:</span>
+                <span className="font-medium text-gray-900">{clienteEmpresa || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Produto:</span>
+                <span className="font-medium text-gray-900">{precoSelecionado?.descricao || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Valor Total:</span>
+                <span className="font-bold text-red-600">{calculo ? formatCurrency(calculo.valorFinal) : '-'}</span>
+              </div>
+            </div>
+
+            {erroEnvio && (
+              <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-xs text-red-700">{erroEnvio}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowConfirmModal(false); setErroEnvio(null); }}
+                disabled={enviando}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEnviarAnalise}
+                disabled={enviando}
+                className={`flex-1 px-4 py-2 rounded-lg text-white text-sm font-medium transition ${
+                  enviando ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {enviando ? 'Enviando...' : 'Sim, Enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
