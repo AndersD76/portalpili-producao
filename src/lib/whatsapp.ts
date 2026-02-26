@@ -5,7 +5,7 @@
  * Usa variáveis de ambiente para credenciais.
  */
 
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '999238453273170';
+const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '993715913825388';
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
 const API_VERSION = 'v22.0';
 
