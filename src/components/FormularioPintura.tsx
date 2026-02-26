@@ -18,6 +18,10 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
   const [error, setError] = useState<string | null>(null);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
+  const [imagensFaltando, setImagensFaltando] = useState<string[]>([]);
+
+  // Campos que exigem imagem obrigatória
+  const CAMPOS_COM_IMAGEM = ['cq11t2'];
 
   // Mapa de opcoes das perguntas carregadas do banco (codigo -> opcoes)
   const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
@@ -201,6 +205,22 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar imagens obrigatórias
+    const faltando = CAMPOS_COM_IMAGEM.filter(campo => {
+      const imagens = (formData as any)[`${campo}_imagem`];
+      return !imagens || (Array.isArray(imagens) && imagens.length === 0);
+    });
+    if (faltando.length > 0) {
+      setImagensFaltando(faltando);
+      const label = faltando[0].toUpperCase().replace(/^(CQ\d+)(T\d?)$/, '$1-$2');
+      toast.error(`Imagem obrigatória faltando! ${label} requer foto.`);
+      const el = document.querySelector(`[data-field="${faltando[0]}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setImagensFaltando([]);
+
     setLoading(true);
     setError(null);
 
@@ -335,7 +355,7 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
         {renderCQField('CQ10-T2: VERIFICAR PINTURA GERAL (SUPERIOR E INFERIOR)', 'cq10t2', 'Sem falhas', true)}
 
         {/* CQ11-T2 com imagem */}
-        <div className="border rounded-lg p-4 bg-white mb-3">
+        <div className="border rounded-lg p-4 bg-white mb-3" data-field="cq11t2">
           <h5 className="font-bold text-gray-900 mb-2">CQ11-T2: ADERÊNCIA</h5>
           <p className="text-sm text-blue-700 mb-2">Critérios: Teste de aderência aprovado</p>
           <select
@@ -350,7 +370,12 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
               <option key={opcao} value={opcao}>{opcao}</option>
             ))}
           </select>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+          <label className="block text-sm font-semibold mb-2">
+            Anexar Imagem <span className="text-red-500">* obrigatória</span>
+          </label>
+          <div className={`border-2 border-dashed rounded-lg p-4 ${
+            imagensFaltando.includes('cq11t2') ? 'border-red-500 ring-2 ring-red-300 bg-red-50' : 'border-gray-300'
+          }`}>
             <input
               ref={(el) => { fileInputRefs.current['cq11t2_imagem'] = el; }}
               type="file"

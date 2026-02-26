@@ -105,6 +105,13 @@ export default function FormularioControleQualidadeSoldaLado2({
   const [savingDraft, setSavingDraft] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [imagensFaltando, setImagensFaltando] = useState<string[]>([]);
+
+  // Campos que requerem imagem obrigatoria
+  const CAMPOS_COM_IMAGEM = [
+    'cq2e', 'cq3e', 'cq4e', 'cq5e', 'cq6e', 'cq8e', 'cq9e',
+    'cq10e', 'cq11e', 'cq12e', 'cq13e', 'cq14e', 'cq15e', 'cq16e', 'cq17e', 'cq18e', 'cq19e',
+  ];
 
   // Mapa de opções das perguntas carregadas do banco (código -> opções)
   const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
@@ -307,6 +314,23 @@ export default function FormularioControleQualidadeSoldaLado2({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar imagens obrigatorias
+    const faltando = CAMPOS_COM_IMAGEM.filter(campo => {
+      const imagens = formData[`${campo}_imagem` as keyof typeof formData];
+      return !imagens || (Array.isArray(imagens) && imagens.length === 0);
+    });
+
+    if (faltando.length > 0) {
+      setImagensFaltando(faltando);
+      const label = faltando[0].toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+      toast.error(`Imagens obrigatórias faltando! ${faltando.length} check(s) sem imagem. Primeiro: ${label}`);
+      const el = document.querySelector(`[data-field="${faltando[0]}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setImagensFaltando([]);
+
     setLoading(true);
     setUploadingImages(true);
 
@@ -387,8 +411,10 @@ export default function FormularioControleQualidadeSoldaLado2({
     // Verificar se é texto livre
     const isTextoLivre = tipoResposta === 'texto_livre' || tipoResposta === 'texto';
 
+    const imagemFaltando = hasImage && imagensFaltando.includes(id);
+
     return (
-      <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
+      <div data-field={id} className={`border-2 rounded-lg p-4 bg-gray-50 ${imagemFaltando ? 'border-red-500 ring-2 ring-red-300' : 'border-gray-300'}`}>
         <h4 className="font-bold text-lg mb-3 text-gray-900">{title}</h4>
         <p className="text-sm text-gray-700 mb-4 whitespace-pre-line">{description}</p>
 
@@ -424,9 +450,9 @@ export default function FormularioControleQualidadeSoldaLado2({
           {hasImage && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Anexar Imagem *
+                Anexar Imagem <span className="text-red-600">* obrigatória</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-red-500 transition">
+              <div className={`border-2 border-dashed rounded-lg p-4 hover:border-red-500 transition ${imagemFaltando ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
                 <input
                   ref={fileInputRefs[id as keyof typeof fileInputRefs]}
                   type="file"

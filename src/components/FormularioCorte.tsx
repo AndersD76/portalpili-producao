@@ -18,6 +18,10 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
   const [error, setError] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [imagensFaltando, setImagensFaltando] = useState<string[]>([]);
+
+  // Campos que requerem imagem obrigatoria
+  const CAMPOS_COM_IMAGEM = ['cq3a'];
 
   // Mapa de opcoes das perguntas carregadas do banco (codigo -> opcoes)
   const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
@@ -200,6 +204,23 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar imagens obrigatorias
+    const faltando = CAMPOS_COM_IMAGEM.filter(campo => {
+      const imagens = (formData as any)[`${campo}_imagem`];
+      return !imagens || (Array.isArray(imagens) && imagens.length === 0);
+    });
+
+    if (faltando.length > 0) {
+      setImagensFaltando(faltando);
+      const label = faltando[0].toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+      toast.error(`Imagens obrigatórias faltando! ${faltando.length} check(s) sem imagem. Primeiro: ${label}`);
+      const el = document.querySelector(`[data-field="${faltando[0]}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setImagensFaltando([]);
+
     setLoading(true);
     setError(null);
 
@@ -251,8 +272,10 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
       ? ['Conforme', 'Não conforme', 'Não Aplicável']
       : ['Conforme', 'Não conforme']);
 
+    const imagemFaltando = hasImage && imagensFaltando.includes(fieldName);
+
     return (
-    <div className="border rounded-lg p-4 bg-white mb-4">
+    <div data-field={fieldName} className={`border rounded-lg p-4 bg-white mb-4 ${imagemFaltando ? 'border-red-500 ring-2 ring-red-300' : ''}`}>
       <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
       <div className="text-sm text-gray-600 mb-3 space-y-1">
         <p>{description}</p>
@@ -277,8 +300,10 @@ export default function FormularioCorte({ opd, cliente, atividadeId, onSubmit, o
 
       {hasImage && (
         <div>
-          <label className="block text-sm font-semibold mb-2">Anexar Imagem</label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-red-500 transition">
+          <label className="block text-sm font-semibold mb-2">
+            Anexar Imagem <span className="text-red-600">* obrigatória</span>
+          </label>
+          <div className={`border-2 border-dashed rounded-lg p-4 hover:border-red-500 transition ${imagemFaltando ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
             <input
               ref={(el) => { fileInputRefs.current[`${fieldName}_imagem`] = el; }}
               type="file"

@@ -19,6 +19,16 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
   const [error, setError] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState<{ [key: string]: boolean }>({});
   const [isRascunhoExistente, setIsRascunhoExistente] = useState(false);
+  const [imagensFaltando, setImagensFaltando] = useState<string[]>([]);
+
+  // Campos que requerem imagem obrigatoria
+  const CAMPOS_COM_IMAGEM = [
+    'cq3a', 'cq1b', 'cq6b', 'cq7b', 'cq8b', 'cq9b', 'cq10b', 'cq11b', 'cq12b',
+    'cq13b', 'cq14b', 'cq15b', 'cq16b', 'cq17b', 'cq18b', 'cq19b', 'cq20b', 'cq21b',
+    'cq22b', 'cq23b', 'cq24b', 'cq25b', 'cq26b', 'cq27b', 'cq28b', 'cq29b', 'cq30b',
+    'cq31b', 'cq32b', 'cq33b', 'cq34b', 'cq35b', 'cq36b', 'cq37b', 'cq38b', 'cq39b',
+    'cq40b', 'cq41b', 'cq42b', 'cq43b',
+  ];
 
   // Mapa de opções das perguntas carregadas do banco (código -> opções)
   const [perguntasOpcoes, setPerguntasOpcoes] = useState<Record<string, string[]>>({});
@@ -321,7 +331,18 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // Ao preencher um campo _status, registrar qual usuario fez e quando
+    if (name.endsWith('_status') && value) {
+      const base = name.replace('_status', '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        [`${base}_usuario`]: getUsuario(),
+        [`${base}_data`]: new Date().toISOString(),
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
@@ -430,6 +451,24 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar imagens obrigatorias
+    const faltando = CAMPOS_COM_IMAGEM.filter(campo => {
+      const imagens = (formData as any)[`${campo}_imagem`];
+      return !imagens || (Array.isArray(imagens) && imagens.length === 0);
+    });
+
+    if (faltando.length > 0) {
+      setImagensFaltando(faltando);
+      const label = faltando[0].toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
+      toast.error(`Imagens obrigatorias faltando! ${faltando.length} check(s) sem imagem. Primeiro: ${label}`);
+      // Scroll para o primeiro campo sem imagem
+      const el = document.querySelector(`[data-field="${faltando[0]}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setImagensFaltando([]);
+
     setLoading(true);
     setError(null);
 
@@ -490,8 +529,10 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
     // Verificar se é texto livre
     const isTextoLivre = tipoResposta === 'texto_livre' || tipoResposta === 'texto';
 
+    const imagemFaltando = hasImage && imagensFaltando.includes(fieldName);
+
     return (
-    <div className="border rounded-lg p-4 bg-white mb-4">
+    <div className="border rounded-lg p-4 bg-white mb-4" data-field={fieldName}>
       <h5 className="font-bold text-gray-900 mb-2">{label}</h5>
       <div className="text-sm text-gray-600 mb-3 space-y-1">
         <p>{description}</p>
@@ -528,8 +569,13 @@ export default function FormularioControleQualidade({ opd, cliente, atividadeId,
 
       {hasImage && (
         <div>
-          <label className="block text-sm font-semibold mb-2">Anexar Imagem</label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-red-500 transition">
+          <label className="block text-sm font-semibold mb-2">
+            Anexar Imagem <span className="text-red-500">*</span>
+            {imagemFaltando && <span className="text-red-500 text-xs ml-2 font-normal">Imagem obrigatoria!</span>}
+          </label>
+          <div className={`border-2 border-dashed rounded-lg p-4 transition ${
+            imagemFaltando ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-red-500'
+          }`}>
             <input
               ref={(el) => { fileInputRefs.current[`${fieldName}_imagem`] = el; }}
               type="file"

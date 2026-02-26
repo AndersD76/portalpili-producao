@@ -203,6 +203,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, fetchPermissoes]);
 
+  // Re-sync auth state on browser back/forward navigation and tab visibility
+  useEffect(() => {
+    const syncAuthFromStorage = () => {
+      const authFlag = localStorage.getItem('authenticated');
+      const userData = localStorage.getItem('user_data');
+
+      if (authFlag === 'true' && userData) {
+        try {
+          const parsed: UserData = JSON.parse(userData);
+          // Only update if user changed or was lost
+          if (!user || user.id !== parsed.id) {
+            setUser(parsed);
+            setAuthenticated(true);
+            if (parsed.is_admin === true) {
+              setIsAdmin(true);
+            }
+            clearPermissoesCache();
+          }
+        } catch {
+          // Corrupted data, logout
+          setAuthenticated(false);
+          setUser(null);
+          setPermissoes([]);
+        }
+      } else if (authenticated) {
+        // Was authenticated but localStorage cleared
+        setAuthenticated(false);
+        setUser(null);
+        setPermissoes([]);
+        setIsAdmin(false);
+      }
+    };
+
+    const handlePopState = () => {
+      syncAuthFromStorage();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        syncAuthFromStorage();
+      }
+    };
+
+    // Handle bfcache restore (pageshow event fires when page is restored from bfcache)
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        syncAuthFromStorage();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [user, authenticated]);
+
   const podeAcessarModulo = useCallback((codigoOuRota: string): boolean => {
     if (isAdmin) return true;
 

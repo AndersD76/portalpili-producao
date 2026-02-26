@@ -790,28 +790,46 @@ export default function ModalVisualizarFormulario({
     // Remove campos internos
     const { _is_rascunho, ...dadosLimpos } = dados;
 
-    // Agrupa campos por tipo (status, imagem, observação, etc.)
-    const camposStatus: Array<{ key: string; value: string }> = [];
-    const camposImagem: Array<{ key: string; value: any[] }> = [];
+    // Agrupar por check: para cada _status, buscar _usuario, _data, _imagem correspondentes
+    interface CheckAgrupado {
+      base: string;
+      status: string;
+      usuario?: string;
+      data?: string;
+      imagens?: any[];
+    }
+    const checksAgrupados: CheckAgrupado[] = [];
+    const camposProcessados = new Set<string>();
     const outrosCampos: Array<{ key: string; value: any }> = [];
 
+    // Coletar todos os checks
     Object.entries(dadosLimpos).forEach(([key, value]) => {
       if (key.endsWith('_status')) {
-        camposStatus.push({ key, value: value as string });
-      } else if (key.endsWith('_imagem') && Array.isArray(value) && value.length > 0) {
-        camposImagem.push({ key, value: value as any[] });
-      } else if (value !== null && value !== undefined && value !== '') {
+        const base = key.replace('_status', '');
+        checksAgrupados.push({
+          base,
+          status: value as string,
+          usuario: dadosLimpos[`${base}_usuario`] as string | undefined,
+          data: dadosLimpos[`${base}_data`] as string | undefined,
+          imagens: dadosLimpos[`${base}_imagem`] as any[] | undefined,
+        });
+        camposProcessados.add(key);
+        camposProcessados.add(`${base}_usuario`);
+        camposProcessados.add(`${base}_data`);
+        camposProcessados.add(`${base}_imagem`);
+      }
+    });
+
+    // Outros campos que nao sao _status/_usuario/_data/_imagem
+    Object.entries(dadosLimpos).forEach(([key, value]) => {
+      if (!camposProcessados.has(key) && value !== null && value !== undefined && value !== '') {
         outrosCampos.push({ key, value });
       }
     });
 
     // Função para formatar nome do campo
-    const formatarNomeCampo = (key: string) => {
-      return key
-        .replace(/_status$/, '')
-        .replace(/_imagem$/, '')
-        .replace(/_/g, ' ')
-        .toUpperCase();
+    const formatarNomeCampo = (base: string) => {
+      return base.replace(/_/g, ' ').toUpperCase().replace(/^(CQ\d+)([A-Z])$/, '$1-$2');
     };
 
     // Função para determinar cor do status
@@ -825,72 +843,78 @@ export default function ModalVisualizarFormulario({
 
     return (
       <div className="space-y-6">
-        {/* Campos de Status */}
-        {camposStatus.length > 0 && (
+        {/* Checks agrupados - cada check com status + usuario + imagens */}
+        {checksAgrupados.length > 0 && (
           <div className="border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
             <h4 className="font-bold text-lg mb-4 text-gray-900 flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Itens de Verificação
+              Itens de Verificacao ({checksAgrupados.length})
             </h4>
-            <div className="space-y-2">
-              {camposStatus.map(({ key, value }, idx) => (
+            <div className="space-y-3">
+              {checksAgrupados.map((check, idx) => (
                 <div
                   key={idx}
-                  className={`p-3 rounded-lg border ${getCorStatus(value)} flex justify-between items-center`}
+                  className={`rounded-lg border ${getCorStatus(check.status)} overflow-hidden`}
                 >
-                  <span className="font-medium text-sm">{formatarNomeCampo(key)}</span>
-                  <span className="font-bold text-sm px-3 py-1 rounded-full bg-white/50">
-                    {value || 'N/A'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Imagens */}
-        {camposImagem.length > 0 && (
-          <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
-            <h4 className="font-bold text-lg mb-4 text-blue-900 flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Imagens Anexadas
-            </h4>
-            <div className="space-y-4">
-              {camposImagem.map(({ key, value }, idx) => (
-                <div key={idx}>
-                  <p className="text-sm font-semibold text-blue-800 mb-2">{formatarNomeCampo(key)}:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {value.map((img: any, imgIdx: number) => (
-                      <a
-                        key={imgIdx}
-                        href={img.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative group overflow-hidden rounded-lg border-2 border-blue-200 hover:border-blue-400 transition"
-                      >
-                        {img.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/) ? (
-                          <img
-                            src={img.url}
-                            alt={img.filename}
-                            className="w-full h-32 object-cover group-hover:scale-105 transition"
-                          />
-                        ) : (
-                          <div className="w-full h-32 bg-gray-200 flex items-center justify-center">
-                            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 truncate">
-                          {img.filename}
-                        </div>
-                      </a>
-                    ))}
+                  {/* Status + Nome */}
+                  <div className="p-3 flex justify-between items-center">
+                    <span className="font-medium text-sm">{formatarNomeCampo(check.base)}</span>
+                    <span className="font-bold text-sm px-3 py-1 rounded-full bg-white/50">
+                      {check.status || 'N/A'}
+                    </span>
                   </div>
+
+                  {/* Usuario + Data */}
+                  {check.usuario && (
+                    <div className="px-3 pb-1 flex items-center gap-1 text-xs opacity-80">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>{check.usuario}</span>
+                      {check.data && (
+                        <>
+                          <span className="mx-1">-</span>
+                          <span>{new Date(check.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Imagens inline */}
+                  {check.imagens && Array.isArray(check.imagens) && check.imagens.length > 0 && (
+                    <div className="px-3 pb-3 pt-1">
+                      <div className="grid grid-cols-3 gap-2">
+                        {check.imagens.map((img: any, imgIdx: number) => (
+                          <a
+                            key={imgIdx}
+                            href={img.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="relative group overflow-hidden rounded border-2 border-white/50 hover:border-blue-400 transition"
+                          >
+                            {(img.url || '').toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/) || (img.url || '').startsWith('/api/files/') ? (
+                              <img
+                                src={img.url}
+                                alt={img.filename}
+                                className="w-full h-20 object-cover group-hover:scale-105 transition"
+                              />
+                            ) : (
+                              <div className="w-full h-20 bg-gray-200 flex items-center justify-center">
+                                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] p-0.5 truncate">
+                              {img.filename}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -908,60 +932,39 @@ export default function ModalVisualizarFormulario({
             </h4>
             <div className="grid grid-cols-1 gap-3 text-sm">
               {outrosCampos.map(({ key, value }, idx) => {
-                // Verifica se é um array de anexos (objetos com url)
                 const isAnexoArray = Array.isArray(value) && value.length > 0 && value[0] && typeof value[0] === 'object' && 'url' in value[0];
-                // Verifica se é um único anexo (objeto com url)
                 const isAnexoSingle = !Array.isArray(value) && typeof value === 'object' && value !== null && 'url' in value;
-                // Verifica se é um valor Sim/Não
                 const valorStr = String(value).toLowerCase();
                 const isSimNao = valorStr === 'sim' || valorStr === 'não' || valorStr === 'nao';
+                const nomeFormatado = key.replace(/_/g, ' ').toUpperCase();
 
                 return (
                   <div key={idx} className={`border-b border-gray-200 pb-2 ${isSimNao ? 'flex items-center justify-between' : ''}`}>
-                    <span className="font-semibold text-gray-700">{formatarNomeCampo(key)}:</span>
+                    <span className="font-semibold text-gray-700">{nomeFormatado}:</span>
                     {isAnexoArray ? (
                       <div className="mt-2 space-y-1">
                         {(value as any[]).map((anexo: any, anexoIdx: number) => (
-                          <a
-                            key={anexoIdx}
-                            href={anexo.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-200 hover:bg-blue-100 transition group"
-                          >
+                          <a key={anexoIdx} href={anexo.url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-blue-50 rounded border border-blue-200 hover:bg-blue-100 transition">
                             <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
-                            <span className="text-blue-700 group-hover:text-blue-900 truncate">{anexo.filename || 'Arquivo'}</span>
-                            <svg className="w-4 h-4 text-blue-400 group-hover:text-blue-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
+                            <span className="text-blue-700 truncate">{anexo.filename || 'Arquivo'}</span>
                           </a>
                         ))}
                       </div>
                     ) : isAnexoSingle ? (
-                      <a
-                        href={(value as any).url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-2 mt-2 bg-blue-50 rounded border border-blue-200 hover:bg-blue-100 transition group"
-                      >
+                      <a href={(value as any).url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-2 mt-2 bg-blue-50 rounded border border-blue-200 hover:bg-blue-100 transition">
                         <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
-                        <span className="text-blue-700 group-hover:text-blue-900 truncate">{(value as any).filename || 'Arquivo'}</span>
-                        <svg className="w-4 h-4 text-blue-400 group-hover:text-blue-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
+                        <span className="text-blue-700 truncate">{(value as any).filename || 'Arquivo'}</span>
                       </a>
                     ) : isSimNao ? (
                       <span className={`ml-2 px-3 py-1 rounded-full text-sm font-bold ${
-                        valorStr === 'sim'
-                          ? 'bg-green-100 text-green-800 border border-green-300'
-                          : 'bg-red-100 text-red-800 border border-red-300'
-                      }`}>
-                        {String(value)}
-                      </span>
+                        valorStr === 'sim' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'
+                      }`}>{String(value)}</span>
                     ) : (
                       <p className="text-gray-900 mt-1">
                         {typeof value === 'object' ? JSON.stringify(value) : String(value)}
@@ -1237,9 +1240,36 @@ export default function ModalVisualizarFormulario({
           <>
             {/* Informações de preenchimento */}
             <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">Preenchido por:</span> {formulario.preenchido_por}
-              </p>
+              {(() => {
+                // Coletar usuarios unicos dos checks individuais
+                const dados = formulario.dados_formulario
+                  ? (typeof formulario.dados_formulario === 'string'
+                    ? JSON.parse(formulario.dados_formulario)
+                    : formulario.dados_formulario)
+                  : {};
+                const usuariosUnicos = new Set<string>();
+                Object.entries(dados).forEach(([key, value]) => {
+                  if (key.endsWith('_usuario') && value) usuariosUnicos.add(value as string);
+                });
+                if (usuariosUnicos.size > 0) {
+                  return (
+                    <>
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold">Verificado por:</span>{' '}
+                        {Array.from(usuariosUnicos).join(', ')}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold">Finalizado por:</span> {formulario.preenchido_por}
+                      </p>
+                    </>
+                  );
+                }
+                return (
+                  <p className="text-sm text-gray-700">
+                    <span className="font-semibold">Preenchido por:</span> {formulario.preenchido_por}
+                  </p>
+                );
+              })()}
               <p className="text-sm text-gray-700">
                 <span className="font-semibold">Data:</span> {new Date(formulario.data_preenchimento || formulario.created).toLocaleString('pt-BR')}
               </p>
@@ -1396,7 +1426,7 @@ export default function ModalVisualizarFormulario({
               tipoFormulario.startsWith('PINTURA') ||
               tipoFormulario.startsWith('EXPEDICAO') ||
               tipoFormulario.startsWith('COLETOR')) && renderFormularioDetalhado()}
-            {isNovoCQ() && !tipoFormulario.startsWith('COLETOR') && renderGenericCQ()}
+            {isNovoCQ() && !tipoFormulario.startsWith('COLETOR') && renderFormularioDetalhado()}
             {isDocumentos() && renderDocumentos()}
             {isRevisaoProjetos() && renderRevisaoProjetos()}
             {/* Fallback para formulários não específicos - usar visualização detalhada */}
