@@ -57,6 +57,7 @@ export default function ConfiguradorPage() {
   const [decisorTelefone, setDecisorTelefone] = useState('');
   const [decisorEmail, setDecisorEmail] = useState('');
   const [errosDecisor, setErrosDecisor] = useState<{ telefone?: string; email?: string }>({});
+  const [errosForm, setErrosForm] = useState<Record<string, string>>({});
   const [prazoEntrega, setPrazoEntrega] = useState('120 dias');
   const [garantiaMeses, setGarantiaMeses] = useState(12);
   const [formaPagamento, setFormaPagamento] = useState('');
@@ -281,8 +282,31 @@ export default function ConfiguradorPage() {
     validarEmailDecisor(val);
   };
 
+  const validarFormulario = (): boolean => {
+    const erros: Record<string, string> = {};
+    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) erros.cnpj = 'CNPJ obrigatorio';
+    if (!clienteEmpresa.trim()) erros.empresa = 'Empresa obrigatoria';
+    if (!clienteNome.trim()) erros.clienteNome = 'Nome do contato obrigatorio';
+    if (!decisorNome.trim()) erros.decisorNome = 'Nome do decisor obrigatorio';
+    const telLimpo = decisorTelefone.replace(/\D/g, '');
+    if (!telLimpo || telLimpo.length < 10) erros.decisorTelefone = 'Telefone do decisor obrigatorio (minimo 10 digitos)';
+    if (!decisorEmail.trim()) {
+      erros.decisorEmail = 'Email do decisor obrigatorio';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(decisorEmail)) {
+      erros.decisorEmail = 'Email invalido';
+    }
+    // Check anti-vendor errors
+    if (errosDecisor.telefone) erros.decisorTelefone = errosDecisor.telefone;
+    if (errosDecisor.email) erros.decisorEmail = errosDecisor.email;
+
+    setErrosForm(erros);
+    return Object.keys(erros).length === 0;
+  };
+
   const handleGerarPDF = () => {
     if (!precoSelecionado || !calculo) return;
+    if (!validarFormulario()) return;
 
     const itens: ItemOrcamento[] = [
       {
@@ -502,31 +526,35 @@ export default function ConfiguradorPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <CampoCNPJ
                     value={cnpj}
-                    onChange={setCnpj}
+                    onChange={(v) => { setCnpj(v); setErrosForm(prev => { const n = { ...prev }; delete n.cnpj; return n; }); }}
                     onDadosCarregados={handleCnpjDados}
+                    required
+                    error={errosForm.cnpj}
                   />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={clienteEmpresa}
-                      onChange={e => setClienteEmpresa(e.target.value)}
+                      onChange={e => { setClienteEmpresa(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.empresa; return n; }); }}
                       placeholder="Preenchido automaticamente pelo CNPJ"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.empresa ? 'border-red-500' : 'border-gray-300'}`}
                     />
+                    {errosForm.empresa && <p className="text-xs text-red-500 mt-1">{errosForm.empresa}</p>}
                   </div>
                 </div>
 
                 {/* Contato */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Contato</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Contato <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={clienteNome}
-                    onChange={e => setClienteNome(e.target.value)}
+                    onChange={e => { setClienteNome(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.clienteNome; return n; }); }}
                     placeholder="Nome do contato na empresa"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.clienteNome ? 'border-red-500' : 'border-gray-300'}`}
                   />
+                  {errosForm.clienteNome && <p className="text-xs text-red-500 mt-1">{errosForm.clienteNome}</p>}
                 </div>
 
                 {/* Decisor da Compra */}
@@ -534,43 +562,44 @@ export default function ConfiguradorPage() {
                   <h3 className="text-sm font-semibold text-gray-800 mb-3">Decisor da Compra</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Decisor</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Decisor <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={decisorNome}
-                        onChange={e => setDecisorNome(e.target.value)}
+                        onChange={e => { setDecisorNome(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorNome; return n; }); }}
                         placeholder="Quem decide a compra"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.decisorNome ? 'border-red-500' : 'border-gray-300'}`}
                       />
+                      {errosForm.decisorNome && <p className="text-xs text-red-500 mt-1">{errosForm.decisorNome}</p>}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Decisor</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Decisor <span className="text-red-500">*</span></label>
                       <input
                         type="tel"
                         value={decisorTelefone}
-                        onChange={e => handleTelefoneChange(e.target.value)}
+                        onChange={e => { handleTelefoneChange(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorTelefone; return n; }); }}
                         placeholder="(00) 00000-0000"
                         className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
-                          errosDecisor.telefone ? 'border-red-500' : 'border-gray-300'
+                          errosDecisor.telefone || errosForm.decisorTelefone ? 'border-red-500' : 'border-gray-300'
                         }`}
                       />
-                      {errosDecisor.telefone && (
-                        <p className="text-xs text-red-500 mt-1">{errosDecisor.telefone}</p>
+                      {(errosDecisor.telefone || errosForm.decisorTelefone) && (
+                        <p className="text-xs text-red-500 mt-1">{errosDecisor.telefone || errosForm.decisorTelefone}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Decisor</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Decisor <span className="text-red-500">*</span></label>
                       <input
                         type="email"
                         value={decisorEmail}
-                        onChange={e => handleEmailChange(e.target.value)}
+                        onChange={e => { handleEmailChange(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorEmail; return n; }); }}
                         placeholder="decisor@empresa.com"
                         className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
-                          errosDecisor.email ? 'border-red-500' : 'border-gray-300'
+                          errosDecisor.email || errosForm.decisorEmail ? 'border-red-500' : 'border-gray-300'
                         }`}
                       />
-                      {errosDecisor.email && (
-                        <p className="text-xs text-red-500 mt-1">{errosDecisor.email}</p>
+                      {(errosDecisor.email || errosForm.decisorEmail) && (
+                        <p className="text-xs text-red-500 mt-1">{errosDecisor.email || errosForm.decisorEmail}</p>
                       )}
                     </div>
                   </div>
@@ -716,9 +745,15 @@ export default function ConfiguradorPage() {
                   </div>
                 </div>
 
+                {Object.keys(errosForm).length > 0 && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 font-medium">Preencha os campos obrigatorios marcados com *</p>
+                  </div>
+                )}
+
                 <button
                   onClick={handleGerarPDF}
-                  className="mt-6 w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-bold flex items-center justify-center gap-2"
+                  className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-bold flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
