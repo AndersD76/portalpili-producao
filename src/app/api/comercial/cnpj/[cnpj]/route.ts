@@ -21,7 +21,7 @@ export async function GET(
 
     // Verifica se já existe no banco
     const clienteExistente = await query(
-      `SELECT * FROM crm_clientes WHERE cnpj = $1`,
+      `SELECT * FROM crm_clientes WHERE cpf_cnpj = $1`,
       [cnpjLimpo]
     );
 
