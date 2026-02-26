@@ -146,7 +146,11 @@ export async function enviarMensagemWhatsAppTemplate(
 }
 
 /**
- * Envia template com fallback para texto livre se o template falhar
+ * Envia mensagem priorizando texto livre, com fallback para template.
+ *
+ * Texto livre funciona se houver janela de 24h (destinatário já mandou msg).
+ * Template funciona sem janela, mas só se estiver APPROVED na Meta.
+ * Atualmente todos os templates estão PENDING, então texto livre é mais confiável.
  */
 async function enviarComFallback(
   telefone: string,
@@ -154,16 +158,24 @@ async function enviarComFallback(
   parametros: string[],
   mensagemFallback: string
 ): Promise<WhatsAppResult> {
-  // Tentar template primeiro
-  const resultado = await enviarMensagemWhatsAppTemplate(telefone, templateName, parametros);
-  if (resultado.success) {
-    return resultado;
+  // 1. Tentar texto livre primeiro (funciona se houver janela 24h)
+  const textoResult = await enviarMensagemWhatsApp(telefone, mensagemFallback);
+  if (textoResult.success) {
+    console.log(`[WhatsApp] Texto livre enviado com sucesso para ${telefone}`);
+    return { ...textoResult, usou_template: false };
   }
 
-  // Se template falhou (pendente, rejeitado, etc.), tentar texto livre
-  console.log(`[WhatsApp] Template ${templateName} falhou (${resultado.error}), tentando texto livre...`);
-  const fallback = await enviarMensagemWhatsApp(telefone, mensagemFallback);
-  return { ...fallback, usou_template: false };
+  // 2. Sem janela 24h - tentar template (funciona se template APPROVED)
+  console.log(`[WhatsApp] Texto livre falhou (${textoResult.error}), tentando template ${templateName}...`);
+  const templateResult = await enviarMensagemWhatsAppTemplate(telefone, templateName, parametros);
+  if (templateResult.success) {
+    console.log(`[WhatsApp] Template ${templateName} aceito pela Meta (verificar se APPROVED para entrega)`);
+    return templateResult;
+  }
+
+  // 3. Ambos falharam
+  console.error(`[WhatsApp] Falha total: texto="${textoResult.error}" template="${templateResult.error}"`);
+  return { success: false, error: `Texto: ${textoResult.error} | Template: ${templateResult.error}` };
 }
 
 // === Funções de envio por tipo ===
