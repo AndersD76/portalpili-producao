@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Permissao {
   modulo_id: number;
@@ -203,66 +203,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.id, fetchPermissoes]);
 
-  // Re-sync auth state on browser back/forward navigation and tab visibility
-  useEffect(() => {
-    const syncAuthFromStorage = () => {
-      const authFlag = localStorage.getItem('authenticated');
-      const userData = localStorage.getItem('user_data');
+  // Re-sync auth state on browser back/forward, tab focus, and route changes
+  const pathname = usePathname();
 
-      if (authFlag === 'true' && userData) {
-        try {
-          const parsed: UserData = JSON.parse(userData);
-          // Only update if user changed or was lost
-          if (!user || user.id !== parsed.id) {
-            setUser(parsed);
-            setAuthenticated(true);
-            if (parsed.is_admin === true) {
-              setIsAdmin(true);
-            }
-            clearPermissoesCache();
+  const syncAuthFromStorage = useCallback(() => {
+    const authFlag = localStorage.getItem('authenticated');
+    const userData = localStorage.getItem('user_data');
+
+    if (authFlag === 'true' && userData) {
+      try {
+        const parsed: UserData = JSON.parse(userData);
+        if (!user || user.id !== parsed.id) {
+          setUser(parsed);
+          setAuthenticated(true);
+          if (parsed.is_admin === true) {
+            setIsAdmin(true);
           }
-        } catch {
-          // Corrupted data, logout
-          setAuthenticated(false);
-          setUser(null);
-          setPermissoes([]);
+          clearPermissoesCache();
+        } else if (!authenticated) {
+          // User matches but authenticated flag was lost
+          setAuthenticated(true);
         }
-      } else if (authenticated) {
-        // Was authenticated but localStorage cleared
+      } catch {
         setAuthenticated(false);
         setUser(null);
         setPermissoes([]);
-        setIsAdmin(false);
       }
-    };
+    } else if (authenticated) {
+      setAuthenticated(false);
+      setUser(null);
+      setPermissoes([]);
+      setIsAdmin(false);
+    }
+  }, [user, authenticated]);
 
-    const handlePopState = () => {
-      syncAuthFromStorage();
-    };
+  // Sync on every route change (catches back/forward via Next.js router)
+  useEffect(() => {
+    syncAuthFromStorage();
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const handlePopState = () => syncAuthFromStorage();
+    const handleFocus = () => syncAuthFromStorage();
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        syncAuthFromStorage();
-      }
+      if (!document.hidden) syncAuthFromStorage();
     };
-
-    // Handle bfcache restore (pageshow event fires when page is restored from bfcache)
     const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        syncAuthFromStorage();
-      }
+      if (e.persisted) syncAuthFromStorage();
     };
 
     window.addEventListener('popstate', handlePopState);
+    window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [user, authenticated]);
+  }, [syncAuthFromStorage]);
 
   const podeAcessarModulo = useCallback((codigoOuRota: string): boolean => {
     if (isAdmin) return true;

@@ -111,7 +111,18 @@ export default function FormularioTravadorRodas({ opd, cliente, atividadeId, onS
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // Ao preencher um campo _status, registrar qual usuario fez e quando
+    if (name.endsWith('_status') && value) {
+      const base = name.replace('_status', '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        [`${base}_usuario`]: getUsuario(),
+        [`${base}_data`]: new Date().toISOString(),
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const getUsuario = () => {

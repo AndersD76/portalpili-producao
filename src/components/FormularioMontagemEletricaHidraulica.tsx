@@ -132,6 +132,16 @@ export default function FormularioMontagemEletricaHidraulica({
     return 'Sistema';
   };
 
+  const handleStatusChange = (statusField: string, value: string) => {
+    const base = statusField.replace('_status', '');
+    setFormData(prev => ({
+      ...prev,
+      [statusField]: value,
+      [`${base}_usuario`]: getUsuario(),
+      [`${base}_data`]: new Date().toISOString(),
+    }));
+  };
+
   const handleSalvarRascunho = async () => {
     setSavingDraft(true);
 
@@ -242,7 +252,7 @@ export default function FormularioMontagemEletricaHidraulica({
             <input
               type="text"
               value={formData[statusField as keyof typeof formData] as string}
-              onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
+              onChange={(e) => handleStatusChange(statusField, e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               placeholder="Digite a resposta..."
               required
@@ -250,7 +260,7 @@ export default function FormularioMontagemEletricaHidraulica({
           ) : (
             <select
               value={formData[statusField as keyof typeof formData] as string}
-              onChange={(e) => setFormData(prev => ({ ...prev, [statusField]: e.target.value }))}
+              onChange={(e) => handleStatusChange(statusField, e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               required
             >

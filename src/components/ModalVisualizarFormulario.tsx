@@ -866,21 +866,24 @@ export default function ModalVisualizarFormulario({
                     </span>
                   </div>
 
-                  {/* Usuario + Data */}
-                  {check.usuario && (
-                    <div className="px-3 pb-1 flex items-center gap-1 text-xs opacity-80">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <span>{check.usuario}</span>
-                      {check.data && (
-                        <>
-                          <span className="mx-1">-</span>
-                          <span>{new Date(check.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                        </>
-                      )}
-                    </div>
-                  )}
+                  {/* Usuario + Data (sempre mostra - fallback para preenchido_por) */}
+                  <div className="px-3 pb-1 flex items-center gap-1 text-xs opacity-80">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>{check.usuario || formulario?.preenchido_por || 'N/A'}</span>
+                    {check.data ? (
+                      <>
+                        <span className="mx-1">-</span>
+                        <span>{new Date(check.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      </>
+                    ) : formulario?.data_preenchimento ? (
+                      <>
+                        <span className="mx-1">-</span>
+                        <span>{new Date(formulario.data_preenchimento).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      </>
+                    ) : null}
+                  </div>
 
                   {/* Imagens inline */}
                   {check.imagens && Array.isArray(check.imagens) && check.imagens.length > 0 && (

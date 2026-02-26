@@ -277,7 +277,17 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name.endsWith('_status') && value) {
+      const base = name.replace('_status', '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        [`${base}_usuario`]: getUsuario(),
+        [`${base}_data`]: new Date().toISOString(),
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
