@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { gerarOrcamentoPDF, DadosOrcamento, ItemOrcamento } from '@/lib/comercial/orcamento-pdf';
+import CampoCNPJ from '@/components/comercial/CampoCNPJ';
 
 interface PrecoBase {
   id: number;
@@ -44,16 +45,25 @@ export default function ConfiguradorPage() {
 
   // Step 2
   const [opcionaisSelecionados, setOpcionaisSelecionados] = useState<number[]>([]);
+  const [quantidadesOpcionais, setQuantidadesOpcionais] = useState<Record<number, number>>({});
 
   // Step 3
   const [quantidade, setQuantidade] = useState(1);
   const [descontoManual, setDescontoManual] = useState(0);
+  const [cnpj, setCnpj] = useState('');
   const [clienteNome, setClienteNome] = useState('');
   const [clienteEmpresa, setClienteEmpresa] = useState('');
+  const [decisorNome, setDecisorNome] = useState('');
+  const [decisorTelefone, setDecisorTelefone] = useState('');
+  const [decisorEmail, setDecisorEmail] = useState('');
+  const [errosDecisor, setErrosDecisor] = useState<{ telefone?: string; email?: string }>({});
   const [prazoEntrega, setPrazoEntrega] = useState('120 dias');
   const [garantiaMeses, setGarantiaMeses] = useState(12);
   const [formaPagamento, setFormaPagamento] = useState('');
   const [observacoes, setObservacoes] = useState('');
+
+  // Vendedor logado (para validacao)
+  const [vendedorDados, setVendedorDados] = useState<{ telefone?: string; email?: string; whatsapp?: string } | null>(null);
 
   const router = useRouter();
   const { authenticated, loading: authLoading, user: usuario } = useAuth();
@@ -63,6 +73,23 @@ export default function ConfiguradorPage() {
     if (!authenticated) { router.push('/login'); return; }
     fetchData();
   }, [authLoading, authenticated]);
+
+  // Buscar dados do vendedor logado para validacao
+  useEffect(() => {
+    if (!usuario?.id) return;
+    fetch('/api/comercial/vendedores/me')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setVendedorDados({
+            telefone: data.data.telefone,
+            email: data.data.email,
+            whatsapp: data.data.whatsapp,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [usuario?.id]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -113,7 +140,8 @@ export default function ConfiguradorPage() {
     return grupos;
   }, [opcionaisDisponiveis]);
 
-  const calcularPrecoOpcional = (opc: PrecoOpcional): number => {
+  // Calcula preco unitario base de um opcional (sem multiplicar pela qt do opcional)
+  const calcularPrecoOpcionalBase = useCallback((opc: PrecoOpcional): number => {
     if (!precoSelecionado) return 0;
     const val = Number(opc.valor) || 0;
     const precoBase = Number(precoSelecionado.preco) || 0;
@@ -125,7 +153,16 @@ export default function ConfiguradorPage() {
       case 'POR_LITRO': return val;
       default: return val; // FIXO
     }
-  };
+  }, [precoSelecionado]);
+
+  // Calcula preco total de um opcional (considerando qt para POR_UNIDADE)
+  const calcularPrecoOpcional = useCallback((opc: PrecoOpcional): number => {
+    const valorBase = calcularPrecoOpcionalBase(opc);
+    if (opc.tipo_valor === 'POR_UNIDADE') {
+      return valorBase * (quantidadesOpcionais[opc.id] || 1);
+    }
+    return valorBase;
+  }, [calcularPrecoOpcionalBase, quantidadesOpcionais]);
 
   const calculo = useMemo(() => {
     if (!precoSelecionado) return null;
@@ -136,13 +173,15 @@ export default function ConfiguradorPage() {
     opcionaisDisponiveis
       .filter(o => opcionaisSelecionados.includes(o.id))
       .forEach(o => {
-        const valor = calcularPrecoOpcional(o);
+        const valorUnit = calcularPrecoOpcionalBase(o);
+        const qtOpc = o.tipo_valor === 'POR_UNIDADE' ? (quantidadesOpcionais[o.id] || 1) : 1;
+        const valor = valorUnit * qtOpc;
         subtotalOpcionais += valor;
         itensOpcionais.push({
           descricao: o.nome,
           tipo: 'OPCIONAL',
-          quantidade: 1,
-          valorUnitario: valor,
+          quantidade: qtOpc,
+          valorUnitario: valorUnit,
           valorTotal: valor,
         });
       });
@@ -161,15 +200,85 @@ export default function ConfiguradorPage() {
       valorFinal,
       itensOpcionais,
     };
-  }, [precoSelecionado, opcionaisSelecionados, opcionaisDisponiveis, quantidade, descontoManual]);
+  }, [precoSelecionado, opcionaisSelecionados, opcionaisDisponiveis, quantidade, descontoManual, quantidadesOpcionais, calcularPrecoOpcionalBase]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+  const limparTelefone = (tel: string) => tel.replace(/\D/g, '');
 
   const toggleOpcional = (id: number) => {
     setOpcionaisSelecionados(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
+  };
+
+  const handleCnpjDados = useCallback((dados: { razao_social: string; nome_fantasia?: string; telefone?: string; email?: string } | null) => {
+    if (dados) {
+      setClienteEmpresa(dados.nome_fantasia || dados.razao_social || '');
+    }
+  }, []);
+
+  // Validacao telefone do decisor
+  const validarTelefoneDecisor = useCallback((tel: string) => {
+    if (!tel) {
+      setErrosDecisor(prev => ({ ...prev, telefone: undefined }));
+      return;
+    }
+    const telLimpo = limparTelefone(tel);
+    if (telLimpo.length < 10) {
+      setErrosDecisor(prev => ({ ...prev, telefone: 'Telefone invalido (minimo 10 digitos)' }));
+      return;
+    }
+    // Comparar com dados do vendedor
+    const vendTel = limparTelefone(vendedorDados?.telefone || '');
+    const vendWhats = limparTelefone(vendedorDados?.whatsapp || '');
+    const vendEmail = usuario?.email || '';
+    if ((vendTel && telLimpo === vendTel) || (vendWhats && telLimpo === vendWhats)) {
+      setErrosDecisor(prev => ({ ...prev, telefone: `Este telefone pertence ao vendedor (${vendEmail}). Informe o contato do decisor da compra.` }));
+      return;
+    }
+    setErrosDecisor(prev => ({ ...prev, telefone: undefined }));
+  }, [vendedorDados, usuario]);
+
+  // Validacao email do decisor
+  const validarEmailDecisor = useCallback((email: string) => {
+    if (!email) {
+      setErrosDecisor(prev => ({ ...prev, email: undefined }));
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrosDecisor(prev => ({ ...prev, email: 'Email invalido' }));
+      return;
+    }
+    // Comparar com dados do vendedor
+    const vendEmail = (vendedorDados?.email || usuario?.email || '').toLowerCase();
+    if (vendEmail && email.toLowerCase() === vendEmail) {
+      setErrosDecisor(prev => ({ ...prev, email: `Este email pertence ao vendedor. Informe o email do decisor da compra.` }));
+      return;
+    }
+    setErrosDecisor(prev => ({ ...prev, email: undefined }));
+  }, [vendedorDados, usuario]);
+
+  // Formatar telefone ao digitar
+  const handleTelefoneChange = (val: string) => {
+    let limpo = val.replace(/\D/g, '');
+    if (limpo.length > 11) limpo = limpo.substring(0, 11);
+    // Formatar
+    let formatado = limpo;
+    if (limpo.length > 6) {
+      formatado = `(${limpo.substring(0, 2)}) ${limpo.substring(2, limpo.length - 4)}-${limpo.substring(limpo.length - 4)}`;
+    } else if (limpo.length > 2) {
+      formatado = `(${limpo.substring(0, 2)}) ${limpo.substring(2)}`;
+    }
+    setDecisorTelefone(formatado);
+    validarTelefoneDecisor(limpo);
+  };
+
+  const handleEmailChange = (val: string) => {
+    setDecisorEmail(val);
+    validarEmailDecisor(val);
   };
 
   const handleGerarPDF = () => {
@@ -185,14 +294,18 @@ export default function ConfiguradorPage() {
       },
       ...calculo.itensOpcionais.map(item => ({
         ...item,
-        quantidade: quantidade,
-        valorTotal: item.valorUnitario * quantidade,
+        quantidade: item.quantidade * quantidade,
+        valorTotal: item.valorTotal * quantidade,
       })),
     ];
 
     const dados: DadosOrcamento = {
       clienteNome: clienteNome || undefined,
       clienteEmpresa: clienteEmpresa || undefined,
+      clienteCNPJ: cnpj ? cnpj.replace(/[^\d]/g, '') : undefined,
+      decisorNome: decisorNome || undefined,
+      decisorTelefone: decisorTelefone || undefined,
+      decisorEmail: decisorEmail || undefined,
       produto: precoSelecionado.tipo_produto,
       descricaoProduto: precoSelecionado.descricao || `${precoSelecionado.tipo_produto} ${precoSelecionado.modelo || ''} ${precoSelecionado.comprimento ? precoSelecionado.comprimento + 'm' : ''}`,
       tamanho: precoSelecionado.comprimento,
@@ -256,7 +369,7 @@ export default function ConfiguradorPage() {
               {['TOMBADOR', 'COLETOR'].map(p => (
                 <button
                   key={p}
-                  onClick={() => { setProduto(p); setPrecoBaseId(null); setOpcionaisSelecionados([]); }}
+                  onClick={() => { setProduto(p); setPrecoBaseId(null); setOpcionaisSelecionados([]); setQuantidadesOpcionais({}); }}
                   className={`p-4 rounded-lg border-2 text-center font-bold transition ${
                     produto === p
                       ? 'border-red-600 bg-red-50 text-red-700'
@@ -275,7 +388,7 @@ export default function ConfiguradorPage() {
                   {tamanhosDisponiveis.map(pb => (
                     <button
                       key={pb.id}
-                      onClick={() => { setPrecoBaseId(pb.id); setOpcionaisSelecionados([]); }}
+                      onClick={() => { setPrecoBaseId(pb.id); setOpcionaisSelecionados([]); setQuantidadesOpcionais({}); }}
                       className={`p-3 rounded-lg border text-left transition ${
                         precoBaseId === pb.id
                           ? 'border-red-600 bg-red-50 ring-1 ring-red-600'
@@ -311,36 +424,61 @@ export default function ConfiguradorPage() {
                       <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">{cat}</h3>
                       <div className="space-y-1">
                         {items.map(opc => {
-                          const precoCalc = calcularPrecoOpcional(opc);
                           const checked = opcionaisSelecionados.includes(opc.id);
+                          const isPorUnidade = opc.tipo_valor === 'POR_UNIDADE';
+                          const valorBase = calcularPrecoOpcionalBase(opc);
+                          const qtOpc = quantidadesOpcionais[opc.id] || 1;
+                          const precoCalc = isPorUnidade ? valorBase * qtOpc : valorBase;
                           return (
-                            <label
-                              key={opc.id}
-                              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition ${
-                                checked ? 'bg-red-50 border border-red-200' : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleOpcional(opc.id)}
-                                  className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                                />
-                                <div>
-                                  <span className="text-sm font-medium text-gray-900">{opc.nome}</span>
-                                  <span className="text-xs text-gray-400 ml-2">
-                                    {opc.tipo_valor === 'FIXO' ? 'Fixo' :
-                                     opc.tipo_valor === 'POR_METRO' ? 'Por metro' :
-                                     opc.tipo_valor === 'PERCENTUAL' ? '%' :
-                                     opc.tipo_valor}
+                            <div key={opc.id}>
+                              <label
+                                className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition ${
+                                  checked ? 'bg-red-50 border border-red-200' : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleOpcional(opc.id)}
+                                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                  />
+                                  <div>
+                                    <span className="text-sm font-medium text-gray-900">{opc.nome}</span>
+                                    <span className="text-xs text-gray-400 ml-2">
+                                      {opc.tipo_valor === 'FIXO' ? 'Fixo' :
+                                       opc.tipo_valor === 'POR_METRO' ? 'Por metro' :
+                                       opc.tipo_valor === 'PERCENTUAL' ? '%' :
+                                       opc.tipo_valor === 'POR_UNIDADE' ? 'Por unidade' :
+                                       opc.tipo_valor}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className={`text-sm font-semibold ${checked ? 'text-red-700' : 'text-gray-600'}`}>
+                                  {precoCalc === 0 ? 'Incluso' : formatCurrency(precoCalc)}
+                                </span>
+                              </label>
+                              {/* Campo de quantidade para POR_UNIDADE quando selecionado */}
+                              {isPorUnidade && checked && (
+                                <div className="ml-10 mt-1 mb-2 flex items-center gap-2">
+                                  <label className="text-xs text-gray-500">Quantidade:</label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    value={qtOpc}
+                                    onChange={e => {
+                                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                                      setQuantidadesOpcionais(prev => ({ ...prev, [opc.id]: val }));
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-red-500"
+                                  />
+                                  <span className="text-xs text-gray-400">
+                                    x {formatCurrency(valorBase)} = {formatCurrency(valorBase * qtOpc)}
                                   </span>
                                 </div>
-                              </div>
-                              <span className={`text-sm font-semibold ${checked ? 'text-red-700' : 'text-gray-600'}`}>
-                                {precoCalc === 0 ? 'Incluso' : formatCurrency(precoCalc)}
-                              </span>
-                            </label>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
@@ -359,95 +497,156 @@ export default function ConfiguradorPage() {
                 Condicoes Comerciais
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-5">
+                {/* CNPJ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <CampoCNPJ
+                    value={cnpj}
+                    onChange={setCnpj}
+                    onDadosCarregados={handleCnpjDados}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                    <input
+                      type="text"
+                      value={clienteEmpresa}
+                      onChange={e => setClienteEmpresa(e.target.value)}
+                      placeholder="Preenchido automaticamente pelo CNPJ"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Contato */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cliente (opcional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Contato</label>
                   <input
                     type="text"
                     value={clienteNome}
                     onChange={e => setClienteNome(e.target.value)}
-                    placeholder="Nome do contato"
+                    placeholder="Nome do contato na empresa"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Empresa (opcional)</label>
-                  <input
-                    type="text"
-                    value={clienteEmpresa}
-                    onChange={e => setClienteEmpresa(e.target.value)}
-                    placeholder="Nome da empresa"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
+
+                {/* Decisor da Compra */}
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Decisor da Compra</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Decisor</label>
+                      <input
+                        type="text"
+                        value={decisorNome}
+                        onChange={e => setDecisorNome(e.target.value)}
+                        placeholder="Quem decide a compra"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Decisor</label>
+                      <input
+                        type="tel"
+                        value={decisorTelefone}
+                        onChange={e => handleTelefoneChange(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
+                          errosDecisor.telefone ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      {errosDecisor.telefone && (
+                        <p className="text-xs text-red-500 mt-1">{errosDecisor.telefone}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Decisor</label>
+                      <input
+                        type="email"
+                        value={decisorEmail}
+                        onChange={e => handleEmailChange(e.target.value)}
+                        placeholder="decisor@empresa.com"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
+                          errosDecisor.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      {errosDecisor.email && (
+                        <p className="text-xs text-red-500 mt-1">{errosDecisor.email}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={quantidade}
-                    onChange={e => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={15}
-                    step={0.5}
-                    value={descontoManual}
-                    onChange={e => setDescontoManual(Math.min(15, Math.max(0, parseFloat(e.target.value) || 0)))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Entrega</label>
-                  <select
-                    value={prazoEntrega}
-                    onChange={e => setPrazoEntrega(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  >
-                    <option value="90 dias">90 dias</option>
-                    <option value="120 dias">120 dias</option>
-                    <option value="150 dias">150 dias</option>
-                    <option value="180 dias">180 dias</option>
-                    <option value="A combinar">A combinar</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Garantia</label>
-                  <select
-                    value={garantiaMeses}
-                    onChange={e => setGarantiaMeses(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  >
-                    <option value={6}>6 meses</option>
-                    <option value={12}>12 meses</option>
-                    <option value={18}>18 meses</option>
-                    <option value={24}>24 meses</option>
-                  </select>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
-                  <input
-                    type="text"
-                    value={formaPagamento}
-                    onChange={e => setFormaPagamento(e.target.value)}
-                    placeholder="Ex: 30/60/90 dias, BNDES, etc"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Observacoes</label>
-                  <textarea
-                    value={observacoes}
-                    onChange={e => setObservacoes(e.target.value)}
-                    rows={3}
-                    placeholder="Observacoes adicionais..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                  />
+
+                {/* Quantidade, Desconto, etc */}
+                <div className="border-t pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={quantidade}
+                      onChange={e => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={15}
+                      step={0.5}
+                      value={descontoManual}
+                      onChange={e => setDescontoManual(Math.min(15, Math.max(0, parseFloat(e.target.value) || 0)))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Entrega</label>
+                    <select
+                      value={prazoEntrega}
+                      onChange={e => setPrazoEntrega(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="90 dias">90 dias</option>
+                      <option value="120 dias">120 dias</option>
+                      <option value="150 dias">150 dias</option>
+                      <option value="180 dias">180 dias</option>
+                      <option value="A combinar">A combinar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Garantia</label>
+                    <select
+                      value={garantiaMeses}
+                      onChange={e => setGarantiaMeses(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value={6}>6 meses</option>
+                      <option value={12}>12 meses</option>
+                      <option value={18}>18 meses</option>
+                      <option value={24}>24 meses</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
+                    <input
+                      type="text"
+                      value={formaPagamento}
+                      onChange={e => setFormaPagamento(e.target.value)}
+                      placeholder="Ex: 30/60/90 dias, BNDES, etc"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Observacoes</label>
+                    <textarea
+                      value={observacoes}
+                      onChange={e => setObservacoes(e.target.value)}
+                      rows={3}
+                      placeholder="Observacoes adicionais..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -476,7 +675,10 @@ export default function ConfiguradorPage() {
                       </div>
                       {calculo.itensOpcionais.map((item, i) => (
                         <div key={i} className="flex justify-between text-xs">
-                          <span className="text-gray-500 truncate mr-2">{item.descricao}</span>
+                          <span className="text-gray-500 truncate mr-2">
+                            {item.descricao}
+                            {item.quantidade > 1 && ` (x${item.quantidade})`}
+                          </span>
                           <span className="flex-shrink-0">{item.valorTotal === 0 ? 'Incluso' : formatCurrency(item.valorTotal)}</span>
                         </div>
                       ))}

@@ -12,6 +12,10 @@ export interface ItemOrcamento {
 export interface DadosOrcamento {
   clienteNome?: string;
   clienteEmpresa?: string;
+  clienteCNPJ?: string;
+  decisorNome?: string;
+  decisorTelefone?: string;
+  decisorEmail?: string;
 
   produto: string;
   descricaoProduto: string;
@@ -78,9 +82,15 @@ export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
   let y = 38;
 
   // === CLIENTE ===
-  if (dados.clienteNome || dados.clienteEmpresa) {
+  if (dados.clienteNome || dados.clienteEmpresa || dados.clienteCNPJ) {
+    // Calcular altura do bloco
+    let blockH = 18;
+    if (dados.clienteEmpresa && dados.clienteNome) blockH = 22;
+    if (dados.clienteCNPJ) blockH += 5;
+    if (dados.decisorNome || dados.decisorTelefone || dados.decisorEmail) blockH += 10;
+
     doc.setFillColor(249, 250, 251);
-    doc.roundedRect(14, y, pageW - 28, 18, 2, 2, 'F');
+    doc.roundedRect(14, y, pageW - 28, blockH, 2, 2, 'F');
 
     doc.setFontSize(8);
     doc.setTextColor(107, 114, 128);
@@ -90,14 +100,39 @@ export function gerarOrcamentoPDF(dados: DadosOrcamento): void {
     doc.setTextColor(17, 24, 39);
     doc.setFont('helvetica', 'bold');
     doc.text(dados.clienteEmpresa || dados.clienteNome || '', 18, y + 12);
+
+    let clienteY = y + 12;
+
+    if (dados.clienteCNPJ) {
+      const cnpjFormatado = dados.clienteCNPJ.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(107, 114, 128);
+      doc.text(`CNPJ: ${cnpjFormatado}`, pageW - 18, y + 5, { align: 'right' });
+    }
+
     if (dados.clienteEmpresa && dados.clienteNome) {
+      clienteY += 5;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(`A/C: ${dados.clienteNome}`, 18, y + 16);
-      y += 22;
-    } else {
-      y += 22;
+      doc.setTextColor(17, 24, 39);
+      doc.text(`A/C: ${dados.clienteNome}`, 18, clienteY);
     }
+
+    if (dados.decisorNome || dados.decisorTelefone || dados.decisorEmail) {
+      clienteY += 6;
+      doc.setFontSize(8);
+      doc.setTextColor(107, 114, 128);
+      doc.text('DECISOR:', 18, clienteY);
+      doc.setTextColor(17, 24, 39);
+      const decisorParts: string[] = [];
+      if (dados.decisorNome) decisorParts.push(dados.decisorNome);
+      if (dados.decisorTelefone) decisorParts.push(dados.decisorTelefone);
+      if (dados.decisorEmail) decisorParts.push(dados.decisorEmail);
+      doc.text(decisorParts.join('  |  '), 40, clienteY);
+    }
+
+    y += blockH + 4;
   }
 
   // === EQUIPAMENTO ===
