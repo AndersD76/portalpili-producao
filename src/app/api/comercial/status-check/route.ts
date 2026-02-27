@@ -112,11 +112,16 @@ export async function POST(request: Request) {
       });
     }
 
+    // usou_template=true significa que só o hello_world foi entregue (sucesso parcial)
+    const parcial = whatsappResult.usou_template === true;
     return NextResponse.json({
       success: true,
+      parcial,
       token,
       link,
-      message: `Status check enviado via WhatsApp para ${vendedor.nome}`,
+      message: parcial
+        ? `WhatsApp: somente mensagem genérica enviada para ${vendedor.nome} (template pendente). Link: ${link}`
+        : `Status check enviado via WhatsApp para ${vendedor.nome}`,
       debug: { telefone: whatsappNum, usou_template: whatsappResult.usou_template },
     });
   } catch (error) {

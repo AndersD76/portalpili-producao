@@ -392,10 +392,10 @@ export default function ComercialPage() {
       });
       const json = await res.json();
       if (json.success) {
-        const debugInfo = json.debug?.telefone ? ` (tel: ${json.debug.telefone}, template: ${json.debug.usou_template ? 'sim' : 'não'})` : '';
+        const debugInfo = json.debug?.telefone ? ` (tel: ${json.debug.telefone})` : '';
         setSyncResult({
           message: (json.message || 'Status check enviado com sucesso!') + debugInfo,
-          type: 'success',
+          type: json.parcial ? 'error' : 'success',
         });
         cancelSelection();
       } else {
