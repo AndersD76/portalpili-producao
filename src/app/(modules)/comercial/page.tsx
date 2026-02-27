@@ -392,14 +392,16 @@ export default function ComercialPage() {
       });
       const json = await res.json();
       if (json.success) {
+        const debugInfo = json.debug?.telefone ? ` (tel: ${json.debug.telefone}, template: ${json.debug.usou_template ? 'sim' : 'não'})` : '';
         setSyncResult({
-          message: json.message || 'Status check enviado com sucesso!',
+          message: (json.message || 'Status check enviado com sucesso!') + debugInfo,
           type: 'success',
         });
         cancelSelection();
       } else {
+        const debugInfo = json.debug?.telefone ? ` | Tel: ${json.debug.telefone}` : '';
         setSyncResult({
-          message: json.error || 'Erro ao enviar status check',
+          message: (json.error || 'Erro ao enviar status check') + debugInfo,
           type: 'error',
         });
         if (json.link) {

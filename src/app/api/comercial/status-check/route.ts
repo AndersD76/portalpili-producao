@@ -108,6 +108,7 @@ export async function POST(request: Request) {
         error: `WhatsApp falhou: ${whatsappResult.error}. Link criado: ${link}`,
         token,
         link,
+        debug: { telefone: whatsappNum, whatsapp_result: whatsappResult },
       });
     }
 
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
       token,
       link,
       message: `Status check enviado via WhatsApp para ${vendedor.nome}`,
+      debug: { telefone: whatsappNum, usou_template: whatsappResult.usou_template },
     });
   } catch (error) {
     console.error('Erro ao criar status check:', error);
