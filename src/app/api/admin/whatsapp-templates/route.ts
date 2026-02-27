@@ -8,28 +8,28 @@ const API_VERSION = 'v22.0';
 // Templates com encoding UTF-8 correto
 const TEMPLATES_TO_CREATE = [
   {
-    name: 'status_check_propostas',
+    name: 'status_check_propostas_v2',
     category: 'UTILITY',
     language: 'pt_BR',
     body: 'Ol\u00e1 {{1}}! Aqui \u00e9 a Pili Equipamentos.\n\nPrecisamos de uma atualiza\u00e7\u00e3o sobre {{2}} proposta(s) em negocia\u00e7\u00e3o.\n\nAcesse o link para atualizar:\n{{3}}\n\nEste link \u00e9 v\u00e1lido por 7 dias.\nObrigado!',
     example: ['Jo\u00e3o', '3', 'https://portalpili-producao-production.up.railway.app/status/abc123'],
   },
   {
-    name: 'analise_orcamento',
+    name: 'analise_orcamento_v2',
     category: 'UTILITY',
     language: 'pt_BR',
     body: 'Nova proposta para an\u00e1lise comercial!\n\nProposta N\u00ba {{1}}\nVendedor: {{2}}\nCliente: {{3}}\nProduto: {{4}}\nValor: {{5}}\n\nAcesse para revisar e aprovar:\n{{6}}\n\nLink v\u00e1lido por 7 dias.',
     example: ['0001', 'Jo\u00e3o Silva', 'Empresa ABC', 'Tombador', 'R$ 100.000,00', 'https://portalpili-producao-production.up.railway.app/analise/abc123'],
   },
   {
-    name: 'proposta_aprovada',
+    name: 'proposta_aprovada_v2',
     category: 'UTILITY',
     language: 'pt_BR',
     body: 'Ol\u00e1 {{1}}! Sua proposta N\u00ba {{2}} foi aprovada!\n\nCliente: {{3}}\nProduto: {{4}}\nValor Final: {{5}}\n\nBaixe o PDF do or\u00e7amento:\n{{6}}\n\nEste link \u00e9 v\u00e1lido por 7 dias.',
     example: ['Jo\u00e3o', '0001', 'Empresa ABC', 'Tombador', 'R$ 100.000,00', 'https://portalpili-producao-production.up.railway.app/api/public/analise/abc123/pdf'],
   },
   {
-    name: 'proposta_rejeitada',
+    name: 'proposta_rejeitada_v2',
     category: 'UTILITY',
     language: 'pt_BR',
     body: 'Ol\u00e1 {{1}}, a proposta N\u00ba {{2}} precisa de ajustes.\n\nMotivo: {{3}}\n\nAcesse o configurador para revisar e reenviar.',

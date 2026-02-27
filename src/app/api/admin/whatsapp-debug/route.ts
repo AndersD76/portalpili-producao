@@ -97,7 +97,7 @@ export async function POST(request: Request) {
           to: tel,
           type: 'template',
           template: {
-            name: 'status_check_propostas',
+            name: 'status_check_propostas_v2',
             language: { code: 'pt_BR' },
             components: [
               {
