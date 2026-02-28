@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DadosOrcamento, ItemOrcamento } from '@/lib/comercial/orcamento-pdf';
+import { DadosOrcamento, ItemOrcamento, gerarRascunhoPDF } from '@/lib/comercial/orcamento-pdf';
 import CampoCNPJ from '@/components/comercial/CampoCNPJ';
 
 interface PrecoBase {
@@ -377,6 +377,7 @@ export default function ConfiguradorPage() {
     setErroEnvio(null);
 
     try {
+      // 1. Enviar para analise comercial (API)
       const res = await fetch('/api/comercial/analise-orcamento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -402,6 +403,14 @@ export default function ConfiguradorPage() {
       });
       const data = await res.json();
       if (data.success) {
+        // 2. Gerar rascunho PDF para o cliente (download automatico)
+        try {
+          const dadosPDF = { ...result.dados, numeroProposta: data.numero_proposta };
+          await gerarRascunhoPDF(dadosPDF);
+        } catch (pdfErr) {
+          console.error('Erro ao gerar rascunho PDF:', pdfErr);
+        }
+
         setEnviado(true);
         setResultadoEnvio({ numeroProposta: data.numero_proposta, link: data.link });
         setShowConfirmModal(false);
@@ -820,7 +829,8 @@ export default function ConfiguradorPage() {
                         Proposta N. {String(resultadoEnvio.numeroProposta).padStart(4, '0')}
                       </p>
                     )}
-                    <p className="text-green-600 text-xs mt-1">O analista comercial recebera o link via WhatsApp.</p>
+                    <p className="text-green-600 text-xs mt-1">O rascunho em PDF foi baixado automaticamente.</p>
+                    <p className="text-green-600 text-xs">O analista comercial recebera o link via WhatsApp.</p>
                   </div>
                 ) : (
                   <button
