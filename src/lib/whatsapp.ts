@@ -150,8 +150,8 @@ export async function enviarMensagemWhatsAppTemplate(
  * Envia mensagem via WhatsApp com fallback robusto.
  *
  * Estratégia:
- * 1. Tenta texto livre (funciona se houver janela de 24h)
- * 2. Tenta template específico (v2 - quando aprovado pela Meta)
+ * 1. Tenta template específico (APPROVED - funciona sem janela de 24h)
+ * 2. Tenta texto livre (funciona se houver janela de 24h aberta)
  * 3. Envia hello_world (APPROVED) para abrir janela + texto real em seguida
  */
 async function enviarComFallback(
@@ -160,23 +160,24 @@ async function enviarComFallback(
   parametros: string[],
   mensagemFallback: string
 ): Promise<WhatsAppResult> {
-  // 1. Tentar texto livre (funciona se houver janela 24h aberta)
-  console.log(`[WhatsApp] Passo 1: Tentando texto livre para ${telefone}...`);
-  const textoResult = await enviarMensagemWhatsApp(telefone, mensagemFallback);
-  if (textoResult.success) {
-    console.log(`[WhatsApp] Passo 1 OK: Texto livre enviado com sucesso`);
-    return { ...textoResult, usou_template: false };
-  }
-  console.log(`[WhatsApp] Passo 1 FALHOU: ${textoResult.error}`);
-
-  // 2. Tentar template específico (quando Meta aprovar, funciona sem janela)
-  console.log(`[WhatsApp] Passo 2: Tentando template ${templateName}...`);
+  // 1. Tentar template específico (APPROVED - funciona sem restrição de janela 24h)
+  console.log(`[WhatsApp] Passo 1: Tentando template "${templateName}" para ${telefone}...`);
   const templateResult = await enviarMensagemWhatsAppTemplate(telefone, templateName, parametros);
   if (templateResult.success) {
-    console.log(`[WhatsApp] Passo 2 OK: Template ${templateName} enviado`);
-    return templateResult;
+    console.log(`[WhatsApp] Passo 1 OK: Template "${templateName}" enviado (msg_id: ${templateResult.message_id})`);
+    // usou_template: false = conteúdo real enviado com sucesso (exibe banner verde)
+    return { success: true, message_id: templateResult.message_id, usou_template: false };
   }
-  console.log(`[WhatsApp] Passo 2 FALHOU: ${templateResult.error}`);
+  console.log(`[WhatsApp] Passo 1 FALHOU: ${templateResult.error}`);
+
+  // 2. Tentar texto livre (funciona se houver janela 24h aberta)
+  console.log(`[WhatsApp] Passo 2: Tentando texto livre para ${telefone}...`);
+  const textoResult = await enviarMensagemWhatsApp(telefone, mensagemFallback);
+  if (textoResult.success) {
+    console.log(`[WhatsApp] Passo 2 OK: Texto livre enviado com sucesso`);
+    return { ...textoResult, usou_template: false };
+  }
+  console.log(`[WhatsApp] Passo 2 FALHOU: ${textoResult.error}`);
 
   // 3. Último recurso: hello_world para abrir conversa, depois texto real
   console.log(`[WhatsApp] Passo 3: Enviando hello_world + texto...`);
@@ -191,12 +192,13 @@ async function enviarComFallback(
       return { ...textoRetry, usou_template: false };
     }
     console.log(`[WhatsApp] Passo 3b FALHOU: ${textoRetry.error} - retornando hello_world como sucesso parcial`);
+    // usou_template: true = apenas mensagem genérica enviada (exibe banner amarelo/parcial)
     return { ...helloResult, usou_template: true };
   }
 
   // 4. Tudo falhou
-  console.error(`[WhatsApp] FALHA TOTAL: texto="${textoResult.error}" template="${templateResult.error}" hello_world="${helloResult.error}"`);
-  return { success: false, error: `Texto: ${textoResult.error} | Template: ${templateResult.error} | hello_world: ${helloResult.error}` };
+  console.error(`[WhatsApp] FALHA TOTAL: template="${templateResult.error}" texto="${textoResult.error}" hello_world="${helloResult.error}"`);
+  return { success: false, error: `Template: ${templateResult.error} | Texto: ${textoResult.error} | hello_world: ${helloResult.error}` };
 }
 
 // === Funções de envio por tipo ===

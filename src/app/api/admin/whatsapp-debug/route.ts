@@ -46,16 +46,30 @@ export async function GET() {
     results.templates_error = e instanceof Error ? e.message : String(e);
   }
 
-  // 3. Verificar status de mensagens recentes (últimos wamids do DB)
+  // 3. Verificar configurações e mensagens recentes do DB
   try {
     const { query } = await import('@/lib/db');
-    const recent = await query(
-      `SELECT mensagem_whatsapp_id, created_at, vendedor_id
-       FROM crm_status_checks
-       WHERE mensagem_whatsapp_id IS NOT NULL
-       ORDER BY created_at DESC LIMIT 3`
+
+    // Config do analista
+    const configResult = await query(
+      `SELECT chave, valor FROM crm_precos_config WHERE chave IN ('whatsapp_analista') LIMIT 5`
     );
-    results.recent_messages = recent?.rows || [];
+    results.config_db = configResult?.rows || [];
+
+    // Mensagens recentes
+    const recent = await query(
+      `SELECT sc.mensagem_whatsapp_id, sc.created_at, v.nome as vendedor_nome, v.whatsapp as vendedor_whatsapp
+       FROM crm_status_checks sc
+       LEFT JOIN crm_vendedores v ON sc.vendedor_id = v.id
+       ORDER BY sc.created_at DESC LIMIT 5`
+    );
+    results.recent_status_checks = recent?.rows || [];
+
+    // Vendedores com/sem WhatsApp
+    const vendedores = await query(
+      `SELECT id, nome, whatsapp, telefone FROM crm_vendedores WHERE ativo = true ORDER BY nome`
+    );
+    results.vendedores = vendedores?.rows || [];
   } catch (e: unknown) {
     results.db_error = e instanceof Error ? e.message : String(e);
   }
@@ -97,7 +111,7 @@ export async function POST(request: Request) {
           to: tel,
           type: 'template',
           template: {
-            name: 'status_check_propostas_v2',
+            name: 'status_check_propostas',
             language: { code: 'pt_BR' },
             components: [
               {
