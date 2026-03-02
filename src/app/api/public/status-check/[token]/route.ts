@@ -126,21 +126,32 @@ export async function PUT(
       if (!ESTAGIOS_PERMITIDOS.includes(resp.estagio_novo)) continue;
 
       // Verificar que o item pertence a este status check
-      const itemResult = await query(
-        `SELECT id, estagio_anterior FROM crm_status_check_items
-         WHERE status_check_id = $1 AND oportunidade_id = $2 AND respondido_at IS NULL`,
-        [check.id, resp.oportunidade_id]
-      );
+      let itemResult;
+      try {
+        itemResult = await query(
+          `SELECT id, estagio_anterior FROM crm_status_check_items
+           WHERE status_check_id = $1 AND oportunidade_id = $2 AND respondido_at IS NULL`,
+          [check.id, resp.oportunidade_id]
+        );
+      } catch (e) {
+        console.error('Erro ao buscar item do status check:', e);
+        continue;
+      }
 
       if (!itemResult?.rows?.length) continue;
 
       // Atualizar item
-      await query(
-        `UPDATE crm_status_check_items
-         SET estagio_novo = $1, observacao = $2, respondido_at = NOW()
-         WHERE id = $3`,
-        [resp.estagio_novo, resp.observacao || null, itemResult.rows[0].id]
-      );
+      try {
+        await query(
+          `UPDATE crm_status_check_items
+           SET estagio_novo = $1, observacao = $2, respondido_at = NOW()
+           WHERE id = $3`,
+          [resp.estagio_novo, resp.observacao || null, itemResult.rows[0].id]
+        );
+      } catch (e) {
+        console.error('Erro ao atualizar item do status check:', e);
+        continue;
+      }
 
       // Se o estágio mudou, aplicar mudança na oportunidade
       if (resp.estagio_novo !== itemResult.rows[0].estagio_anterior) {
@@ -194,20 +205,48 @@ export async function PUT(
     }
 
     // Atualizar contadores do status check
-    const respondidas = await query(
-      `SELECT COUNT(*) as cnt FROM crm_status_check_items
-       WHERE status_check_id = $1 AND respondido_at IS NOT NULL`,
-      [check.id]
-    );
-    const totalRespondidas = parseInt(respondidas?.rows[0]?.cnt || '0');
-    const novoStatus = totalRespondidas >= check.total_oportunidades ? 'CONCLUIDO' : 'PARCIAL';
+    let totalRespondidas = updatedCount;
+    let novoStatus = 'PARCIAL';
+    try {
+      const respondidas = await query(
+        `SELECT COUNT(*) as cnt FROM crm_status_check_items
+         WHERE status_check_id = $1 AND respondido_at IS NOT NULL`,
+        [check.id]
+      );
+      totalRespondidas = parseInt(respondidas?.rows[0]?.cnt || '0');
+      novoStatus = totalRespondidas >= check.total_oportunidades ? 'CONCLUIDO' : 'PARCIAL';
+    } catch (e) {
+      console.error('Erro ao contar respondidas:', e);
+    }
 
-    await query(
-      `UPDATE crm_status_checks
-       SET total_respondidas = $1, status = $2, respondido_at = CASE WHEN $2 = 'CONCLUIDO' THEN NOW() ELSE respondido_at END, updated_at = NOW()
-       WHERE id = $3`,
-      [totalRespondidas, novoStatus, check.id]
-    );
+    try {
+      await query(
+        `UPDATE crm_status_checks
+         SET total_respondidas = $1, status = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [totalRespondidas, novoStatus, check.id]
+      );
+      // Tentar atualizar respondido_at separadamente (coluna pode não existir em DBs legados)
+      if (novoStatus === 'CONCLUIDO') {
+        try {
+          await query(
+            `UPDATE crm_status_checks SET respondido_at = NOW() WHERE id = $1 AND respondido_at IS NULL`,
+            [check.id]
+          );
+        } catch { /* ignora se coluna não existir */ }
+      }
+    } catch (e) {
+      console.error('Erro ao atualizar status check:', e);
+      // Tentar update mínimo sem updated_at
+      try {
+        await query(
+          `UPDATE crm_status_checks SET total_respondidas = $1, status = $2 WHERE id = $3`,
+          [totalRespondidas, novoStatus, check.id]
+        );
+      } catch (e2) {
+        console.error('Erro no update mínimo do status check:', e2);
+      }
+    }
 
     return NextResponse.json({
       success: true,

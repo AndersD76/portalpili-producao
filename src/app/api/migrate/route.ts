@@ -261,7 +261,20 @@ export async function POST() {
       }
     }
 
-    // 12. Reprocessar NCs dos formulários existentes
+    // 12. Colunas faltantes em crm_status_checks e crm_status_check_items
+    try {
+      await pool.query(`ALTER TABLE crm_status_checks ADD COLUMN IF NOT EXISTS respondido_at TIMESTAMP WITH TIME ZONE`);
+      await pool.query(`ALTER TABLE crm_status_checks ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`);
+      await pool.query(`ALTER TABLE crm_status_check_items ADD COLUMN IF NOT EXISTS observacao TEXT`);
+      await pool.query(`ALTER TABLE crm_status_check_items ADD COLUMN IF NOT EXISTS respondido_at TIMESTAMP WITH TIME ZONE`);
+      results.push('✅ Colunas crm_status_checks e crm_status_check_items garantidas');
+    } catch (e: any) {
+      if (!e.message.includes('already exists') && !e.message.includes('does not exist')) {
+        errors.push(`❌ Erro colunas status_checks: ${e.message}`);
+      }
+    }
+
+    // 14. Reprocessar NCs dos formulários existentes
     try {
       // Buscar formulários com "não conforme" e atualizar atividades
       const atividadesComNC = await pool.query(`
