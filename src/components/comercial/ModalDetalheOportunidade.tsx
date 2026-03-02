@@ -68,6 +68,77 @@ const ATIVIDADE_ICONS: Record<string, string> = {
   PROPOSTA: '📄',
 };
 
+const INTERACAO_ICONS: Record<string, string> = {
+  ANOTACAO: '📝',
+  WHATSAPP: '💬',
+  CONTATO: '📞',
+  EMAIL: '📧',
+  REUNIAO: '🤝',
+};
+
+const INTERACAO_BORDER: Record<string, string> = {
+  ANOTACAO: 'border-blue-300',
+  WHATSAPP: 'border-green-400',
+  CONTATO: 'border-purple-400',
+  EMAIL: 'border-orange-300',
+  REUNIAO: 'border-teal-400',
+};
+
+function renderInteracaoDescricao(descricao: string) {
+  if (!descricao || descricao === '-') return <p className="text-sm text-gray-500 mt-1">—</p>;
+
+  // Status Check: "[Status Check] Campo: valor | Campo: valor | ..."
+  if (descricao.startsWith('[Status Check]')) {
+    const content = descricao.replace('[Status Check]', '').trim();
+    const parts = content.split(' | ').filter(Boolean);
+
+    return (
+      <div className="mt-2 bg-purple-50 border border-purple-100 rounded-lg p-3 space-y-1.5">
+        <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wide mb-2">Retorno do vendedor</p>
+        {parts.map((part, i) => {
+          const colonIdx = part.indexOf(':');
+          if (colonIdx === -1) return <p key={i} className="text-sm text-gray-700">{part}</p>;
+          const label = part.substring(0, colonIdx).trim();
+          const value = part.substring(colonIdx + 1).trim();
+          if (!value || value === '...') return null;
+          return (
+            <div key={i} className="flex gap-2 text-sm">
+              <span className="font-semibold text-gray-500 min-w-[140px] flex-shrink-0 text-xs leading-5">{label}:</span>
+              <span className="text-gray-800 break-words">{value}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Stage change
+  if (descricao.startsWith('Oportunidade movida para estágio:')) {
+    const estagio = descricao.replace('Oportunidade movida para estágio:', '').replace(/\(.*?\)/, '').trim();
+    const via = descricao.match(/\(via (.*?)\)/)?.[1] || '';
+    return (
+      <div className="mt-1 flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-gray-500">Estágio atualizado para</span>
+        <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{estagio}</span>
+        {via && <span className="text-xs text-gray-400">via {via.replace(/_/g, ' ')}</span>}
+      </div>
+    );
+  }
+
+  // Atividade criada
+  if (descricao.startsWith('Atividade criada:')) {
+    const titulo = descricao.replace('Atividade criada:', '').trim();
+    return (
+      <p className="text-sm text-gray-600 mt-1">
+        <span className="text-gray-400">Atividade criada: </span>{titulo}
+      </p>
+    );
+  }
+
+  // Default: plain text
+  return <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{descricao}</p>;
+}
+
 export default function ModalDetalheOportunidade({
   oportunidadeId,
   onClose,
@@ -79,6 +150,9 @@ export default function ModalDetalheOportunidade({
   const [tab, setTab] = useState<'info' | 'atividades' | 'interacoes' | 'propostas'>('info');
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [concludingId, setConcludingId] = useState<number | null>(null);
+  const [novaNota, setNovaNota] = useState('');
+  const [savingNota, setSavingNota] = useState(false);
   const [editForm, setEditForm] = useState({
     estagio: '',
     valor_estimado: '',
@@ -143,6 +217,50 @@ export default function ModalDetalheOportunidade({
       alert('Erro ao salvar');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConcluirAtividade = async (atividadeId: number) => {
+    setConcludingId(atividadeId);
+    try {
+      const res = await fetch(`/api/comercial/atividades/${atividadeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concluida: true }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        await fetchData();
+      } else {
+        alert(result.error || 'Erro ao concluir atividade');
+      }
+    } catch {
+      alert('Erro ao concluir atividade');
+    } finally {
+      setConcludingId(null);
+    }
+  };
+
+  const handleSalvarNota = async () => {
+    if (!novaNota.trim()) return;
+    setSavingNota(true);
+    try {
+      const res = await fetch(`/api/comercial/oportunidades/${oportunidadeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nota_contato: novaNota.trim() }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setNovaNota('');
+        await fetchData();
+      } else {
+        alert(result.error || 'Erro ao salvar nota');
+      }
+    } catch {
+      alert('Erro ao salvar nota');
+    } finally {
+      setSavingNota(false);
     }
   };
 
@@ -417,22 +535,37 @@ export default function ModalDetalheOportunidade({
                 atividades.map((a: any, i: number) => {
                   const concluida = a.concluida || a.status === 'CONCLUIDA';
                   const atrasada = !concluida && a.data_agendada && new Date(a.data_agendada) < new Date();
+                  const concluding = concludingId === a.id;
                   return (
-                    <div key={a.id || i} className={`flex items-center gap-3 p-3 rounded-lg border ${
+                    <div key={a.id || i} className={`p-3 rounded-lg border ${
                       concluida ? 'bg-green-50 border-green-200' : atrasada ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'
                     }`}>
-                      <span className="text-lg flex-shrink-0">{ATIVIDADE_ICONS[a.tipo] || '📋'}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">{a.titulo || a.tipo}</div>
-                        <div className="text-xs text-gray-500">
-                          {a.tipo} &bull; {formatDate(a.data_agendada)}
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg flex-shrink-0">{ATIVIDADE_ICONS[a.tipo] || '📋'}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900">{a.titulo || a.tipo}</div>
+                          <div className="text-xs text-gray-500">
+                            {a.tipo} &bull; {formatDate(a.data_agendada)}
+                            {a.descricao && <span className="ml-1 text-gray-400"> &bull; {a.descricao}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                            concluida ? 'bg-green-100 text-green-700' : atrasada ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {concluida ? 'Concluída' : atrasada ? 'Atrasada' : 'Pendente'}
+                          </span>
+                          {!concluida && a.id && (
+                            <button
+                              onClick={() => handleConcluirAtividade(a.id)}
+                              disabled={concluding}
+                              className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition"
+                            >
+                              {concluding ? '...' : 'Concluir'}
+                            </button>
+                          )}
                         </div>
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                        concluida ? 'bg-green-100 text-green-700' : atrasada ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {concluida ? 'Concluída' : atrasada ? 'Atrasada' : 'Pendente'}
-                      </span>
                     </div>
                   );
                 })
@@ -443,22 +576,57 @@ export default function ModalDetalheOportunidade({
           {/* TAB INTERAÇÕES */}
           {tab === 'interacoes' && (
             <div className="space-y-3">
+              {/* Quick note input */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-700 mb-2">Registrar anotação</p>
+                <textarea
+                  rows={2}
+                  value={novaNota}
+                  onChange={e => setNovaNota(e.target.value)}
+                  placeholder="Digite uma anotação sobre esta oportunidade..."
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-400 focus:border-blue-400 resize-none"
+                />
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={handleSalvarNota}
+                    disabled={savingNota || !novaNota.trim()}
+                    className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    {savingNota ? 'Salvando...' : 'Salvar anotação'}
+                  </button>
+                </div>
+              </div>
+
               {interacoes.length === 0 ? (
                 <p className="text-center py-8 text-gray-400 text-sm">Nenhuma interação registrada</p>
               ) : (
                 interacoes
                   .sort((a: any, b: any) => new Date(b.data || b.created_at).getTime() - new Date(a.data || a.created_at).getTime())
-                  .map((int: any, i: number) => (
-                    <div key={int.id || i} className="flex gap-3 pl-3 border-l-2 border-gray-200">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{int.tipo}</span>
+                  .map((int: any, i: number) => {
+                    const descricao = int.descricao || '';
+                    const isStatusCheck = descricao.startsWith('[Status Check]');
+                    const isStageChange = descricao.startsWith('Oportunidade movida');
+                    const tipoLabel = isStatusCheck ? 'Status Check' : int.tipo;
+                    const icon = isStageChange ? '🔄' : (INTERACAO_ICONS[int.tipo] || '📝');
+                    const borderColor = isStatusCheck ? 'border-purple-400'
+                      : isStageChange ? 'border-blue-300'
+                      : (INTERACAO_BORDER[int.tipo] || 'border-gray-200');
+                    return (
+                      <div key={int.id || i} className={`pl-3 border-l-2 ${borderColor}`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-base leading-none">{icon}</span>
+                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                            isStatusCheck ? 'bg-purple-100 text-purple-700'
+                              : isStageChange ? 'bg-blue-100 text-blue-700'
+                              : int.tipo === 'WHATSAPP' ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>{tipoLabel}</span>
                           <span className="text-xs text-gray-400">{formatDate(int.data)}</span>
                         </div>
-                        <p className="text-sm text-gray-700 mt-0.5">{int.descricao || '-'}</p>
+                        {renderInteracaoDescricao(descricao)}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
               )}
             </div>
           )}
