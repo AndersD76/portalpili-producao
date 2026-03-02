@@ -144,12 +144,25 @@ export async function PUT(
 
       // Se o estágio mudou, aplicar mudança na oportunidade
       if (resp.estagio_novo !== itemResult.rows[0].estagio_anterior) {
-        await registrarMudancaEstagio(
-          resp.oportunidade_id,
-          resp.estagio_novo,
-          check.vendedor_id,
-          'STATUS_CHECK_WHATSAPP'
-        );
+        try {
+          await registrarMudancaEstagio(
+            resp.oportunidade_id,
+            resp.estagio_novo,
+            check.vendedor_id,
+            'STATUS_CHECK_WHATSAPP'
+          );
+        } catch (e) {
+          console.error('Erro ao registrar mudança de estágio:', e);
+          // Atualizar estagio diretamente como fallback
+          try {
+            await query(
+              `UPDATE crm_oportunidades SET estagio = $1, updated_at = NOW() WHERE id = $2`,
+              [resp.estagio_novo, resp.oportunidade_id]
+            );
+          } catch (e2) {
+            console.error('Erro ao atualizar estagio diretamente:', e2);
+          }
+        }
       }
 
       // Salvar previsão de fechamento se informada
@@ -159,7 +172,9 @@ export async function PUT(
             `UPDATE crm_oportunidades SET data_previsao_fechamento = $1, updated_at = NOW() WHERE id = $2`,
             [resp.previsao_fechamento, resp.oportunidade_id]
           );
-        } catch { /* ignore */ }
+        } catch (e) {
+          console.error('Erro ao salvar previsão de fechamento:', e);
+        }
       }
 
       // Registrar observação como interação (sempre que preenchida)
@@ -170,7 +185,9 @@ export async function PUT(
              VALUES ($1, 'ANOTACAO', $2)`,
             [resp.oportunidade_id, `[Status Check] ${resp.observacao.trim()}`]
           );
-        } catch { /* ignore */ }
+        } catch (e) {
+          console.error('Erro ao registrar interação:', e);
+        }
       }
 
       updatedCount++;
@@ -199,9 +216,10 @@ export async function PUT(
       status: novoStatus,
     });
   } catch (error) {
-    console.error('Erro ao processar respostas:', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('Erro ao processar respostas status-check:', msg, error);
     return NextResponse.json(
-      { success: false, error: 'Erro interno' },
+      { success: false, error: 'Erro interno', detail: msg },
       { status: 500 }
     );
   }
