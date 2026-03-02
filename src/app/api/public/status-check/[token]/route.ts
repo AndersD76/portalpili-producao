@@ -110,7 +110,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const respostas: Array<{ oportunidade_id: number; estagio_novo: string; observacao?: string }> = body.respostas || [];
+    const respostas: Array<{ oportunidade_id: number; estagio_novo: string; observacao?: string; previsao_fechamento?: string }> = body.respostas || [];
 
     if (!respostas.length) {
       return NextResponse.json(
@@ -150,17 +150,27 @@ export async function PUT(
           check.vendedor_id,
           'STATUS_CHECK_WHATSAPP'
         );
+      }
 
-        // Se observação fornecida, registrar como interação
-        if (resp.observacao?.trim()) {
-          try {
-            await query(
-              `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
-               VALUES ($1, 'ANOTACAO', $2)`,
-              [resp.oportunidade_id, `[Status Check] ${resp.observacao.trim()}`]
-            );
-          } catch { /* ignore */ }
-        }
+      // Salvar previsão de fechamento se informada
+      if (resp.previsao_fechamento) {
+        try {
+          await query(
+            `UPDATE crm_oportunidades SET data_previsao_fechamento = $1, updated_at = NOW() WHERE id = $2`,
+            [resp.previsao_fechamento, resp.oportunidade_id]
+          );
+        } catch { /* ignore */ }
+      }
+
+      // Registrar observação como interação (sempre que preenchida)
+      if (resp.observacao?.trim()) {
+        try {
+          await query(
+            `INSERT INTO crm_interacoes (oportunidade_id, tipo, descricao)
+             VALUES ($1, 'ANOTACAO', $2)`,
+            [resp.oportunidade_id, `[Status Check] ${resp.observacao.trim()}`]
+          );
+        } catch { /* ignore */ }
       }
 
       updatedCount++;
