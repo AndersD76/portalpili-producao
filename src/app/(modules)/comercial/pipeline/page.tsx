@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PipelineKanban, ModalDetalheOportunidade } from '@/components/comercial';
@@ -35,17 +35,6 @@ interface Vendedor {
   usuario_id?: number;
 }
 
-const ESTAGIOS_OPTIONS = [
-  { value: 'EM_ANALISE', label: 'Em Análise' },
-  { value: 'EM_NEGOCIACAO', label: 'Em Negociação' },
-  { value: 'POS_NEGOCIACAO', label: 'Pós Negociação' },
-  { value: 'FECHADA', label: 'Fechada' },
-  { value: 'PERDIDA', label: 'Perdida' },
-  { value: 'TESTE', label: 'Teste' },
-  { value: 'SUSPENSO', label: 'Suspenso' },
-  { value: 'SUBSTITUIDO', label: 'Substituído' },
-];
-
 export default function PipelinePage() {
   const [loading, setLoading] = useState(true);
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([]);
@@ -55,8 +44,41 @@ export default function PipelinePage() {
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
   const { user, authenticated, loading: authLoading, isAdmin } = useAuth();
+
+  const fetchOportunidades = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
+    setAtualizando(true);
+    try {
+      const params = new URLSearchParams();
+      if (filtroVendedor) params.append('vendedor_id', filtroVendedor);
+      if (filtroProduto) params.append('produto', filtroProduto);
+      params.append('limit', '2000');
+      const response = await fetch(`/api/comercial/oportunidades?${params.toString()}`);
+      const result = await response.json();
+      if (result.success) {
+        setOportunidades(result.data || []);
+        setUltimaAtualizacao(new Date());
+      }
+    } catch (error) {
+      console.error('Erro ao buscar oportunidades:', error);
+    } finally {
+      setLoading(false);
+      setAtualizando(false);
+    }
+  }, [filtroVendedor, filtroProduto]);
+
+  const fetchVendedores = async () => {
+    try {
+      const res = await fetch('/api/comercial/vendedores?ativo=true');
+      const data = await res.json();
+      if (data.success) setVendedores(data.data || []);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -67,33 +89,17 @@ export default function PipelinePage() {
     if (!user) return;
     fetchOportunidades();
     fetchVendedores();
-  }, [user, filtroVendedor, filtroProduto]);
 
-  const fetchOportunidades = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filtroVendedor) params.append('vendedor_id', filtroVendedor);
-      if (filtroProduto) params.append('produto', filtroProduto);
-      params.append('limit', '2000');
-      const response = await fetch(`/api/comercial/oportunidades?${params.toString()}`);
-      const result = await response.json();
-      if (result.success) {
-        setOportunidades(result.data || []);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar oportunidades:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Auto-refresh a cada 2 minutos
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      fetchOportunidades(true);
+    }, 2 * 60 * 1000);
 
-  const fetchVendedores = async () => {
-    try {
-      const res = await fetch('/api/comercial/vendedores?ativo=true');
-      const data = await res.json();
-      if (data.success) setVendedores(data.data || []);
-    } catch { /* ignore */ }
-  };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [user, fetchOportunidades]);
 
   const handleMoveOportunidade = useCallback(async (oportunidadeId: number, novoEstagio: string) => {
     try {
@@ -111,7 +117,6 @@ export default function PipelinePage() {
     } catch (error) {
       console.error('Erro ao mover oportunidade:', error);
     }
-    // Always open modal after move so user can add notes
     setSelectedOportunidadeId(oportunidadeId);
   }, []);
 
@@ -183,10 +188,28 @@ export default function PipelinePage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Botão atualizar + horário da última atualização */}
+              <button
+                onClick={() => fetchOportunidades(true)}
+                disabled={atualizando}
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition disabled:opacity-50"
+                title="Atualizar pipeline"
+              >
+                <svg className={`w-3.5 h-3.5 ${atualizando ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="hidden sm:inline">
+                  {ultimaAtualizacao
+                    ? ultimaAtualizacao.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    : 'Atualizar'}
+                </span>
+              </button>
+
               <Link href="/comercial/dashboard" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
                 Dashboard
               </Link>
+
               {/* Filtro Vendedor */}
               {isAdmin && (
                 <select
@@ -245,7 +268,7 @@ export default function PipelinePage() {
         <ModalDetalheOportunidade
           oportunidadeId={selectedOportunidadeId}
           onClose={() => setSelectedOportunidadeId(null)}
-          onSave={() => fetchOportunidades()}
+          onSave={() => fetchOportunidades(true)}
         />
       )}
     </div>
