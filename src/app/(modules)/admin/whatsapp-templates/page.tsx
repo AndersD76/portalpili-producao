@@ -34,7 +34,7 @@ export default function WhatsAppTemplatesAdmin() {
 
       if (data.success && data.templates) {
         setTemplates(data.templates);
-        setResult(prev => prev + `\n✅ ${data.templates.length} templates encontrados:\n\n${formatJson(data.templates)}`);
+        setResult(prev => prev + `\n✅ ${data.templates!.length} templates encontrados:\n\n${formatJson(data.templates!)}`);
       } else {
         setResult(prev => prev + `\n❌ Erro: ${data.error || 'Resposta inválida'}`);
       }
