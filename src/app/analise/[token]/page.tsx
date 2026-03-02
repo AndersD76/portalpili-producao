@@ -135,7 +135,7 @@ export default function AnalisePage() {
         observacoes: obsAnalista || dadosConfig.observacoes,
       };
 
-      const pdfBlob = gerarOrcamentoPDFBlob(dadosPDF);
+      const pdfBlob = await gerarOrcamentoPDFBlob(dadosPDF);
 
       // 3. Enviar PDF ao servidor
       const resPdf = await fetch(`/api/public/analise/${token}/pdf`, {
