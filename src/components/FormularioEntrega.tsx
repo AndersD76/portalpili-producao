@@ -386,7 +386,11 @@ export default function FormularioEntrega({
             onChange={(e) => handleFileUpload(e, 'imagem_teste_liquido')}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
-          {formData.imagem_teste_liquido && <div className="mt-1 text-sm text-green-700">Imagem anexada</div>}
+          {formData.imagem_teste_liquido && (
+            <div className="mt-2">
+              <img src={formData.imagem_teste_liquido} alt="Teste de líquido" className="w-full max-h-40 object-cover rounded border" />
+            </div>
+          )}
         </div>
 
         {renderBooleanField('Inclinostato funcionou corretamente?', 'inclinostato_funcionou')}
@@ -466,7 +470,11 @@ export default function FormularioEntrega({
             onChange={(e) => handleFileUpload(e, 'imagem_equipe_treinada')}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
-          {formData.imagem_equipe_treinada && <div className="mt-1 text-sm text-green-700">Imagem anexada</div>}
+          {formData.imagem_equipe_treinada && (
+            <div className="mt-2">
+              <img src={formData.imagem_equipe_treinada} alt="Equipe treinada" className="w-full max-h-40 object-cover rounded border" />
+            </div>
+          )}
         </div>
 
         {renderBooleanField('Termo de conclusão aceito pelo cliente?', 'termo_conclusao_aceito', true)}

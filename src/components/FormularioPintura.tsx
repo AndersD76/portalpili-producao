@@ -401,12 +401,35 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
               ) : (
                 <span className="text-sm text-gray-600">
                   {formData.cq11t2_imagem && formData.cq11t2_imagem.length > 0
-                    ? `${formData.cq11t2_imagem.length} arquivo(s) selecionado(s)`
+                    ? `${formData.cq11t2_imagem.length} arquivo(s) selecionado(s) - Clique para substituir`
                     : 'Clique para anexar imagem do teste de aderência'}
                 </span>
               )}
             </button>
           </div>
+          {formData.cq11t2_imagem && formData.cq11t2_imagem.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {formData.cq11t2_imagem.map((arquivo, index) => (
+                <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50 group">
+                  <img src={arquivo.url} alt={arquivo.filename} className="w-full h-24 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newImages = formData.cq11t2_imagem!.filter((_, i) => i !== index);
+                      setFormData(prev => ({ ...prev, cq11t2_imagem: newImages.length > 0 ? newImages : null }));
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                    title="Remover"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <p className="text-xs text-gray-600 p-1 truncate">{arquivo.filename}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {renderCQField('CQ12-T2: ADESIVAÇÃO GERAL', 'cq12t2', 'Conforme especificação')}

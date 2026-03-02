@@ -300,8 +300,10 @@ export default function FormularioDesembarquePreInstalacao({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
           {formData.imagens_obra_civil && formData.imagens_obra_civil.length > 0 && (
-            <div className="mt-2 text-sm text-green-700">
-              {formData.imagens_obra_civil.length} imagem(ns) anexada(s)
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {formData.imagens_obra_civil.map((url, index) => (
+                <img key={index} src={url} alt={`Imagem ${index + 1}`} className="w-full h-24 object-cover rounded border" />
+              ))}
             </div>
           )}
         </div>
@@ -367,7 +369,9 @@ export default function FormularioDesembarquePreInstalacao({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
           {formData.imagem_aterramento && (
-            <div className="mt-2 text-sm text-green-700">Imagem anexada</div>
+            <div className="mt-2">
+              <img src={formData.imagem_aterramento} alt="Aterramento" className="w-full max-h-40 object-cover rounded border" />
+            </div>
           )}
         </div>
 

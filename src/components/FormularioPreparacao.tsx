@@ -194,22 +194,43 @@ export default function FormularioPreparacao({
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
         {files && files.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {files.map((file, index) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                <span className="text-sm text-gray-700">{file.filename}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(fieldName, index)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+          <>
+            {/\.(jpg|jpeg|png|gif|webp)$/i.test(files[0]?.filename || '') && (
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {files.map((file: any, index: number) => (
+                  <div key={index} className="relative group">
+                    <img src={file.url} alt={file.filename} className="w-full h-24 object-cover rounded border" />
+                    <button
+                      type="button"
+                      onClick={() => removeFile(fieldName, index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                      title="Remover"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+            <div className="mt-2 space-y-1">
+              {files.map((file: any, index: number) => (
+                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <span className="text-sm text-gray-700">{file.filename}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(fieldName, index)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     );

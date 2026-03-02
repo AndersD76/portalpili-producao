@@ -431,6 +431,30 @@ export default function FormularioControleQualidadeCentral({ opd, cliente, ativi
               )}
             </button>
           </div>
+          {(formData as any)[`${fieldName}_imagem`] && (formData as any)[`${fieldName}_imagem`].length > 0 && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {(formData as any)[`${fieldName}_imagem`].map((arquivo: any, index: number) => (
+                <div key={index} className="relative border rounded-lg overflow-hidden bg-gray-50 group">
+                  <img src={arquivo.url} alt={arquivo.filename} className="w-full h-24 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentImages = (formData as any)[`${fieldName}_imagem`] || [];
+                      const newImages = currentImages.filter((_: any, i: number) => i !== index);
+                      setFormData(prev => ({ ...prev, [`${fieldName}_imagem`]: newImages.length > 0 ? newImages : null }));
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                    title="Remover"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <p className="text-xs text-gray-600 p-1 truncate">{arquivo.filename}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

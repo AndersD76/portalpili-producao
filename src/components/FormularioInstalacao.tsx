@@ -443,8 +443,10 @@ export default function FormularioInstalacao({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
           />
           {formData.imagens_instalacao && formData.imagens_instalacao.length > 0 && (
-            <div className="mt-2 text-sm text-green-700">
-              {formData.imagens_instalacao.length} imagem(ns) anexada(s)
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {formData.imagens_instalacao.map((url, index) => (
+                <img key={index} src={url} alt={`Imagem ${index + 1}`} className="w-full h-24 object-cover rounded border" />
+              ))}
             </div>
           )}
         </div>
