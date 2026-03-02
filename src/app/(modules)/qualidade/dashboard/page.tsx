@@ -112,7 +112,7 @@ function PieChart({ data, colors }: { data: Array<{ label: string; value: number
               className="w-3 h-3 rounded-full mr-1"
               style={{ backgroundColor: slice.color }}
             />
-            <span className="text-gray-600">{slice.label}: {slice.percent.toFixed(1)}%</span>
+            <span className="text-gray-600">{slice.label}: <strong>{slice.value}</strong> ({slice.percent.toFixed(1)}%)</span>
           </div>
         ))}
       </div>
