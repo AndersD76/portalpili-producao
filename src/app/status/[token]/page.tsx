@@ -40,24 +40,24 @@ interface Resposta {
 const ESTAGIO_OPTIONS = [
   { value: 'EM_NEGOCIACAO', label: 'Em Negociação', color: '#f97316' },
   { value: 'POS_NEGOCIACAO', label: 'Pós Negociação', color: '#a855f7' },
-  { value: 'FECHADA', label: 'Fechada ✓', color: '#22c55e' },
-  { value: 'PERDIDA', label: 'Perdida ✗', color: '#ef4444' },
+  { value: 'FECHADA', label: 'Fechada — Ganha', color: '#22c55e' },
+  { value: 'PERDIDA', label: 'Perdida', color: '#ef4444' },
   { value: 'SUSPENSO', label: 'Suspensa', color: '#ca8a04' },
 ];
 
 const CANAIS = [
-  { value: 'telefone', label: '📞 Telefone' },
-  { value: 'whatsapp', label: '💬 WhatsApp' },
-  { value: 'email', label: '📧 E-mail' },
-  { value: 'visita', label: '🤝 Visita' },
-  { value: 'video', label: '🎥 Videoconferência' },
-  { value: 'sem_contato', label: '🔇 Sem contato' },
+  { value: 'telefone', label: 'Telefone' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'email', label: 'E-mail' },
+  { value: 'visita', label: 'Visita presencial' },
+  { value: 'video', label: 'Videoconferência' },
+  { value: 'sem_contato', label: 'Sem contato ainda' },
 ];
 
 const INTERESSE = [
-  { value: 'quente', label: '🔥 Quente', bg: '#fef2f2', border: '#ef4444', text: '#b91c1c' },
-  { value: 'morno', label: '🌡 Morno', bg: '#fffbeb', border: '#f59e0b', text: '#92400e' },
-  { value: 'frio', label: '❄️ Frio', bg: '#eff6ff', border: '#3b82f6', text: '#1e40af' },
+  { value: 'quente', label: 'Quente', bg: '#fef2f2', border: '#ef4444', text: '#b91c1c' },
+  { value: 'morno', label: 'Morno', bg: '#fffbeb', border: '#f59e0b', text: '#92400e' },
+  { value: 'frio', label: 'Frio', bg: '#eff6ff', border: '#3b82f6', text: '#1e40af' },
 ];
 
 function fmtValor(v: unknown): string {
@@ -251,11 +251,12 @@ export default function StatusCheckPage() {
         {/* Saudação */}
         <div className="mb-5">
           <h2 className="text-lg font-bold text-gray-900">
-            Olá, {data?.vendedor_nome?.split(' ')[0]}! 👋
+            Olá, {data?.vendedor_nome?.split(' ')[0]}!
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Preencha as informações de <strong>{pendingItems.length} proposta{pendingItems.length !== 1 ? 's' : ''}</strong> abaixo para nos ajudar a acompanhar o processo de venda.
-          </p>
+          <div className="mt-2 bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-700 space-y-1.5">
+            <p>Precisamos de uma atualização sobre <strong>{pendingItems.length} proposta{pendingItems.length !== 1 ? 's' : ''}</strong> em negociação.</p>
+            <p className="text-gray-500">Para cada uma, nos informe: houve contato com o cliente? O que foi discutido? Qual o próximo passo? Isso nos ajuda a apoiar você no fechamento.</p>
+          </div>
         </div>
 
         {/* Cards */}
