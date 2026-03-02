@@ -16,12 +16,13 @@ export interface WhatsAppResult {
   usou_template?: boolean;
 }
 
-// Nomes dos templates criados na Meta Business (v2 com encoding UTF-8 correto)
+// Templates APROVADOS pela Meta (v1 aprovados, v2 ainda pendentes)
+// Quando v2 forem aprovados, trocar para os nomes _v2
 const TEMPLATES = {
-  STATUS_CHECK: 'status_check_propostas_v2',
-  ANALISE_ORCAMENTO: 'analise_orcamento_v2',
-  PROPOSTA_APROVADA: 'proposta_aprovada_v2',
-  PROPOSTA_REJEITADA: 'proposta_rejeitada_v2',
+  STATUS_CHECK: 'status_check_propostas',
+  ANALISE_ORCAMENTO: 'analise_orcamento',
+  PROPOSTA_APROVADA: 'proposta_aprovada',
+  PROPOSTA_REJEITADA: 'proposta_rejeitada',
 } as const;
 
 /**
