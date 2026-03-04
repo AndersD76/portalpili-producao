@@ -477,10 +477,144 @@ export default function ConfiguradorPage() {
         {/* LEFT: Form */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* STEP 1: Produto */}
+          {/* STEP 1: Dados do Cliente */}
           <div className="bg-white rounded-lg shadow p-5">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
+              Dados do Cliente
+            </h2>
+
+            <div className="space-y-5">
+              {/* CNPJ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CampoCNPJ
+                  value={cnpj}
+                  onChange={(v) => { setCnpj(v); setErrosForm(prev => { const n = { ...prev }; delete n.cnpj; return n; }); }}
+                  onDadosCarregados={handleCnpjDados}
+                  required
+                  error={errosForm.cnpj}
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Empresa <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={clienteEmpresa}
+                    onChange={e => { setClienteEmpresa(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.empresa; return n; }); }}
+                    placeholder="Preenchido automaticamente pelo CNPJ"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.empresa ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {errosForm.empresa && <p className="text-xs text-red-500 mt-1">{errosForm.empresa}</p>}
+                </div>
+              </div>
+
+              {/* Contato */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Contato <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={clienteNome}
+                  onChange={e => { setClienteNome(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.clienteNome; return n; }); }}
+                  placeholder="Nome do contato na empresa"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.clienteNome ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errosForm.clienteNome && <p className="text-xs text-red-500 mt-1">{errosForm.clienteNome}</p>}
+              </div>
+
+              {/* Decisor da Compra */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Decisor da Compra</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Decisor <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={decisorNome}
+                      onChange={e => { setDecisorNome(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorNome; return n; }); }}
+                      placeholder="Quem decide a compra"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.decisorNome ? 'border-red-500' : 'border-gray-300'}`}
+                    />
+                    {errosForm.decisorNome && <p className="text-xs text-red-500 mt-1">{errosForm.decisorNome}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Decisor <span className="text-red-500">*</span></label>
+                    <input
+                      type="tel"
+                      value={decisorTelefone}
+                      onChange={e => { handleTelefoneChange(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorTelefone; return n; }); }}
+                      placeholder="(00) 00000-0000"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
+                        errosDecisor.telefone || errosForm.decisorTelefone ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {(errosDecisor.telefone || errosForm.decisorTelefone) && (
+                      <p className="text-xs text-red-500 mt-1">{errosDecisor.telefone || errosForm.decisorTelefone}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Decisor <span className="text-red-500">*</span></label>
+                    <input
+                      type="email"
+                      value={decisorEmail}
+                      onChange={e => { handleEmailChange(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorEmail; return n; }); }}
+                      placeholder="decisor@empresa.com"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
+                        errosDecisor.email || errosForm.decisorEmail ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {(errosDecisor.email || errosForm.decisorEmail) && (
+                      <p className="text-xs text-red-500 mt-1">{errosDecisor.email || errosForm.decisorEmail}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Declaracao de Termos */}
+              {!mostrarCondicoes && (
+                <div className="border-t pt-4">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs text-gray-700 leading-relaxed mb-3">
+                      Ao informar o CNPJ acima e prosseguir com a emissao da proposta comercial, o usuario declara, sob as penas da lei, que atua em nome e com autorizacao da empresa indicada, que as informacoes prestadas sao verdadeiras e correspondem a real interesse comercial da referida pessoa juridica.
+                    </p>
+                    <p className="text-xs text-gray-700 leading-relaxed mb-4">
+                      O declarante reconhece que a utilizacao de dados falsos, de terceiros ou sem autorizacao, bem como a obtencao de proposta para fins diversos da negociacao legitima, podera caracterizar ato ilicito, concorrencia desleal e violacao de sigilo comercial, sujeitando-o a responsabilizacao civil e as perdas e danos cabiveis.
+                    </p>
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={aceitouTermos}
+                        onChange={e => setAceitouTermos(e.target.checked)}
+                        className="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm font-medium text-gray-800">
+                        Declaro que li e concordo com os termos acima.
+                      </span>
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={handleContinuar}
+                    disabled={!aceitouTermos}
+                    className={`mt-4 w-full px-4 py-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 ${
+                      aceitouTermos
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Continuar
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* STEP 2: Produto e Modelo */}
+          {mostrarCondicoes && (
+          <div className="bg-white rounded-lg shadow p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
               Produto e Modelo
             </h2>
 
@@ -522,12 +656,13 @@ export default function ConfiguradorPage() {
               </div>
             )}
           </div>
+          )}
 
-          {/* STEP 2: Opcionais */}
-          {precoSelecionado && (
+          {/* STEP 3: Opcionais */}
+          {mostrarCondicoes && precoSelecionado && (
             <div className="bg-white rounded-lg shadow p-5">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
                 Opcionais
                 {opcionaisSelecionados.length > 0 && (
                   <span className="text-sm font-normal text-gray-500">({opcionaisSelecionados.length} selecionado(s))</span>
@@ -605,141 +740,6 @@ export default function ConfiguradorPage() {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* STEP 3: Dados do Cliente */}
-          {precoSelecionado && (
-            <div className="bg-white rounded-lg shadow p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
-                Dados do Cliente
-              </h2>
-
-              <div className="space-y-5">
-                {/* CNPJ */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <CampoCNPJ
-                    value={cnpj}
-                    onChange={(v) => { setCnpj(v); setErrosForm(prev => { const n = { ...prev }; delete n.cnpj; return n; }); }}
-                    onDadosCarregados={handleCnpjDados}
-                    required
-                    error={errosForm.cnpj}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Empresa <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={clienteEmpresa}
-                      onChange={e => { setClienteEmpresa(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.empresa; return n; }); }}
-                      placeholder="Preenchido automaticamente pelo CNPJ"
-                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.empresa ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {errosForm.empresa && <p className="text-xs text-red-500 mt-1">{errosForm.empresa}</p>}
-                  </div>
-                </div>
-
-                {/* Contato */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Contato <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={clienteNome}
-                    onChange={e => { setClienteNome(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.clienteNome; return n; }); }}
-                    placeholder="Nome do contato na empresa"
-                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.clienteNome ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errosForm.clienteNome && <p className="text-xs text-red-500 mt-1">{errosForm.clienteNome}</p>}
-                </div>
-
-                {/* Decisor da Compra */}
-                <div className="border-t pt-4">
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Decisor da Compra</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Decisor <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        value={decisorNome}
-                        onChange={e => { setDecisorNome(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorNome; return n; }); }}
-                        placeholder="Quem decide a compra"
-                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${errosForm.decisorNome ? 'border-red-500' : 'border-gray-300'}`}
-                      />
-                      {errosForm.decisorNome && <p className="text-xs text-red-500 mt-1">{errosForm.decisorNome}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Decisor <span className="text-red-500">*</span></label>
-                      <input
-                        type="tel"
-                        value={decisorTelefone}
-                        onChange={e => { handleTelefoneChange(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorTelefone; return n; }); }}
-                        placeholder="(00) 00000-0000"
-                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
-                          errosDecisor.telefone || errosForm.decisorTelefone ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {(errosDecisor.telefone || errosForm.decisorTelefone) && (
-                        <p className="text-xs text-red-500 mt-1">{errosDecisor.telefone || errosForm.decisorTelefone}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email Decisor <span className="text-red-500">*</span></label>
-                      <input
-                        type="email"
-                        value={decisorEmail}
-                        onChange={e => { handleEmailChange(e.target.value); setErrosForm(prev => { const n = { ...prev }; delete n.decisorEmail; return n; }); }}
-                        placeholder="decisor@empresa.com"
-                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 ${
-                          errosDecisor.email || errosForm.decisorEmail ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {(errosDecisor.email || errosForm.decisorEmail) && (
-                        <p className="text-xs text-red-500 mt-1">{errosDecisor.email || errosForm.decisorEmail}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Declaracao de Termos */}
-                {!mostrarCondicoes && (
-                  <div className="border-t pt-4">
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <p className="text-xs text-gray-700 leading-relaxed mb-3">
-                        Ao informar o CNPJ acima e prosseguir com a emissao da proposta comercial, o usuario declara, sob as penas da lei, que atua em nome e com autorizacao da empresa indicada, que as informacoes prestadas sao verdadeiras e correspondem a real interesse comercial da referida pessoa juridica.
-                      </p>
-                      <p className="text-xs text-gray-700 leading-relaxed mb-4">
-                        O declarante reconhece que a utilizacao de dados falsos, de terceiros ou sem autorizacao, bem como a obtencao de proposta para fins diversos da negociacao legitima, podera caracterizar ato ilicito, concorrencia desleal e violacao de sigilo comercial, sujeitando-o a responsabilizacao civil e as perdas e danos cabiveis.
-                      </p>
-                      <label className="flex items-start gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={aceitouTermos}
-                          onChange={e => setAceitouTermos(e.target.checked)}
-                          className="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                        />
-                        <span className="text-sm font-medium text-gray-800">
-                          Declaro que li e concordo com os termos acima.
-                        </span>
-                      </label>
-                    </div>
-
-                    <button
-                      onClick={handleContinuar}
-                      disabled={!aceitouTermos}
-                      className={`mt-4 w-full px-4 py-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 ${
-                        aceitouTermos
-                          ? 'bg-red-600 text-white hover:bg-red-700'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      Continuar
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
           )}
 
