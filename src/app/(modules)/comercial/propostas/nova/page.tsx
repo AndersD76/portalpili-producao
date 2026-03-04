@@ -717,7 +717,7 @@ export default function NovaPropostaPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-20">
+      <header className="bg-white border-b sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             <Link href="/comercial" className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg">

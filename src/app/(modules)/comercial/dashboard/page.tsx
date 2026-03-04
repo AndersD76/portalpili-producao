@@ -266,8 +266,8 @@ export default function DashboardComercialPage() {
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
       <header className="bg-white border-b sticky top-0 z-10">
-        <div className="px-2 sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between h-12 sm:h-14">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/comercial" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition" title="Voltar">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
