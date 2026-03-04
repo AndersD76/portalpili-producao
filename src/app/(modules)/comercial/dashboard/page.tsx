@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, COMERCIAL_NAV } from '@/components/PageHeader';
 
 interface Oportunidade {
   id: number;
@@ -264,40 +265,20 @@ export default function DashboardComercialPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link href="/comercial" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition" title="Voltar">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <h1 className="text-base sm:text-lg font-bold text-gray-900">Dashboard Comercial</h1>
-            </div>
-            <div className="flex items-center gap-1">
-              {[
-                { href: '/comercial', label: 'Pipeline' },
-                { href: '/comercial/pipeline', label: 'Kanban' },
-                { href: '/comercial/clientes', label: 'Clientes' },
-              ].map(link => (
-                <Link key={link.href} href={link.href}
-                  className="hidden sm:inline-block px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                  {link.label}
-                </Link>
-              ))}
-              <button onClick={() => fetchAll()}
-                className="flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden sm:inline">Atualizar</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Dashboard Comercial"
+        backHref="/"
+        navLinks={COMERCIAL_NAV}
+        rightExtra={
+          <button onClick={() => fetchAll()}
+            className="flex items-center gap-1 px-2 py-1 text-sm text-gray-600 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="hidden sm:inline">Atualizar</span>
+          </button>
+        }
+      />
 
       <main className="p-2 sm:p-4 lg:p-6 max-w-[1400px] mx-auto space-y-4">
         {/* ALERTA ATIVIDADES ATRASADAS */}

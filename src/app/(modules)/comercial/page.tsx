@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModalDetalheOportunidade } from '@/components/comercial';
 import { gerarListaPipelinePDF } from '@/lib/comercial/relatorios-pdf';
+import { PageHeader, COMERCIAL_NAV } from '@/components/PageHeader';
 
 interface Oportunidade {
   id: number;
@@ -96,7 +97,7 @@ export default function ComercialPage() {
   }, [filtroVendedor]);
 
   const router = useRouter();
-  const { user, authenticated, loading: authLoading, logout, isAdmin } = useAuth();
+  const { user, authenticated, loading: authLoading, isAdmin } = useAuth();
 
   // ==================== DATA FETCHING ====================
 
@@ -474,63 +475,56 @@ export default function ComercialPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HEADER */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link href="/" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition" title="Voltar">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <h1 className="text-base sm:text-lg font-bold text-gray-900">Pipeline</h1>
-            </div>
-            <div className="flex items-center gap-1">
-              <Link href="/comercial/dashboard" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
-                Dashboard
-              </Link>
-              <Link href="/comercial/pipeline" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" /></svg>
-                Kanban
-              </Link>
-              <Link href="/comercial/clientes" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                Clientes
-              </Link>
-              <Link href="/comercial/admin/precos" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Preços
-              </Link>
-              <Link href="/comercial/configurador" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                Orçamento
-              </Link>
-              <Link href="/comercial/materiais" className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                Materiais
-              </Link>
+      <PageHeader
+        title="Pipeline"
+        backHref="/"
+        navLinks={COMERCIAL_NAV}
+        rightExtra={
+          <>
+            {/* Sync button */}
+            <button
+              onClick={() => runSync(false)}
+              disabled={syncing}
+              className={`flex items-center gap-1 px-2 py-1 text-sm font-medium rounded-lg transition ${
+                syncing ? 'text-gray-400 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'
+              }`}
+            >
+              <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="hidden sm:inline">{syncing ? 'Sync...' : 'Sync'}</span>
+            </button>
+
+            {/* Solicitar Status - admin only */}
+            {isAdmin && filtroVendedor && (
               <button
-                onClick={() => runSync(false)}
-                disabled={syncing}
-                className={`flex items-center gap-1 px-2 py-1 text-sm font-medium rounded-lg transition ${
-                  syncing ? 'text-gray-400 cursor-not-allowed' : 'text-green-700 hover:bg-green-50'
+                onClick={() => setSelectionMode(selectionMode === 'statusCheck' ? '' : 'statusCheck')}
+                className={`hidden sm:flex items-center gap-1 px-2 py-1 text-xs sm:text-sm font-medium rounded-lg transition ${
+                  selectionMode === 'statusCheck' ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:text-green-700 hover:bg-green-50'
                 }`}
               >
-                <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="hidden sm:inline">{syncing ? 'Sync...' : 'Sync'}</span>
+                <span className="hidden sm:inline">Solicitar Status</span>
               </button>
-              <button onClick={logout} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition" title="Sair">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+            )}
+
+            {/* Gerar Lista PDF */}
+            <button
+              onClick={() => setSelectionMode(selectionMode === 'pdf' ? '' : 'pdf')}
+              className={`hidden sm:flex items-center gap-1 px-2 py-1 text-xs sm:text-sm font-medium rounded-lg transition ${
+                selectionMode === 'pdf' ? 'bg-red-100 text-red-700' : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="hidden sm:inline">Gerar Lista PDF</span>
+            </button>
+          </>
+        }
+      />
 
       {/* SYNC BANNER */}
       {syncResult && (

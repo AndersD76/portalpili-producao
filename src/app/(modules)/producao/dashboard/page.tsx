@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { OPD } from '@/types/opd';
 import { Atividade } from '@/types/atividade';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, PRODUCAO_NAV } from '@/components/PageHeader';
 
 interface DashboardStats {
   totalOPDs: number;
@@ -28,7 +29,7 @@ export default function DashboardPage() {
   const [todasAtividades, setTodasAtividades] = useState<(Atividade & { opd_cliente?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { user, authenticated, loading: authLoading, logout } = useAuth();
+  const { user, authenticated, loading: authLoading } = useAuth();
   const [selectedOPD, setSelectedOPD] = useState<string>('todas');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [selectedResponsavel, setSelectedResponsavel] = useState<string>('todos');
@@ -58,10 +59,6 @@ export default function DashboardPage() {
     }
     fetchOPDs();
   }, [authLoading, authenticated]);
-
-  const handleLogout = async () => {
-    logout();
-  };
 
   const fetchOPDs = async () => {
     try {
@@ -211,70 +208,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/producao"
-                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Voltar"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Dashboard de Produção</h1>
-                {user && (
-                  <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => { setLoading(true); fetchOPDs(); }}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Atualizar"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-              <Link
-                href="/producao/calendario"
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Calendário"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </Link>
-              <Link
-                href="/"
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Módulos"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Sair"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title="Dashboard de Produção"
+        backHref="/producao"
+        navLinks={PRODUCAO_NAV}
+        rightExtra={
+          <button
+            onClick={() => { setLoading(true); fetchOPDs(); }}
+            className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
+            title="Atualizar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        }
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Cards de Estatísticas */}

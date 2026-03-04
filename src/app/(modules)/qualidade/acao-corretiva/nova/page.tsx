@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ProcessoOrigem, PROCESSOS_ORIGEM } from '@/types/qualidade';
 import AssistenteIAQualidade from '@/components/qualidade/AssistenteIAQualidade';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, QUALIDADE_NAV } from '@/components/PageHeader';
 
 function NovaAcaoCorretivaForm() {
   const router = useRouter();
@@ -260,25 +261,8 @@ function NovaAcaoCorretivaForm() {
 
 export default function NovaAcaoCorretivaPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/qualidade/acao-corretiva"
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">REGISTRO DE AÇÃO CORRETIVA</h1>
-              <p className="text-sm text-gray-600">Nº 57-3 - REV. 01</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader title="Nova Ação Corretiva" backHref="/qualidade/acao-corretiva" navLinks={QUALIDADE_NAV} />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Suspense fallback={

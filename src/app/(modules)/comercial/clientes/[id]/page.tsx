@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, COMERCIAL_NAV } from '@/components/PageHeader';
 
 interface Contato {
   id: number;
@@ -161,48 +162,19 @@ export default function ClienteDetalhePage() {
   const locationDisplay = locationParts.length > 0 ? locationParts.join(', ') : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-3 min-w-0">
-              <Link
-                href="/comercial/clientes"
-                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
-                title="Voltar"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              {cliente && (
-                <div className="min-w-0">
-                  <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
-                    {displayName}
-                  </h1>
-                  {cliente.razao_social && cliente.nome_fantasia && (
-                    <p className="text-xs text-gray-500 truncate hidden sm:block">
-                      {cliente.razao_social}
-                    </p>
-                  )}
-                </div>
-              )}
-              {!cliente && !loading && (
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Cliente</h1>
-              )}
-            </div>
-
-            {cliente && (
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge(cliente.status)}`}
-              >
-                {cliente.status || 'N/A'}
-              </span>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title={cliente?.razao_social || 'Cliente'}
+        backHref="/comercial/clientes"
+        navLinks={COMERCIAL_NAV}
+        rightExtra={cliente ? (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${statusBadge(cliente.status)}`}
+          >
+            {cliente.status || 'N/A'}
+          </span>
+        ) : undefined}
+      />
 
       {/* Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

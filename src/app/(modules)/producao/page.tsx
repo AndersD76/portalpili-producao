@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import OPDCard from '@/components/OPDCard';
 import Modal from '@/components/Modal';
 import OPDForm from '@/components/OPDForm';
 import { OPD } from '@/types/opd';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, PRODUCAO_NAV } from '@/components/PageHeader';
 
 export default function ProducaoHome() {
   const [opds, setOpds] = useState<OPD[]>([]);
@@ -20,7 +20,7 @@ export default function ProducaoHome() {
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const router = useRouter();
-  const { user, authenticated, loading: authLoading, podeExecutarAcao, logout } = useAuth();
+  const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
   // Calcular dias restantes até a data de entrega (mesma lógica do OPDCard)
   const calcularDiasRestantes = (opd: OPD): number | null => {
@@ -117,10 +117,6 @@ export default function ProducaoHome() {
     }
     fetchOPDs();
   }, [authLoading, authenticated]);
-
-  const handleLogout = () => {
-    logout();
-  };
 
   const handleSyncSinprod = async () => {
     setSyncing(true);
@@ -221,82 +217,35 @@ export default function ProducaoHome() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Voltar aos Módulos"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Produção</h1>
-                {user && (
-                  <p className="text-xs text-gray-500 hidden sm:block">{user.nome}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                href="/producao/dashboard"
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Dashboard"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </Link>
-              <Link
-                href="/producao/calendario"
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Calendário"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </Link>
-              <button
-                onClick={handleSyncSinprod}
-                disabled={syncing}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
-                title="Sincronizar com SINPROD"
-              >
-                <svg className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-              {podeExecutarAcao('PRODUCAO', 'criar') && (
-                <button
-                  onClick={() => setShowNewOPDModal(true)}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="hidden sm:inline">Nova OPD</span>
-                </button>
-              )}
-              <button
-                onClick={handleLogout}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Sair"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title="Produção"
+        backHref="/"
+        navLinks={PRODUCAO_NAV}
+        rightExtra={<>
+          <button
+            onClick={handleSyncSinprod}
+            disabled={syncing}
+            className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+            title="Sincronizar com SINPROD"
+          >
+            <svg className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          {podeExecutarAcao('PRODUCAO', 'criar') && (
+            <button
+              onClick={() => setShowNewOPDModal(true)}
+              className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Nova OPD</span>
+            </button>
+          )}
+        </>}
+      />
 
       {/* Toolbar */}
       <div className="bg-white border-b">

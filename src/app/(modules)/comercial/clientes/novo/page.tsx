@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CampoCNPJ } from '@/components/comercial';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, COMERCIAL_NAV } from '@/components/PageHeader';
 
 interface DadosCNPJ {
   razao_social: string;
@@ -115,36 +116,12 @@ export default function NovoClientePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/comercial/clientes"
-                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-                title="Voltar"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Novo Cliente</h1>
-            </div>
-
-            <button
-              onClick={() => setMostrarAssistente(true)}
-              className="p-2 text-gray-600 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
-              title="Assistente IA"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title="Novo Cliente"
+        backHref="/comercial/clientes"
+        navLinks={COMERCIAL_NAV}
+      />
 
       {/* Form */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

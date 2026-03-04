@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader, QUALIDADE_NAV } from '@/components/PageHeader';
 
 interface CQPergunta {
   id: number;
@@ -345,49 +346,36 @@ export default function ConfiguracaoCQPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/qualidade"
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Configuração de CQ</h1>
-                <p className="text-sm text-gray-600">Gerencie os setores e perguntas de Controle de Qualidade</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleImportFromFile}
-                disabled={importing}
-                className={`px-4 py-2 ${setores.length === 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 hover:bg-gray-600'} text-white rounded-lg flex items-center gap-2 disabled:opacity-50`}
-                title={setores.length > 0 ? 'Importa apenas itens que não existem' : 'Importar configuração padrão'}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                {importing ? 'Importando...' : 'Importar Padrão'}
-              </button>
-              <button
-                onClick={() => handleOpenSetorModal()}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Novo Setor
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title="Configuração de CQ"
+        backHref="/qualidade"
+        navLinks={QUALIDADE_NAV}
+        rightExtra={
+          <>
+            <button
+              onClick={handleImportFromFile}
+              disabled={importing}
+              className={`px-4 py-2 ${setores.length === 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 hover:bg-gray-600'} text-white rounded-lg flex items-center gap-2 text-sm font-medium disabled:opacity-50`}
+              title={setores.length > 0 ? 'Importa apenas itens que não existem' : 'Importar configuração padrão'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              {importing ? 'Importando...' : 'Importar Padrão'}
+            </button>
+            <button
+              onClick={() => handleOpenSetorModal()}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Novo Setor
+            </button>
+          </>
+        }
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {setores.length === 0 ? (

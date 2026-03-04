@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { PageHeader, QUALIDADE_NAV } from '@/components/PageHeader';
 import {
   AcaoCorretiva,
   Anexo,
@@ -683,30 +684,17 @@ export default function DetalhesAcaoCorretivaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/qualidade/acao-corretiva"
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{acao.numero}</h1>
-                <p className="text-sm text-gray-600">Nº 57-3 - REV. 01</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {getStatusBadge(acao.status)}
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title={acao.numero || 'Ação Corretiva'}
+        backHref="/qualidade/acao-corretiva"
+        navLinks={QUALIDADE_NAV}
+        rightExtra={
+          <div className="flex items-center gap-2">
+            {getStatusBadge(acao.status)}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Ações */}
