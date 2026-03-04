@@ -639,3 +639,91 @@ export function gerarRelatorioVendedorIndividual(dados: VendedorIndividualData, 
   gerarFooter(doc);
   doc.save(`relatorio-${vendedor.nome.toLowerCase().replace(/\s+/g, '-')}.pdf`);
 }
+
+// ============================================
+// LISTA DE PROPOSTAS SELECIONADAS (PIPELINE)
+// ============================================
+
+interface PropostaSelecionada {
+  numero_proposta?: string;
+  cliente_nome: string;
+  produto?: string;
+  valor_estimado: number;
+  probabilidade_smart?: number;
+  estagio: string;
+  dias_no_estagio?: number;
+  vendedor_nome?: string;
+  data_abertura?: string;
+  created_at: string;
+}
+
+export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?: { vendedor?: string; estagio?: string }) {
+  const doc = new jsPDF('landscape', 'mm', 'a4');
+
+  const subtitulo = [
+    filtros?.vendedor ? `Vendedor: ${filtros.vendedor}` : '',
+    filtros?.estagio ? `Etapa: ${ESTAGIOS_LABELS[filtros.estagio] || filtros.estagio}` : '',
+  ].filter(Boolean).join(' | ') || 'Todas as propostas';
+
+  let y = gerarHeader(doc, `Lista de Propostas - ${subtitulo}`, `${propostas.length} propostas`);
+
+  // KPI boxes
+  const valorTotal = propostas.reduce((s, p) => s + toNum(p.valor_estimado), 0);
+  const probMedia = propostas.length > 0 ? propostas.reduce((s, p) => s + toNum(p.probabilidade_smart), 0) / propostas.length : 0;
+  const boxW = 50;
+  const gap = 5;
+  const startX = 14;
+
+  addKpiBox(doc, startX, y, boxW, 'Propostas', String(propostas.length));
+  addKpiBox(doc, startX + boxW + gap, y, boxW, 'Valor Total', formatCurrency(valorTotal));
+  addKpiBox(doc, startX + 2 * (boxW + gap), y, boxW, 'Valor Ponderado', formatCurrency(valorTotal * (probMedia / 100)));
+  addKpiBox(doc, startX + 3 * (boxW + gap), y, boxW, 'Prob. Média', formatPercent(probMedia));
+  y += 30;
+
+  // Table
+  autoTable(doc, {
+    startY: y,
+    head: [['#', 'Cliente', 'Produto', 'Valor', 'Prob.', 'Etapa', 'Dias', 'Vendedor', 'Data']],
+    body: propostas.map(p => {
+      const dataRef = p.data_abertura || p.created_at;
+      return [
+        p.numero_proposta || '-',
+        p.cliente_nome || '-',
+        p.produto || '-',
+        formatCurrency(toNum(p.valor_estimado)),
+        `${toNum(p.probabilidade_smart)}%`,
+        ESTAGIOS_LABELS[p.estagio] || p.estagio,
+        String(toNum(p.dias_no_estagio)),
+        p.vendedor_nome || '-',
+        dataRef ? new Date(dataRef).toLocaleDateString('pt-BR') : '-',
+      ];
+    }),
+    foot: [[
+      '',
+      `TOTAL: ${propostas.length}`,
+      '',
+      formatCurrency(valorTotal),
+      formatPercent(probMedia),
+      '',
+      '',
+      '',
+      '',
+    ]],
+    theme: 'grid',
+    headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 8 },
+    footStyles: { fillColor: [249, 250, 251], textColor: [17, 24, 39], fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { fontSize: 8 },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 18 },
+      3: { halign: 'right' },
+      4: { halign: 'center', cellWidth: 16 },
+      5: { halign: 'center' },
+      6: { halign: 'center', cellWidth: 14 },
+      8: { halign: 'center', cellWidth: 22 },
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  gerarFooter(doc);
+  doc.save('lista-propostas-pipeline.pdf');
+}

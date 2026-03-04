@@ -154,14 +154,25 @@ export default function FormularioPintura({ opd, cliente, atividadeId, onSubmit,
         const result = await response.json();
         if (result.success) {
           uploadedFiles.push({ filename: result.filename, url: result.url, size: file.size });
+        } else {
+          toast.error(result.error || `Erro ao enviar ${file.name}`);
         }
       }
-      setFormData(prev => ({ ...prev, [fieldName]: uploadedFiles }));
+      if (uploadedFiles.length > 0) {
+        // Adicionar aos arquivos existentes (nao substituir)
+        const existingFiles = (formData as any)[fieldName] || [];
+        setFormData(prev => ({ ...prev, [fieldName]: [...existingFiles, ...uploadedFiles] }));
+        toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
+      }
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
-      toast.error('Erro ao fazer upload de arquivos');
+      toast.error('Erro ao fazer upload de arquivos. Verifique sua conexao.');
     } finally {
       setUploadingImages(prev => ({ ...prev, [fieldName]: false }));
+      // Limpar input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRefs.current[fieldName]) {
+        fileInputRefs.current[fieldName]!.value = '';
+      }
     }
   };
 

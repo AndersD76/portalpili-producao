@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { DadosEntrega } from '@/types/atividade';
 
 interface FormularioEntregaProps {
@@ -21,6 +22,7 @@ export default function FormularioEntrega({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const [formData, setFormData] = useState<DadosEntrega>({
     nome_fantasia_cliente: cliente,
@@ -109,31 +111,49 @@ export default function FormularioEntrega({
     setError(null);
 
     try {
-      const file = files[0];
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
-      formDataUpload.append('opd', opd);
-      formDataUpload.append('tipo', 'entrega');
+      const uploadedFiles: { filename: string; url: string; size: number }[] = [];
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formDataUpload,
-      });
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        formDataUpload.append('opd', opd);
+        formDataUpload.append('tipo', 'entrega');
 
-      const result = await response.json();
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        });
 
-      if (result.success) {
-        setFormData(prev => ({
-          ...prev,
-          [fieldName]: result.url
-        }));
-      } else {
-        throw new Error(result.error || 'Erro ao fazer upload');
+        const result = await response.json();
+
+        if (result.success) {
+          uploadedFiles.push({
+            filename: result.filename,
+            url: result.url,
+            size: file.size
+          });
+        } else {
+          toast.error(result.error || 'Erro ao enviar arquivo');
+          throw new Error(result.error || 'Erro ao fazer upload');
+        }
       }
+
+      // Adicionar aos arquivos existentes
+      const existingFiles = (formData as any)[fieldName] || [];
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: [...existingFiles, ...uploadedFiles]
+      }));
+      toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer upload do arquivo');
     } finally {
       setLoading(false);
+      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRefs.current[fieldName]) {
+        fileInputRefs.current[fieldName]!.value = '';
+      }
     }
   };
 

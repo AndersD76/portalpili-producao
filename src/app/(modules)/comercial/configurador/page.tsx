@@ -66,6 +66,10 @@ export default function ConfiguradorPage() {
   // Vendedor logado (para validacao)
   const [vendedorDados, setVendedorDados] = useState<{ telefone?: string; email?: string; whatsapp?: string } | null>(null);
 
+  // Declaracao de termos e continuacao
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [mostrarCondicoes, setMostrarCondicoes] = useState(false);
+
   // Enviar para analise
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -311,6 +315,32 @@ export default function ConfiguradorPage() {
     return Object.keys(erros).length === 0;
   };
 
+  const validarDadosCliente = (): boolean => {
+    const erros: Record<string, string> = {};
+    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) erros.cnpj = 'CNPJ obrigatorio';
+    if (!clienteEmpresa.trim()) erros.empresa = 'Empresa obrigatoria';
+    if (!clienteNome.trim()) erros.clienteNome = 'Nome do contato obrigatorio';
+    if (!decisorNome.trim()) erros.decisorNome = 'Nome do decisor obrigatorio';
+    const telLimpo = decisorTelefone.replace(/\D/g, '');
+    if (!telLimpo || telLimpo.length < 10) erros.decisorTelefone = 'Telefone do decisor obrigatorio (minimo 10 digitos)';
+    if (!decisorEmail.trim()) {
+      erros.decisorEmail = 'Email do decisor obrigatorio';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(decisorEmail)) {
+      erros.decisorEmail = 'Email invalido';
+    }
+    if (errosDecisor.telefone) erros.decisorTelefone = errosDecisor.telefone;
+    if (errosDecisor.email) erros.decisorEmail = errosDecisor.email;
+    setErrosForm(erros);
+    return Object.keys(erros).length === 0;
+  };
+
+  const handleContinuar = () => {
+    if (!validarDadosCliente()) return;
+    if (!aceitouTermos) return;
+    setMostrarCondicoes(true);
+  };
+
   const handleAbrirConfirmacao = () => {
     if (!precoSelecionado || !calculo) return;
     if (!validarFormulario()) return;
@@ -403,12 +433,12 @@ export default function ConfiguradorPage() {
       });
       const data = await res.json();
       if (data.success) {
-        // 2. Gerar rascunho PDF para o cliente (download automatico)
+        // 2. Gerar pre-proposta PDF para o cliente (download automatico)
         try {
           const dadosPDF = { ...result.dados, numeroProposta: data.numero_proposta };
           await gerarRascunhoPDF(dadosPDF);
         } catch (pdfErr) {
-          console.error('Erro ao gerar rascunho PDF:', pdfErr);
+          console.error('Erro ao gerar pre-proposta PDF:', pdfErr);
         }
 
         setEnviado(true);
@@ -580,12 +610,12 @@ export default function ConfiguradorPage() {
             </div>
           )}
 
-          {/* STEP 3: Condicoes */}
+          {/* STEP 3: Dados do Cliente */}
           {precoSelecionado && (
             <div className="bg-white rounded-lg shadow p-5">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
-                Condicoes Comerciais
+                Dados do Cliente
               </h2>
 
               <div className="space-y-5">
@@ -672,77 +702,126 @@ export default function ConfiguradorPage() {
                   </div>
                 </div>
 
-                {/* Quantidade, Desconto, etc */}
-                <div className="border-t pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={quantidade}
-                      onChange={e => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={15}
-                      step={0.5}
-                      value={descontoManual}
-                      onChange={e => setDescontoManual(Math.min(15, Math.max(0, parseFloat(e.target.value) || 0)))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Entrega</label>
-                    <select
-                      value={prazoEntrega}
-                      onChange={e => setPrazoEntrega(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                {/* Declaracao de Termos */}
+                {!mostrarCondicoes && (
+                  <div className="border-t pt-4">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <p className="text-xs text-gray-700 leading-relaxed mb-3">
+                        Ao informar o CNPJ acima e prosseguir com a emissao da proposta comercial, o usuario declara, sob as penas da lei, que atua em nome e com autorizacao da empresa indicada, que as informacoes prestadas sao verdadeiras e correspondem a real interesse comercial da referida pessoa juridica.
+                      </p>
+                      <p className="text-xs text-gray-700 leading-relaxed mb-4">
+                        O declarante reconhece que a utilizacao de dados falsos, de terceiros ou sem autorizacao, bem como a obtencao de proposta para fins diversos da negociacao legitima, podera caracterizar ato ilicito, concorrencia desleal e violacao de sigilo comercial, sujeitando-o a responsabilizacao civil e as perdas e danos cabiveis.
+                      </p>
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={aceitouTermos}
+                          onChange={e => setAceitouTermos(e.target.checked)}
+                          className="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        <span className="text-sm font-medium text-gray-800">
+                          Declaro que li e concordo com os termos acima.
+                        </span>
+                      </label>
+                    </div>
+
+                    <button
+                      onClick={handleContinuar}
+                      disabled={!aceitouTermos}
+                      className={`mt-4 w-full px-4 py-3 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 ${
+                        aceitouTermos
+                          ? 'bg-red-600 text-white hover:bg-red-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
                     >
-                      <option value="90 dias">90 dias</option>
-                      <option value="120 dias">120 dias</option>
-                      <option value="150 dias">150 dias</option>
-                      <option value="180 dias">180 dias</option>
-                      <option value="A combinar">A combinar</option>
-                    </select>
+                      Continuar
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Garantia</label>
-                    <select
-                      value={garantiaMeses}
-                      onChange={e => setGarantiaMeses(parseInt(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                    >
-                      <option value={6}>6 meses</option>
-                      <option value={12}>12 meses</option>
-                      <option value={18}>18 meses</option>
-                      <option value={24}>24 meses</option>
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
-                    <input
-                      type="text"
-                      value={formaPagamento}
-                      onChange={e => setFormaPagamento(e.target.value)}
-                      placeholder="Ex: 30/60/90 dias, BNDES, etc"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Observacoes</label>
-                    <textarea
-                      value={observacoes}
-                      onChange={e => setObservacoes(e.target.value)}
-                      rows={3}
-                      placeholder="Observacoes adicionais..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: Condicoes Comerciais (aparece apos aceitar termos e clicar Continuar) */}
+          {precoSelecionado && mostrarCondicoes && (
+            <div className="bg-white rounded-lg shadow p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">4</span>
+                Condicoes Comerciais
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={quantidade}
+                    onChange={e => setQuantidade(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Desconto (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={15}
+                    step={0.5}
+                    value={descontoManual}
+                    onChange={e => setDescontoManual(Math.min(15, Math.max(0, parseFloat(e.target.value) || 0)))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prazo de Entrega</label>
+                  <select
+                    value={prazoEntrega}
+                    onChange={e => setPrazoEntrega(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  >
+                    <option value="90 dias">90 dias</option>
+                    <option value="120 dias">120 dias</option>
+                    <option value="150 dias">150 dias</option>
+                    <option value="180 dias">180 dias</option>
+                    <option value="A combinar">A combinar</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Garantia</label>
+                  <select
+                    value={garantiaMeses}
+                    onChange={e => setGarantiaMeses(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  >
+                    <option value={6}>6 meses</option>
+                    <option value={12}>12 meses</option>
+                    <option value={18}>18 meses</option>
+                    <option value={24}>24 meses</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
+                  <input
+                    type="text"
+                    value={formaPagamento}
+                    onChange={e => setFormaPagamento(e.target.value)}
+                    placeholder="Ex: 30/60/90 dias, BNDES, etc"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Observacoes</label>
+                  <textarea
+                    value={observacoes}
+                    onChange={e => setObservacoes(e.target.value)}
+                    rows={3}
+                    placeholder="Observacoes adicionais..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
+                  />
                 </div>
               </div>
             </div>
@@ -823,16 +902,16 @@ export default function ConfiguradorPage() {
                     <svg className="w-8 h-8 text-green-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <p className="text-green-800 font-semibold">Proposta enviada para analise!</p>
+                    <p className="text-green-800 font-semibold">Pre-proposta enviada para analise!</p>
                     {resultadoEnvio?.numeroProposta && (
                       <p className="text-green-700 text-sm mt-1">
-                        Proposta N. {String(resultadoEnvio.numeroProposta).padStart(4, '0')}
+                        Pre-Proposta N. {String(resultadoEnvio.numeroProposta).padStart(4, '0')}
                       </p>
                     )}
-                    <p className="text-green-600 text-xs mt-1">O rascunho em PDF foi baixado automaticamente.</p>
-                    <p className="text-green-600 text-xs">O analista comercial recebera o link via WhatsApp.</p>
+                    <p className="text-green-600 text-xs mt-1">A pre-proposta em PDF foi baixada automaticamente.</p>
+                    <p className="text-green-600 text-xs">O analista comercial recebera o link via WhatsApp e email.</p>
                   </div>
-                ) : (
+                ) : mostrarCondicoes ? (
                   <button
                     onClick={handleAbrirConfirmacao}
                     className="mt-4 w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-bold flex items-center justify-center gap-2"
@@ -842,6 +921,10 @@ export default function ConfiguradorPage() {
                     </svg>
                     Enviar para Analise Comercial
                   </button>
+                ) : (
+                  <p className="mt-4 text-center text-xs text-gray-400">
+                    Preencha os dados do cliente e aceite os termos para continuar.
+                  </p>
                 )}
 
                 {erroEnvio && (

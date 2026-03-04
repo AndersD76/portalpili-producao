@@ -159,7 +159,7 @@ function _buildOrcamentoDoc(
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   if (rascunho) {
-    doc.text('PROPOSTA COMERCIAL - RASCUNHO', textStartX, 20);
+    doc.text('PRE-PROPOSTA COMERCIAL', textStartX, 20);
   } else if (numeroStr) {
     doc.text(`ORCAMENTO N. ${numeroStr}`, textStartX, 20);
   } else {
@@ -490,9 +490,9 @@ function _buildOrcamentoDoc(
       doc.setTextColor(220, 38, 38);
       doc.setFont('helvetica', 'bold');
       // Posicionar em 3 pontos da pagina
-      doc.text('RASCUNHO', pageW / 2, 80, { align: 'center', angle: 45 });
-      doc.text('RASCUNHO', pageW / 2, pageH / 2, { align: 'center', angle: 45 });
-      doc.text('RASCUNHO', pageW / 2, pageH - 40, { align: 'center', angle: 45 });
+      doc.text('PRE-PROPOSTA', pageW / 2, 80, { align: 'center', angle: 45 });
+      doc.text('PRE-PROPOSTA', pageW / 2, pageH / 2, { align: 'center', angle: 45 });
+      doc.text('PRE-PROPOSTA', pageW / 2, pageH - 40, { align: 'center', angle: 45 });
       // Restaurar opacidade
       doc.setGState(new (doc as any).GState({ opacity: 1 }));
     }
@@ -508,7 +508,7 @@ function _buildOrcamentoDoc(
     doc.setTextColor(150, 150, 150);
 
     if (rascunho) {
-      doc.text('RASCUNHO - Documento sem valor comercial | PILI Equipamentos Industriais', 14, pageH - 10);
+      doc.text('PRE-PROPOSTA - Documento sem valor comercial | PILI Equipamentos Industriais', 14, pageH - 10);
     } else {
       const footerLeft = numeroStr
         ? `Orcamento N. ${numeroStr} | PILI Equipamentos Industriais | Portal Pili`
@@ -528,7 +528,7 @@ function _buildOrcamentoDoc(
 function _buildNomeArquivo(dados: DadosOrcamento, rascunho: boolean): string {
   const data = new Date().toISOString().split('T')[0];
   const produto = dados.produto.toLowerCase();
-  const prefix = rascunho ? 'rascunho' : 'orcamento';
+  const prefix = rascunho ? 'pre-proposta' : 'orcamento';
   if (dados.numeroProposta) {
     const num = String(dados.numeroProposta).padStart(4, '0');
     return `${prefix}-pili-${num}-${produto}-${data}.pdf`;

@@ -323,12 +323,19 @@ export default function FormularioMontagem({ opd, cliente, atividadeId, onSubmit
         }
       }
 
-      setFormData(prev => ({ ...prev, [fieldName]: uploadedFiles }));
+      // Adicionar aos arquivos existentes
+      const existingFiles = (formData as any)[fieldName] || [];
+      setFormData(prev => ({ ...prev, [fieldName]: [...existingFiles, ...uploadedFiles] }));
+      toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
       toast.error('Erro ao fazer upload de arquivos');
     } finally {
       setUploadingImages(prev => ({ ...prev, [fieldName]: false }));
+      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRefs.current[fieldName]) {
+        fileInputRefs.current[fieldName]!.value = '';
+      }
     }
   };
 

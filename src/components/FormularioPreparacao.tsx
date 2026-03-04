@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { toast } from 'sonner';
 import { DadosPreparacao } from '@/types/atividade';
 
 interface FormularioPreparacaoProps {
@@ -20,6 +21,7 @@ export default function FormularioPreparacao({
 }: FormularioPreparacaoProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const [formData, setFormData] = useState<DadosPreparacao>({
     numero_opd: opd,
@@ -74,18 +76,26 @@ export default function FormularioPreparacao({
             size: result.size
           });
         } else {
+          toast.error(result.error || 'Erro ao enviar arquivo');
           throw new Error(result.error || 'Erro ao fazer upload');
         }
       }
 
+      // Adicionar aos arquivos existentes
+      const existingFiles = (formData as any)[fieldName] || [];
       setFormData(prev => ({
         ...prev,
-        [fieldName]: uploadedFiles
+        [fieldName]: [...existingFiles, ...uploadedFiles]
       }));
+      toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer upload dos arquivos');
     } finally {
       setLoading(false);
+      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRefs.current[fieldName]) {
+        fileInputRefs.current[fieldName]!.value = '';
+      }
     }
   };
 

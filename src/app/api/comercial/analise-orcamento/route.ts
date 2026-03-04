@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { verificarPermissao } from '@/lib/auth';
 import { enviarAnaliseOrcamento, formatarLinkAnalise } from '@/lib/whatsapp';
+import { enviarEmail, buildEmailPreProposta } from '@/lib/email';
 import crypto from 'crypto';
 
 /**
@@ -80,6 +81,11 @@ export async function POST(request: Request) {
     // Mapear produto para campos da proposta
     const isTombador = produto === 'TOMBADOR';
     const tamanho = dados_configurador?.tamanho;
+
+    // Sincronizar sequencia para evitar duplicatas
+    await query(
+      `SELECT setval('seq_numero_proposta', COALESCE((SELECT MAX(numero_proposta) FROM crm_propostas), 0))`
+    );
 
     // Inserir proposta
     const propostaResult = await query(
@@ -166,12 +172,32 @@ export async function POST(request: Request) {
       console.warn('[AnaliseOrcamento] WhatsApp do analista nao configurado');
     }
 
+    // Enviar email para o comercial
+    const emailComercial = process.env.EMAIL_COMERCIAL || 'comercial1@pili.ind.br';
+    let emailSent = false;
+    try {
+      const { subject, html } = buildEmailPreProposta({
+        numeroProposta,
+        cliente: cliente_empresa,
+        cnpj,
+        produto,
+        valorTotal: valor_total,
+        vendedor: vendedor.nome,
+        link,
+      });
+      const emailResult = await enviarEmail(emailComercial, subject, html);
+      emailSent = emailResult.success;
+    } catch (emailErr) {
+      console.error('[AnaliseOrcamento] Erro ao enviar email:', emailErr);
+    }
+
     return NextResponse.json({
       success: true,
       proposta_id: propostaId,
       numero_proposta: numeroProposta,
       link,
       whatsapp_sent: whatsappSent,
+      email_sent: emailSent,
       message: whatsappSent
         ? 'Proposta enviada para analise via WhatsApp'
         : `Proposta criada. Link: ${link} (WhatsApp nao enviado)`,

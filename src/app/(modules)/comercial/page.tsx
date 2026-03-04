@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { ModalDetalheOportunidade } from '@/components/comercial';
+import { gerarListaPipelinePDF } from '@/lib/comercial/relatorios-pdf';
 
 interface Oportunidade {
   id: number;
@@ -84,13 +85,13 @@ export default function ComercialPage() {
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
-  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<'' | 'statusCheck' | 'pdf'>('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [sendingStatusCheck, setSendingStatusCheck] = useState(false);
 
   // Reset selection when vendedor filter changes
   useEffect(() => {
-    setSelectionMode(false);
+    setSelectionMode('');
     setSelectedIds(new Set());
   }, [filtroVendedor]);
 
@@ -351,11 +352,17 @@ export default function ComercialPage() {
     return new Set(listaFiltrada.filter(o => o.estagio === 'EM_NEGOCIACAO').map(o => o.id));
   }, [listaFiltrada]);
 
+  const selectableIds = useMemo(() => {
+    if (selectionMode === 'statusCheck') return emNegociacaoIds;
+    // pdf mode: all visible items
+    return new Set(listaFiltrada.map(o => o.id));
+  }, [selectionMode, emNegociacaoIds, listaFiltrada]);
+
   const toggleSelectAll = () => {
-    if (selectedIds.size === emNegociacaoIds.size && emNegociacaoIds.size > 0) {
+    if (selectedIds.size === selectableIds.size && selectableIds.size > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(emNegociacaoIds));
+      setSelectedIds(new Set(selectableIds));
     }
   };
 
@@ -369,7 +376,7 @@ export default function ComercialPage() {
   };
 
   const cancelSelection = () => {
-    setSelectionMode(false);
+    setSelectionMode('');
     setSelectedIds(new Set());
   };
 
@@ -413,6 +420,27 @@ export default function ComercialPage() {
     } finally {
       setSendingStatusCheck(false);
     }
+  };
+
+  const handleGerarPDF = () => {
+    const selecionadas = listaFiltrada.filter(o => selectedIds.has(o.id));
+    if (selecionadas.length === 0) return;
+    gerarListaPipelinePDF(
+      selecionadas.map(o => ({
+        numero_proposta: o.numero_proposta,
+        cliente_nome: o.cliente_nome,
+        produto: o.produto,
+        valor_estimado: toNum(o.valor_estimado),
+        probabilidade_smart: toNum(o.probabilidade_smart),
+        estagio: o.estagio,
+        dias_no_estagio: toNum(o.dias_no_estagio),
+        vendedor_nome: o.vendedor_nome,
+        data_abertura: o.data_abertura,
+        created_at: o.created_at,
+      })),
+      { vendedor: filtroVendedor || undefined, estagio: filtroEstagio || undefined }
+    );
+    cancelSelection();
   };
 
   const handleSort = (campo: string) => {
@@ -561,18 +589,32 @@ export default function ComercialPage() {
             )}
           </div>
 
-          {/* Solicitar Status - admin + vendedor selecionado */}
-          {isAdmin && filtroVendedor && !selectionMode && (
-            <button
-              onClick={() => { setSelectionMode(true); setFiltroEstagio('EM_NEGOCIACAO'); }}
-              className="ml-auto flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition"
-              title="Solicitar atualização de status via WhatsApp"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              Solicitar Status
-            </button>
+          {/* Action buttons */}
+          {!selectionMode && (
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={() => { setSelectionMode('pdf'); setSelectedIds(new Set()); }}
+                className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition"
+                title="Selecionar propostas para gerar PDF"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Gerar Lista PDF
+              </button>
+              {isAdmin && filtroVendedor && (
+                <button
+                  onClick={() => { setSelectionMode('statusCheck'); setSelectedIds(new Set()); setFiltroEstagio('EM_NEGOCIACAO'); }}
+                  className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition"
+                  title="Solicitar atualização de status via WhatsApp"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Solicitar Status
+                </button>
+              )}
+            </div>
           )}
           {selectionMode && (
             <button
@@ -585,7 +627,7 @@ export default function ComercialPage() {
               Cancelar Seleção
             </button>
           )}
-          {ultimoSync && !selectionMode && !(isAdmin && filtroVendedor) && (
+          {ultimoSync && !selectionMode && (
             <span className="ml-auto text-[10px] text-gray-300 hidden lg:inline">
               Sync: {new Date(ultimoSync).toLocaleString('pt-BR')}
             </span>
@@ -633,7 +675,7 @@ export default function ComercialPage() {
                       <th className="px-1 py-2 text-center w-[32px]">
                         <input
                           type="checkbox"
-                          checked={emNegociacaoIds.size > 0 && selectedIds.size === emNegociacaoIds.size}
+                          checked={selectableIds.size > 0 && selectedIds.size === selectableIds.size}
                           onChange={toggleSelectAll}
                           className="w-3.5 h-3.5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
                         />
@@ -669,7 +711,7 @@ export default function ComercialPage() {
                       >
                         {selectionMode && (
                           <td className="px-1 py-1.5 text-center" onClick={e => e.stopPropagation()}>
-                            {isEmNeg ? (
+                            {(selectionMode === 'pdf' || isEmNeg) ? (
                               <input
                                 type="checkbox"
                                 checked={selectedIds.has(op.id)}
@@ -728,7 +770,7 @@ export default function ComercialPage() {
         </div>
       </div>
 
-      {/* Floating Status Check Bar */}
+      {/* Floating Action Bar */}
       {selectionMode && selectedIds.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -742,18 +784,31 @@ export default function ComercialPage() {
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleEnviarStatusCheck}
-                disabled={sendingStatusCheck}
-                className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
-                  sendingStatusCheck ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                {sendingStatusCheck ? 'Enviando...' : 'Enviar via WhatsApp'}
-              </button>
+              {selectionMode === 'pdf' && (
+                <button
+                  onClick={handleGerarPDF}
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Gerar PDF
+                </button>
+              )}
+              {selectionMode === 'statusCheck' && (
+                <button
+                  onClick={handleEnviarStatusCheck}
+                  disabled={sendingStatusCheck}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
+                    sendingStatusCheck ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  {sendingStatusCheck ? 'Enviando...' : 'Enviar via WhatsApp'}
+                </button>
+              )}
             </div>
           </div>
         </div>

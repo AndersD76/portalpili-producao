@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

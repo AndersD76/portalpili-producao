@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: 'Nenhum arquivo enviado' },
+        { success: false, error: 'Nenhum arquivo enviado' },
         { status: 400 }
       );
     }
@@ -17,16 +17,26 @@ export async function POST(request: NextRequest) {
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'Arquivo muito grande. Máximo 10MB' },
+        { success: false, error: `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximo 10MB` },
         { status: 400 }
       );
     }
 
-    // Validar tipo de arquivo
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
+    // Validar tipo de arquivo (incluir formatos de camera mobile)
+    const allowedTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'image/bmp',
+      'image/gif',
+    ];
+    if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
       return NextResponse.json(
-        { error: 'Tipo de arquivo não permitido' },
+        { success: false, error: `Tipo de arquivo nao permitido: ${file.type}` },
         { status: 400 }
       );
     }
@@ -56,10 +66,11 @@ export async function POST(request: NextRequest) {
         size: file.size,
       },
     });
-  } catch (error) {
-    console.error('Erro no upload:', error);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('Erro no upload:', msg);
     return NextResponse.json(
-      { error: 'Erro ao fazer upload do arquivo' },
+      { success: false, error: `Erro ao fazer upload: ${msg}` },
       { status: 500 }
     );
   }

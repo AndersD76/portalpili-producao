@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { DadosDesembarquePreInstalacao } from '@/types/atividade';
 
 interface FormularioDesembarquePreInstalacaoProps {
@@ -21,6 +22,7 @@ export default function FormularioDesembarquePreInstalacao({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const [formData, setFormData] = useState<DadosDesembarquePreInstalacao>({
     nota_fiscal_conferida: null,
@@ -85,7 +87,7 @@ export default function FormularioDesembarquePreInstalacao({
     setError(null);
 
     try {
-      const uploadedUrls: string[] = [];
+      const uploadedFiles: { filename: string; url: string; size: number }[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -102,27 +104,32 @@ export default function FormularioDesembarquePreInstalacao({
         const result = await response.json();
 
         if (result.success) {
-          uploadedUrls.push(result.url);
+          uploadedFiles.push({
+            filename: result.filename,
+            url: result.url,
+            size: file.size
+          });
         } else {
+          toast.error(result.error || 'Erro ao enviar arquivo');
           throw new Error(result.error || 'Erro ao fazer upload');
         }
       }
 
-      if (fieldName === 'imagens_obra_civil') {
-        setFormData(prev => ({
-          ...prev,
-          imagens_obra_civil: [...(prev.imagens_obra_civil || []), ...uploadedUrls]
-        }));
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          [fieldName]: uploadedUrls[0]
-        }));
-      }
+      // Adicionar aos arquivos existentes
+      const existingFiles = (formData as any)[fieldName] || [];
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: [...existingFiles, ...uploadedFiles]
+      }));
+      toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer upload dos arquivos');
     } finally {
       setLoading(false);
+      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRefs.current[fieldName]) {
+        fileInputRefs.current[fieldName]!.value = '';
+      }
     }
   };
 
@@ -301,8 +308,8 @@ export default function FormularioDesembarquePreInstalacao({
           />
           {formData.imagens_obra_civil && formData.imagens_obra_civil.length > 0 && (
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {formData.imagens_obra_civil.map((url, index) => (
-                <img key={index} src={url} alt={`Imagem ${index + 1}`} className="w-full h-24 object-cover rounded border" />
+              {formData.imagens_obra_civil.map((arquivo: any, index: number) => (
+                <img key={index} src={typeof arquivo === 'string' ? arquivo : arquivo.url} alt={`Imagem ${index + 1}`} className="w-full h-24 object-cover rounded border" />
               ))}
             </div>
           )}
