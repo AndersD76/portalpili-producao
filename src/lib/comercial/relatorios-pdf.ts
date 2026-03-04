@@ -648,6 +648,10 @@ interface PropostaSelecionada {
   numero_proposta?: string;
   cliente_nome: string;
   produto?: string;
+  tombador_tamanho?: number;
+  tombador_modelo?: string;
+  coletor_tipo?: string;
+  coletor_modelo?: string;
   valor_estimado: number;
   probabilidade_smart?: number;
   estagio: string;
@@ -709,7 +713,10 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
       return [
         p.numero_proposta || '-',
         p.cliente_nome || '-',
-        p.produto || '-',
+        [
+          p.produto || '-',
+          p.tombador_tamanho && p.tombador_tamanho > 0 ? `${p.tombador_tamanho}T${p.tombador_modelo ? ' ' + p.tombador_modelo : ''}` : (p.coletor_tipo || p.coletor_modelo || ''),
+        ].filter(Boolean).join('\n'),
         formatCurrency(toNum(p.valor_estimado)),
         `${toNum(p.probabilidade_smart)}%`,
         ESTAGIOS_LABELS[p.estagio] || p.estagio,
