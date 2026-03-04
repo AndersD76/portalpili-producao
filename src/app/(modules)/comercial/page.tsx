@@ -17,6 +17,11 @@ interface Oportunidade {
   vendedor_nome?: string;
   vendedor_id?: number;
   produto?: string;
+  produto_detalhe?: string;
+  tombador_modelo?: string;
+  tombador_tamanho?: number;
+  coletor_modelo?: string;
+  coletor_tipo?: string;
   valor_estimado: number;
   probabilidade: number;
   probabilidade_smart?: number;
@@ -430,7 +435,7 @@ export default function ComercialPage() {
       selecionadas.map(o => ({
         numero_proposta: o.numero_proposta,
         cliente_nome: o.cliente_nome,
-        produto: o.produto,
+        produto: o.produto_detalhe || o.produto,
         valor_estimado: toNum(o.valor_estimado),
         probabilidade_smart: toNum(o.probabilidade_smart),
         estagio: o.estagio,
@@ -725,7 +730,7 @@ export default function ComercialPage() {
                             {op.cliente_nome || op.titulo}
                             {urgente && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Atividade atrasada" />}
                           </div>
-                          <div className="text-[10px] text-gray-400 truncate">{op.produto || '-'}</div>
+                          <div className="text-[10px] text-gray-400 truncate">{op.produto_detalhe || op.produto || '-'}</div>
                         </td>
                         <td className="px-2 py-1.5 text-right font-bold text-xs sm:text-sm text-gray-800 tabular-nums whitespace-nowrap">{fmtFull(valor)}</td>
                         <td className="px-2 py-1.5 text-center hidden sm:table-cell"

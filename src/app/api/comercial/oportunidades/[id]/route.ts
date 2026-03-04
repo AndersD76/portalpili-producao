@@ -21,7 +21,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Query principal: oportunidade + cliente + vendedor (sem JOINs com tabelas que podem não existir)
+    // Query principal: oportunidade + cliente + vendedor + detalhes do produto (ultima proposta)
     const result = await query(
       `SELECT
         o.*,
@@ -32,10 +32,16 @@ export async function GET(
         c.email as cliente_email,
         c.segmento as cliente_segmento,
         v.nome as vendedor_nome,
-        v.email as vendedor_email
+        v.email as vendedor_email,
+        lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
       FROM crm_oportunidades o
       LEFT JOIN crm_clientes c ON o.cliente_id = c.id
       LEFT JOIN crm_vendedores v ON o.vendedor_id = v.id
+      LEFT JOIN LATERAL (
+        SELECT tombador_modelo, tombador_tamanho, coletor_modelo, coletor_tipo
+        FROM crm_propostas p WHERE p.oportunidade_id = o.id
+        ORDER BY p.created_at DESC LIMIT 1
+      ) lp ON true
       WHERE o.id = $1`,
       [id]
     );
@@ -131,10 +137,26 @@ export async function GET(
       prob_fatores = breakdown.fatores;
     } catch { /* ignore */ }
 
+    // Monta descricao detalhada do produto
+    const produto = String(oportunidade.produto || '');
+    let produto_detalhe = produto;
+    if (produto === 'TOMBADOR') {
+      const partes: string[] = ['Tombador'];
+      if (oportunidade.tombador_tamanho) partes.push(`${oportunidade.tombador_tamanho}T`);
+      if (oportunidade.tombador_modelo) partes.push(String(oportunidade.tombador_modelo));
+      produto_detalhe = partes.join(' ');
+    } else if (produto === 'COLETOR') {
+      const partes: string[] = ['Coletor'];
+      if (oportunidade.coletor_tipo) partes.push(String(oportunidade.coletor_tipo));
+      if (oportunidade.coletor_modelo) partes.push(String(oportunidade.coletor_modelo));
+      produto_detalhe = partes.join(' ');
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         ...oportunidade,
+        produto_detalhe,
         probabilidade_smart,
         prob_fatores,
         atividades,

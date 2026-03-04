@@ -319,7 +319,7 @@ export default function ModalDetalheOportunidade({
               )}
             </div>
             <h3 className="text-lg font-bold text-gray-900 truncate">{data.titulo}</h3>
-            <p className="text-sm text-gray-500">{data.produto || '-'} &bull; {data.vendedor_nome || '-'}</p>
+            <p className="text-sm text-gray-500">{data.produto_detalhe || data.produto || '-'} &bull; {data.vendedor_nome || '-'}</p>
           </div>
           <div className="flex items-center gap-2 ml-3">
             <button onClick={() => setEditMode(!editMode)}
@@ -416,9 +416,11 @@ export default function ModalDetalheOportunidade({
                 <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Detalhes da Oportunidade</h4>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-gray-600">
                   {data.numero_proposta && <div><span className="text-gray-400">Proposta:</span> <span className="font-semibold">#{data.numero_proposta}</span></div>}
-                  {data.produto && <div><span className="text-gray-400">Produto:</span> {data.produto}</div>}
-                  {data.tamanho_interesse && <div><span className="text-gray-400">Tamanho:</span> {data.tamanho_interesse}m</div>}
-                  {data.tipo_interesse && <div><span className="text-gray-400">Tipo:</span> {data.tipo_interesse}</div>}
+                  {data.produto && <div><span className="text-gray-400">Produto:</span> {data.produto_detalhe || data.produto}</div>}
+                  {data.tombador_tamanho > 0 && <div><span className="text-gray-400">Tamanho:</span> {data.tombador_tamanho}T</div>}
+                  {data.tombador_modelo && <div><span className="text-gray-400">Modelo:</span> {data.tombador_modelo}</div>}
+                  {data.coletor_tipo && <div><span className="text-gray-400">Tipo:</span> {data.coletor_tipo}</div>}
+                  {data.coletor_modelo && <div><span className="text-gray-400">Modelo:</span> {data.coletor_modelo}</div>}
                   {data.fonte && <div><span className="text-gray-400">Fonte:</span> {data.fonte}</div>}
                   <div><span className="text-gray-400">Dias no estágio:</span> {toNum(data.dias_no_estagio)}</div>
                   {data.data_abertura && <div><span className="text-gray-400">Data abertura:</span> {formatDate(data.data_abertura)}</div>}

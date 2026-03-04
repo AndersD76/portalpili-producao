@@ -104,11 +104,17 @@ export async function GET(request: Request) {
         COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,
         MAX(a.data_agendada) as proxima_atividade,
         (SELECT i.created_at FROM crm_interacoes i WHERE i.oportunidade_id = o.id ORDER BY i.created_at DESC LIMIT 1) as ultimo_contato,
-        (SELECT i.descricao FROM crm_interacoes i WHERE i.oportunidade_id = o.id ORDER BY i.created_at DESC LIMIT 1) as ultimo_contato_desc
+        (SELECT i.descricao FROM crm_interacoes i WHERE i.oportunidade_id = o.id ORDER BY i.created_at DESC LIMIT 1) as ultimo_contato_desc,
+        lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
       FROM crm_oportunidades o
       LEFT JOIN crm_clientes c ON o.cliente_id = c.id
       LEFT JOIN crm_vendedores v ON o.vendedor_id = v.id
       LEFT JOIN crm_atividades a ON o.id = a.oportunidade_id
+      LEFT JOIN LATERAL (
+        SELECT tombador_modelo, tombador_tamanho, coletor_modelo, coletor_tipo
+        FROM crm_propostas p WHERE p.oportunidade_id = o.id
+        ORDER BY p.created_at DESC LIMIT 1
+      ) lp ON true
       WHERE 1=1
     `;
     const params: unknown[] = [];
@@ -146,7 +152,7 @@ export async function GET(request: Request) {
     }
 
     sql += `
-      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, v.nome
+      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, v.nome, lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
       ORDER BY
         CASE o.estagio
           WHEN 'EM_ANALISE' THEN 1
@@ -192,6 +198,22 @@ export async function GET(request: Request) {
       const diasNoEstagio = ref
         ? Math.floor((Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
         : 0;
+
+      // Monta descricao detalhada do produto
+      const produto = String(op.produto || '');
+      let produto_detalhe = produto;
+      if (produto === 'TOMBADOR') {
+        const partes: string[] = ['Tombador'];
+        if (op.tombador_tamanho) partes.push(`${op.tombador_tamanho}T`);
+        if (op.tombador_modelo) partes.push(String(op.tombador_modelo));
+        produto_detalhe = partes.join(' ');
+      } else if (produto === 'COLETOR') {
+        const partes: string[] = ['Coletor'];
+        if (op.coletor_tipo) partes.push(String(op.coletor_tipo));
+        if (op.coletor_modelo) partes.push(String(op.coletor_modelo));
+        produto_detalhe = partes.join(' ');
+      }
+
       const { score, fatores } = calcularProbabilidadeSmart({
         estagio: String(op.estagio || ''),
         status: String(op.status || ''),
@@ -206,7 +228,7 @@ export async function GET(request: Request) {
         vendedor_win_rate: stats.win_rate,
         vendedor_total_deals: stats.total_deals,
       });
-      return { ...op, dias_no_estagio: diasNoEstagio, probabilidade_smart: score, prob_fatores: fatores };
+      return { ...op, dias_no_estagio: diasNoEstagio, produto_detalhe, probabilidade_smart: score, prob_fatores: fatores };
     });
 
     // Conta total para paginação (com mesmos filtros)
