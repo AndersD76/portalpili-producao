@@ -445,6 +445,9 @@ export default function ConfiguradorPage() {
         setEnviado(true);
         setResultadoEnvio({ numeroProposta: data.numero_proposta, link: data.link });
         setShowConfirmModal(false);
+        setTimeout(() => {
+          router.push('/comercial/pipeline');
+        }, 3000);
       } else {
         setErroEnvio(data.error || 'Erro ao enviar proposta');
       }

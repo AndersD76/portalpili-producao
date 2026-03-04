@@ -16,7 +16,7 @@ export async function registrarMudancaEstagio(
   // 1. Update estágio (skip se já atualizado pela query principal)
   if (!skipUpdate) {
     await query(
-      `UPDATE crm_oportunidades SET estagio = $2, updated_at = NOW() WHERE id = $1`,
+      `UPDATE crm_oportunidades SET estagio = $2, estagio_desde = NOW(), updated_at = NOW() WHERE id = $1`,
       [oportunidadeId, estagioNovo]
     );
   }

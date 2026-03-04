@@ -188,10 +188,14 @@ export async function GET(request: Request) {
     // Calcular probabilidade_smart para cada oportunidade
     const rows = (result?.rows || []).map((op: Record<string, unknown>) => {
       const stats = vendedorStats[op.vendedor_id as number] || { win_rate: 0, total_deals: 0 };
+      const ref = (op.estagio_desde || op.updated_at) as string | null;
+      const diasNoEstagio = ref
+        ? Math.floor((Date.now() - new Date(ref).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
       const { score, fatores } = calcularProbabilidadeSmart({
         estagio: String(op.estagio || ''),
         status: String(op.status || ''),
-        dias_no_estagio: Number(op.dias_no_estagio) || 0,
+        dias_no_estagio: diasNoEstagio,
         valor_estimado: parseFloat(String(op.valor_estimado)) || 0,
         produto: String(op.produto || ''),
         concorrente: String(op.concorrente || ''),
@@ -202,7 +206,7 @@ export async function GET(request: Request) {
         vendedor_win_rate: stats.win_rate,
         vendedor_total_deals: stats.total_deals,
       });
-      return { ...op, probabilidade_smart: score, prob_fatores: fatores };
+      return { ...op, dias_no_estagio: diasNoEstagio, probabilidade_smart: score, prob_fatores: fatores };
     });
 
     // Conta total para paginação (com mesmos filtros)

@@ -659,31 +659,51 @@ interface PropostaSelecionada {
 
 export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?: { vendedor?: string; estagio?: string }) {
   const doc = new jsPDF('landscape', 'mm', 'a4');
+  const pageW = doc.internal.pageSize.width;
 
   const subtitulo = [
     filtros?.vendedor ? `Vendedor: ${filtros.vendedor}` : '',
     filtros?.estagio ? `Etapa: ${ESTAGIOS_LABELS[filtros.estagio] || filtros.estagio}` : '',
   ].filter(Boolean).join(' | ') || 'Todas as propostas';
 
-  let y = gerarHeader(doc, `Lista de Propostas - ${subtitulo}`, `${propostas.length} propostas`);
+  // Header
+  doc.setFillColor(220, 38, 38);
+  doc.rect(0, 0, pageW, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PILI EQUIPAMENTOS INDUSTRIAIS', 14, 13);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Lista de Propostas - ${subtitulo}`, 14, 23);
+  doc.setFontSize(9);
+  doc.text(`${propostas.length} proposta(s)`, pageW - 14, 13, { align: 'right' });
+  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, pageW - 14, 23, { align: 'right' });
+  doc.setTextColor(0, 0, 0);
+
+  let y = 36;
 
   // KPI boxes
   const valorTotal = propostas.reduce((s, p) => s + toNum(p.valor_estimado), 0);
   const probMedia = propostas.length > 0 ? propostas.reduce((s, p) => s + toNum(p.probabilidade_smart), 0) / propostas.length : 0;
-  const boxW = 50;
+  const valorPonderado = valorTotal * (probMedia / 100);
+  const abertas = propostas.filter(p => !['FECHADA', 'PERDIDA', 'SUSPENSO', 'SUBSTITUIDO'].includes(p.estagio)).length;
+
+  const boxW = 58;
   const gap = 5;
   const startX = 14;
 
-  addKpiBox(doc, startX, y, boxW, 'Propostas', String(propostas.length));
-  addKpiBox(doc, startX + boxW + gap, y, boxW, 'Valor Total', formatCurrency(valorTotal));
-  addKpiBox(doc, startX + 2 * (boxW + gap), y, boxW, 'Valor Ponderado', formatCurrency(valorTotal * (probMedia / 100)));
-  addKpiBox(doc, startX + 3 * (boxW + gap), y, boxW, 'Prob. Média', formatPercent(probMedia));
+  addKpiBox(doc, startX, y, boxW, 'Total de Propostas', String(propostas.length));
+  addKpiBox(doc, startX + boxW + gap, y, boxW, 'Em Aberto', String(abertas));
+  addKpiBox(doc, startX + 2 * (boxW + gap), y, boxW, 'Valor Total', formatCurrency(valorTotal));
+  addKpiBox(doc, startX + 3 * (boxW + gap), y, boxW, 'Valor Ponderado', formatCurrency(valorPonderado));
+  addKpiBox(doc, startX + 4 * (boxW + gap), y, boxW, 'Prob. Media', formatPercent(probMedia));
   y += 30;
 
   // Table
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Cliente', 'Produto', 'Valor', 'Prob.', 'Etapa', 'Dias', 'Vendedor', 'Data']],
+    head: [['Proposta', 'Cliente', 'Produto', 'Valor (R$)', 'Prob.', 'Etapa', 'Dias', 'Vendedor', 'Data']],
     body: propostas.map(p => {
       const dataRef = p.data_abertura || p.created_at;
       return [
@@ -693,14 +713,14 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
         formatCurrency(toNum(p.valor_estimado)),
         `${toNum(p.probabilidade_smart)}%`,
         ESTAGIOS_LABELS[p.estagio] || p.estagio,
-        String(toNum(p.dias_no_estagio)),
+        toNum(p.dias_no_estagio) > 0 ? `${toNum(p.dias_no_estagio)}d` : '-',
         p.vendedor_nome || '-',
         dataRef ? new Date(dataRef).toLocaleDateString('pt-BR') : '-',
       ];
     }),
     foot: [[
+      `${propostas.length} propostas`,
       '',
-      `TOTAL: ${propostas.length}`,
       '',
       formatCurrency(valorTotal),
       formatPercent(probMedia),
@@ -709,16 +729,20 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
       '',
       '',
     ]],
-    theme: 'grid',
-    headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 8 },
-    footStyles: { fillColor: [249, 250, 251], textColor: [17, 24, 39], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8 },
+    theme: 'striped',
+    headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 8, fontStyle: 'bold', halign: 'center' },
+    footStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { fontSize: 8, textColor: [17, 24, 39] },
+    alternateRowStyles: { fillColor: [249, 250, 251] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 18 },
-      3: { halign: 'right' },
-      4: { halign: 'center', cellWidth: 16 },
-      5: { halign: 'center' },
+      0: { halign: 'center', cellWidth: 22 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 30 },
+      3: { halign: 'right', cellWidth: 30 },
+      4: { halign: 'center', cellWidth: 14 },
+      5: { halign: 'center', cellWidth: 28 },
       6: { halign: 'center', cellWidth: 14 },
+      7: { cellWidth: 30 },
       8: { halign: 'center', cellWidth: 22 },
     },
     margin: { left: 14, right: 14 },

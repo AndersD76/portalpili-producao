@@ -98,9 +98,6 @@ async function precarregarImagens(dados: DadosOrcamento): Promise<Map<string, st
   const imagens = new Map<string, string>();
   const urls: string[] = [];
 
-  // Logo
-  urls.push('/logo-pili.png');
-
   // Imagem do produto principal
   const imgProduto = getImagemProduto(dados.produto, dados.tamanho);
   if (imgProduto) urls.push(imgProduto);
@@ -137,33 +134,23 @@ function _buildOrcamentoDoc(
 
   const numeroStr = dados.numeroProposta ? String(dados.numeroProposta).padStart(4, '0') : '';
 
-  // === HEADER com logo ===
+  // === HEADER ===
   doc.setFillColor(220, 38, 38);
   doc.rect(0, 0, pageW, 32, 'F');
-
-  // Logo
-  const logoData = imagens.get('/logo-pili.png');
-  if (logoData) {
-    try {
-      doc.addImage(logoData, 'PNG', 10, 3, 26, 26);
-    } catch { /* logo nao carregou */ }
-  }
-
-  const textStartX = logoData ? 40 : 14;
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('PILI EQUIPAMENTOS INDUSTRIAIS', textStartX, 12);
+  doc.text('PILI EQUIPAMENTOS INDUSTRIAIS', 14, 12);
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   if (rascunho) {
-    doc.text('PRE-PROPOSTA COMERCIAL', textStartX, 20);
+    doc.text('PRE-PROPOSTA COMERCIAL', 14, 20);
   } else if (numeroStr) {
-    doc.text(`ORCAMENTO N. ${numeroStr}`, textStartX, 20);
+    doc.text(`ORCAMENTO N. ${numeroStr}`, 14, 20);
   } else {
-    doc.text('PROPOSTA COMERCIAL', textStartX, 20);
+    doc.text('PROPOSTA COMERCIAL', 14, 20);
   }
 
   doc.setFontSize(8);
@@ -176,17 +163,6 @@ function _buildOrcamentoDoc(
 
   doc.setTextColor(0, 0, 0);
   let y = 38;
-
-  // === SAUDACAO ===
-  const nomeCliente = dados.clienteNome || dados.clienteEmpresa || 'Cliente';
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(55, 65, 81);
-  const saudacao = `Prezado(a) ${nomeCliente}, e com satisfacao que a Pili Equipamentos Industriais, referencia em solucoes para movimentacao de graos, apresenta esta proposta para o equipamento abaixo.`;
-  const linhasSaudacao = doc.splitTextToSize(saudacao, pageW - 28);
-  doc.text(linhasSaudacao, 14, y);
-  y += linhasSaudacao.length * 4.5 + 3;
-  doc.setTextColor(0, 0, 0);
 
   // === CLIENTE ===
   if (dados.clienteNome || dados.clienteEmpresa || dados.clienteCNPJ) {
@@ -238,8 +214,19 @@ function _buildOrcamentoDoc(
       doc.text(decisorParts.join('  |  '), 40, clienteY);
     }
 
-    y += blockH + 4;
+    y += blockH + 6;
   }
+
+  // === SAUDACAO ===
+  const nomeCliente = dados.clienteNome || dados.clienteEmpresa || 'Cliente';
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(55, 65, 81);
+  const saudacao = `Prezado(a) ${nomeCliente},\n\nE com grande satisfacao que a Pili Equipamentos Industriais, referencia em solucoes para movimentacao de graos no Brasil, apresenta esta pre-proposta comercial. Ficamos a disposicao para esclarecer quaisquer duvidas e aguardamos a oportunidade de contribuir para o sucesso do seu negocio.`;
+  const linhasSaudacao = doc.splitTextToSize(saudacao, pageW - 28);
+  doc.text(linhasSaudacao, 14, y);
+  y += linhasSaudacao.length * 4.5 + 5;
+  doc.setTextColor(0, 0, 0);
 
   // === EQUIPAMENTO + IMAGEM ===
   doc.setFontSize(12);
@@ -340,7 +327,7 @@ function _buildOrcamentoDoc(
 
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Descricao', 'Qtd', 'Valor Unit.', 'Total']],
+    head: [['#', 'Descricao', 'Qtd', 'Valor Unitario', 'Total']],
     body: bodyRows,
     theme: 'grid',
     headStyles: {
@@ -396,7 +383,7 @@ function _buildOrcamentoDoc(
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(55, 65, 81);
-    doc.text('Opcionais Inclusos', 14, y);
+    doc.text('Opcionais Incluidos', 14, y);
     y += 6;
 
     const imgSize = 35;
@@ -452,7 +439,7 @@ function _buildOrcamentoDoc(
     ['Prazo de Entrega', dados.prazoEntrega || '-'],
     ['Garantia', `${dados.garantiaMeses} meses`],
     ['Forma de Pagamento', dados.formaPagamento || '-'],
-    ['Validade da Proposta', `${dados.validadeDias} dias (ate ${validade.toLocaleDateString('pt-BR')})`],
+    ['Validade da Proposta', `${dados.validadeDias} dias (valido ate ${validade.toLocaleDateString('pt-BR')})`],
   ];
 
   condicoes.forEach(([label, value]) => {
