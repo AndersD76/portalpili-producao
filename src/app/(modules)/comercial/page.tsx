@@ -658,12 +658,12 @@ export default function ComercialPage() {
           {listaFiltrada.length === 0 ? (
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
           ) : (
-            <div className="bg-white rounded-lg border overflow-hidden">
-              <table className="w-full table-fixed">
+            <div className="bg-white rounded-lg border overflow-x-auto">
+              <table className="w-full min-w-[700px] table-fixed">
                 <thead>
                   <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide select-none">
                     {selectionMode && (
-                      <th className="px-1 py-2 text-center w-[32px]">
+                      <th className="px-1 py-2 text-center w-8">
                         <input
                           type="checkbox"
                           checked={selectableIds.size > 0 && selectedIds.size === selectableIds.size}
@@ -672,14 +672,14 @@ export default function ComercialPage() {
                         />
                       </th>
                     )}
-                    <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
+                    <th className="px-2 py-2 text-center w-10 hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
                     <th className="px-2 py-2 text-left cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('cliente')}>Cliente <SortArrow campo="cliente" /></th>
-                    <th className="px-2 py-2 text-right w-[150px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('valor')}>Valor <SortArrow campo="valor" /></th>
-                    <th className="px-2 py-2 text-center w-[44px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
-                    <th className="px-2 py-2 text-center w-[90px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
-                    <th className="px-2 py-2 text-center w-[44px] hidden lg:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('dias')}>Dias <SortArrow campo="dias" /></th>
-                    {isAdmin && <th className="px-2 py-2 text-left w-[140px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
-                    <th className="px-2 py-2 text-center w-[76px] hidden lg:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
+                    <th className="px-2 py-2 text-right w-[165px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('valor')}>Valor <SortArrow campo="valor" /></th>
+                    <th className="px-2 py-2 text-center w-[54px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
+                    <th className="px-2 py-2 text-center w-[104px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
+                    <th className="px-2 py-2 text-center w-[52px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('dias')}>Dias <SortArrow campo="dias" /></th>
+                    {isAdmin && <th className="px-2 py-2 text-left w-[148px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
+                    <th className="px-2 py-2 text-center w-[82px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -742,7 +742,7 @@ export default function ComercialPage() {
                             </span>
                           )}
                         </td>
-                        <td className={`px-2 py-1.5 text-center text-[11px] tabular-nums hidden lg:table-cell ${over60 ? 'text-amber-600 font-semibold' : 'text-gray-500'}`}>
+                        <td className={`px-2 py-1.5 text-center text-[11px] tabular-nums hidden md:table-cell ${over60 ? 'text-amber-600 font-semibold' : 'text-gray-500'}`}>
                           {dataRef ? `${diasNoFunil(dataRef)}d` : '-'}
                         </td>
                         {isAdmin && (
@@ -750,7 +750,7 @@ export default function ComercialPage() {
                             <span className="block truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</span>
                           </td>
                         )}
-                        <td className="px-2 py-1.5 text-center text-[11px] text-gray-400 tabular-nums hidden lg:table-cell">
+                        <td className="px-2 py-1.5 text-center text-[11px] text-gray-400 tabular-nums hidden md:table-cell">
                           {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
                         </td>
                       </tr>
