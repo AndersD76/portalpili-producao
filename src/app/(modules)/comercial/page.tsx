@@ -674,7 +674,6 @@ export default function ComercialPage() {
                     )}
                     <th className="px-2 py-2 text-center w-[36px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
                     <th className="px-2 py-2 text-left cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('cliente')}>Cliente <SortArrow campo="cliente" /></th>
-                    <th className="px-2 py-2 text-left w-[120px] hidden md:table-cell">Produto</th>
                     <th className="px-2 py-2 text-right w-[100px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('valor')}>Valor <SortArrow campo="valor" /></th>
                     <th className="px-2 py-2 text-center w-[44px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
                     <th className="px-2 py-2 text-center w-[90px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
@@ -723,11 +722,9 @@ export default function ComercialPage() {
                             {op.cliente_nome || op.titulo}
                             {urgente && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Atividade atrasada" />}
                           </div>
-                        </td>
-                        <td className="px-2 py-1.5 hidden md:table-cell">
-                          <div className="text-xs font-medium text-gray-700 truncate">{op.produto_detalhe || op.produto || '-'}</div>
-                          {op.tombador_modelo && <div className="text-[10px] text-gray-400 truncate">{op.tombador_modelo}</div>}
-                          {op.coletor_modelo && <div className="text-[10px] text-gray-400 truncate">{op.coletor_modelo}</div>}
+                          {(op.produto_detalhe || op.produto) && (
+                            <div className="text-[10px] text-gray-400 truncate">{op.produto_detalhe || op.produto}</div>
+                          )}
                         </td>
                         <td className="px-2 py-1.5 text-right font-bold text-xs sm:text-sm text-gray-800 tabular-nums whitespace-nowrap">{fmtFull(valor)}</td>
                         <td className="px-2 py-1.5 text-center hidden sm:table-cell"
