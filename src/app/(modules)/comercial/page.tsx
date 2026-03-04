@@ -672,14 +672,14 @@ export default function ComercialPage() {
                         />
                       </th>
                     )}
-                    <th className="px-2 py-2 text-center w-10 hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
-                    <th className="px-2 py-2 text-left w-[28%] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('cliente')}>Cliente <SortArrow campo="cliente" /></th>
+                    <th className="px-2 py-2 text-center w-[40px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('proposta')}># <SortArrow campo="proposta" /></th>
+                    <th className="px-2 py-2 text-left w-[260px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('cliente')}>Cliente <SortArrow campo="cliente" /></th>
                     <th className="px-2 py-2 text-right w-[160px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('valor')}>Valor <SortArrow campo="valor" /></th>
-                    <th className="px-2 py-2 text-center w-[54px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
-                    <th className="px-2 py-2 text-center w-[100px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
-                    <th className="px-2 py-2 text-center w-[52px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('dias')}>Dias <SortArrow campo="dias" /></th>
-                    {isAdmin && <th className="px-2 py-2 text-left w-[148px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
-                    <th className="px-2 py-2 text-center w-[82px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
+                    <th className="px-2 py-2 text-center w-[56px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
+                    <th className="px-2 py-2 text-center w-[110px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
+                    <th className="px-2 py-2 text-center w-[54px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('dias')}>Dias <SortArrow campo="dias" /></th>
+                    {isAdmin && <th className="px-2 py-2 text-left w-[150px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
+                    <th className="px-2 py-2 text-center w-[84px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
                   </tr>
                 </thead>
                 <tbody>
