@@ -154,7 +154,7 @@ export async function GET(request: Request) {
     }
 
     sql += `
-      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, v.nome, lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
+      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, c.telefone, c.email, v.nome, lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
       ORDER BY
         CASE o.estagio
           WHEN 'EM_ANALISE' THEN 1
