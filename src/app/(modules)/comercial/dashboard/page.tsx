@@ -98,23 +98,7 @@ export default function DashboardComercialPage() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [atividadeTotais, setAtividadeTotais] = useState<AtividadeTotais>({ pendentes: 0, concluidas: 0, atrasadas: 0, proxima_semana: 0 });
-  const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
-  const [filtroDataFim, setFiltroDataFim] = useState<string>('');
   const rankingRef = useRef<HTMLDivElement>(null);
-
-  // Filter oportunidades by date range
-  const opsFiltradas = useMemo(() => {
-    let lista = oportunidades;
-    if (filtroDataInicio) {
-      const inicio = new Date(filtroDataInicio);
-      lista = lista.filter(o => new Date(o.created_at) >= inicio);
-    }
-    if (filtroDataFim) {
-      const fim = new Date(filtroDataFim + 'T23:59:59');
-      lista = lista.filter(o => new Date(o.created_at) <= fim);
-    }
-    return lista;
-  }, [oportunidades, filtroDataInicio, filtroDataFim]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -167,12 +151,12 @@ export default function DashboardComercialPage() {
   // ==================== COMPUTED ====================
 
   const kpis = useMemo(() => {
-    const ativas = opsFiltradas.filter(o => o.status === 'ABERTA');
-    const fechadas = opsFiltradas.filter(o => o.estagio === 'FECHADA');
-    const perdidas = opsFiltradas.filter(o => o.estagio === 'PERDIDA');
+    const ativas = oportunidades.filter(o => o.status === 'ABERTA');
+    const fechadas = oportunidades.filter(o => o.estagio === 'FECHADA');
+    const perdidas = oportunidades.filter(o => o.estagio === 'PERDIDA');
     const valorPipeline = ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
     const valorFechado = fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
-    const taxaConversao = opsFiltradas.length > 0 ? (fechadas.length / opsFiltradas.length) * 100 : 0;
+    const taxaConversao = oportunidades.length > 0 ? (fechadas.length / oportunidades.length) * 100 : 0;
     const ticketMedio = fechadas.length > 0 ? valorFechado / fechadas.length : 0;
 
     // Mes atual - usar created_at como proxy para data de fechamento
@@ -182,7 +166,7 @@ export default function DashboardComercialPage() {
     const valorMes = fechadasMes.reduce((s, o) => s + toNum(o.valor_estimado), 0);
 
     return {
-      totalOps: opsFiltradas.length,
+      totalOps: oportunidades.length,
       ativas: ativas.length,
       valorPipeline,
       fechadas: fechadas.length,
@@ -194,11 +178,11 @@ export default function DashboardComercialPage() {
       valorMes,
       atrasadas: atividadeTotais.atrasadas,
     };
-  }, [opsFiltradas, atividadeTotais]);
+  }, [oportunidades, atividadeTotais]);
 
   const pipelineData = useMemo(() => {
     const estagios: Record<string, { qtd: number; valor: number }> = {};
-    opsFiltradas.forEach(o => {
+    oportunidades.forEach(o => {
       const est = normalizeEstagio(o.estagio);
       if (!estagios[est]) estagios[est] = { qtd: 0, valor: 0 };
       estagios[est].qtd++;
@@ -216,11 +200,11 @@ export default function DashboardComercialPage() {
         valor: estagios[k].valor,
         pct: (estagios[k].valor / maxValor) * 100,
       }));
-  }, [opsFiltradas]);
+  }, [oportunidades]);
 
   const produtoData = useMemo(() => {
     const prods: Record<string, { qtd: number; valor: number; fechadas: number; valorFechado: number }> = {};
-    opsFiltradas.forEach(o => {
+    oportunidades.forEach(o => {
       const p = o.produto || 'OUTROS';
       if (!prods[p]) prods[p] = { qtd: 0, valor: 0, fechadas: 0, valorFechado: 0 };
       prods[p].qtd++;
@@ -233,13 +217,13 @@ export default function DashboardComercialPage() {
     return Object.entries(prods)
       .map(([nome, d]) => ({ nome, ...d }))
       .sort((a, b) => b.valor - a.valor);
-  }, [opsFiltradas]);
+  }, [oportunidades]);
 
   const vendedorRanking = useMemo(() => {
     if (!isAdmin || vendedores.length === 0) return [];
     return vendedores
       .map(v => {
-        const ops = opsFiltradas.filter(o => o.vendedor_nome === v.nome);
+        const ops = oportunidades.filter(o => o.vendedor_nome === v.nome);
         const ativas = ops.filter(o => o.status === 'ABERTA');
         const emNegociacao = ops.filter(o => ['EM_NEGOCIACAO', 'POS_NEGOCIACAO'].includes(normalizeEstagio(o.estagio)) && o.status === 'ABERTA');
         const fechadas = ops.filter(o => o.estagio === 'FECHADA');
@@ -258,13 +242,13 @@ export default function DashboardComercialPage() {
         };
       })
       .sort((a, b) => b.valorFechado - a.valorFechado);
-  }, [vendedores, opsFiltradas, isAdmin]);
+  }, [vendedores, oportunidades, isAdmin]);
 
   const oportunidadesRecentes = useMemo(() => {
-    return [...opsFiltradas]
+    return [...oportunidades]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 8);
-  }, [opsFiltradas]);
+  }, [oportunidades]);
 
   const proximasAtividades = useMemo(() => {
     return atividades
@@ -316,8 +300,6 @@ export default function DashboardComercialPage() {
     );
   }
 
-  // maxVendedorValor used to be here - now computed inside the ranking map
-
   return (
     <div className="min-h-screen bg-gray-50">
       <PageHeader
@@ -346,22 +328,6 @@ export default function DashboardComercialPage() {
             <Link href="/comercial/atividades" className="ml-auto text-red-600 hover:text-red-800 font-medium text-xs">Ver &rarr;</Link>
           </div>
         )}
-
-        {/* FILTRO DE PERÍODO */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-500 font-medium">Período:</span>
-          <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-700 focus:ring-1 focus:ring-red-500 focus:border-red-500 bg-white" />
-          <span className="text-xs text-gray-400">até</span>
-          <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-700 focus:ring-1 focus:ring-red-500 focus:border-red-500 bg-white" />
-          {(filtroDataInicio || filtroDataFim) && (
-            <button onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
-              className="px-2 py-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition" title="Limpar filtro">
-              Limpar
-            </button>
-          )}
-        </div>
 
         {/* ROW 1: KPI CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
