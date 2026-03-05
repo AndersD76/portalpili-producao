@@ -19,6 +19,7 @@ interface Oportunidade {
   probabilidade: number;
   estagio: string;
   status: string;
+  data_abertura?: string;
   data_previsao_fechamento?: string;
   dias_no_estagio?: number;
   total_atividades?: number;
@@ -157,11 +158,17 @@ export default function DashboardComercialPage() {
     let lista = oportunidades;
     if (filtroDataInicio) {
       const inicio = new Date(filtroDataInicio);
-      lista = lista.filter(o => new Date(o.created_at) >= inicio);
+      lista = lista.filter(o => {
+        const dt = new Date(o.data_abertura || o.created_at);
+        return dt >= inicio;
+      });
     }
     if (filtroDataFim) {
       const fim = new Date(filtroDataFim + 'T23:59:59');
-      lista = lista.filter(o => new Date(o.created_at) <= fim);
+      lista = lista.filter(o => {
+        const dt = new Date(o.data_abertura || o.created_at);
+        return dt <= fim;
+      });
     }
     return lista;
   }, [oportunidades, filtroDataInicio, filtroDataFim]);
@@ -169,16 +176,16 @@ export default function DashboardComercialPage() {
   const kpis = useMemo(() => {
     const ativas = opsFiltradas.filter(o => o.status === 'ABERTA');
     const fechadas = opsFiltradas.filter(o => o.estagio === 'FECHADA');
-    const perdidas = oportunidades.filter(o => o.estagio === 'PERDIDA');
+    const perdidas = opsFiltradas.filter(o => o.estagio === 'PERDIDA');
     const valorPipeline = ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
     const valorFechado = fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
     const taxaConversao = opsFiltradas.length > 0 ? (fechadas.length / opsFiltradas.length) * 100 : 0;
     const ticketMedio = fechadas.length > 0 ? valorFechado / fechadas.length : 0;
 
-    // Mes atual - usar created_at como proxy para data de fechamento
+    // Mes atual - usar data_abertura como referência
     const now = new Date();
     const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
-    const fechadasMes = fechadas.filter(o => new Date(o.created_at) >= inicioMes);
+    const fechadasMes = fechadas.filter(o => new Date(o.data_abertura || o.created_at) >= inicioMes);
     const valorMes = fechadasMes.reduce((s, o) => s + toNum(o.valor_estimado), 0);
 
     return {

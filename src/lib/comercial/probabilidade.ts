@@ -45,13 +45,13 @@ export interface ScoreBreakdown {
 // Stage-Weighted Pipeline (Salesforce methodology)
 // Calibrated: overall win rate 31%, higher stages = higher prob
 const ESTAGIO_SCORE: Record<string, number> = {
-  PROSPECCAO: 5,
-  QUALIFICACAO: 12,
-  PROPOSTA: 15,
-  EM_ANALISE: 20,
-  EM_NEGOCIACAO: 28,
+  PROSPECCAO: 3,
+  QUALIFICACAO: 8,
+  PROPOSTA: 10,
+  EM_ANALISE: 12,
+  EM_NEGOCIACAO: 25,
   POS_NEGOCIACAO: 38,
-  SUSPENSO: 8,
+  SUSPENSO: 4,
 };
 
 // Expected days per stage before deal starts decaying (Pipedrive Deal Decay)
@@ -90,24 +90,27 @@ export function calcularProbabilidadeSmart(input: ScoreInput): ScoreBreakdown {
   const estagioScore = ESTAGIO_SCORE[input.estagio] ?? 10;
 
   // ── 2. WIN RATE VENDEDOR (0-20pts) ── Rep Historical Performance
-  let vendedorScore = 10; // default: dados insuficientes
+  let vendedorScore = 5; // default: dados insuficientes = conservador
   if (input.vendedor_total_deals >= 3) {
     const wr = input.vendedor_win_rate;
     if (wr >= 50) vendedorScore = 20;
-    else if (wr >= 35) vendedorScore = 16;
-    else if (wr >= 25) vendedorScore = 12;
-    else if (wr >= 15) vendedorScore = 8;
-    else if (wr >= 5) vendedorScore = 4;
+    else if (wr >= 40) vendedorScore = 16;
+    else if (wr >= 30) vendedorScore = 12;
+    else if (wr >= 20) vendedorScore = 8;
+    else if (wr >= 10) vendedorScore = 5;
     else vendedorScore = 2;
   }
 
-  // ── 3. AGING PENALTY (0 a -15pts) ── Deal Decay Rate
+  // ── 3. AGING PENALTY (0 a -20pts) ── Deal Decay Rate
   let agingScore = 0;
   const diasEsperados = DIAS_ESPERADOS[input.estagio] ?? 30;
-  const diasExcesso = (input.dias_no_estagio || 0) - diasEsperados;
+  const diasTotal = input.dias_no_estagio || 0;
+  const diasExcesso = diasTotal - diasEsperados;
   if (diasExcesso > 0) {
     const semanasExcesso = Math.floor(diasExcesso / 7);
-    agingScore = -Math.min(semanasExcesso * 3, 15);
+    agingScore = -Math.min(semanasExcesso * 3, 20);
+  } else if (diasTotal > 0 && diasTotal <= diasEsperados * 0.5) {
+    agingScore = 2; // Deal recente no estágio = bom sinal
   }
 
   // ── 4. CONCORRENTE (-10 a 0pts) ── Competitive Pressure
@@ -132,7 +135,7 @@ export function calcularProbabilidadeSmart(input: ScoreInput): ScoreBreakdown {
   }
 
   // ── 6. VALOR vs MEDIANA (0-7pts) ── Value Positioning
-  let valorScore = 4; // neutral
+  let valorScore = 2; // sem valor = deal não qualificado
   const mediana = MEDIANA_VALOR[input.produto || 'TOMBADOR'] ?? 400000;
   const valor = input.valor_estimado || 0;
   if (valor > 0) {
@@ -144,7 +147,7 @@ export function calcularProbabilidadeSmart(input: ScoreInput): ScoreBreakdown {
   }
 
   // ── 7. RECÊNCIA DO CONTATO (0-10pts) ── Lead Engagement Decay
-  let recenciaScore = 3; // default: sem dados de contato
+  let recenciaScore = 1; // default: sem dados de contato = frio
   if (input.ultimo_contato) {
     const diasDesdeContato = Math.floor(
       (Date.now() - new Date(input.ultimo_contato).getTime()) / 86400000
