@@ -257,7 +257,8 @@ export default function DashboardComercialPage() {
           indiceFechamento: totalDecididas > 0 ? (fechadas.length / totalDecididas) * 100 : 0,
         };
       })
-      .sort((a, b) => rankingSort === 'valor' ? b.valorFechado - a.valorFechado : b.fechadas - a.fechadas);
+      .sort((a, b) => rankingSort === 'valor' ? b.valorFechado - a.valorFechado : b.fechadas - a.fechadas)
+      .slice(0, 10);
   }, [vendedores, opsFiltradas, isAdmin, rankingSort]);
 
   const oportunidadesRecentes = useMemo(() => {
