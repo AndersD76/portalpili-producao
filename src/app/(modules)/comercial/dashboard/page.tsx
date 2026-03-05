@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, COMERCIAL_NAV } from '@/components/PageHeader';
+
 
 interface Oportunidade {
   id: number;
@@ -97,6 +98,23 @@ export default function DashboardComercialPage() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [atividadeTotais, setAtividadeTotais] = useState<AtividadeTotais>({ pendentes: 0, concluidas: 0, atrasadas: 0, proxima_semana: 0 });
+  const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
+  const [filtroDataFim, setFiltroDataFim] = useState<string>('');
+  const rankingRef = useRef<HTMLDivElement>(null);
+
+  // Filter oportunidades by date range
+  const opsFiltradas = useMemo(() => {
+    let lista = oportunidades;
+    if (filtroDataInicio) {
+      const inicio = new Date(filtroDataInicio);
+      lista = lista.filter(o => new Date(o.created_at) >= inicio);
+    }
+    if (filtroDataFim) {
+      const fim = new Date(filtroDataFim + 'T23:59:59');
+      lista = lista.filter(o => new Date(o.created_at) <= fim);
+    }
+    return lista;
+  }, [oportunidades, filtroDataInicio, filtroDataFim]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -149,12 +167,12 @@ export default function DashboardComercialPage() {
   // ==================== COMPUTED ====================
 
   const kpis = useMemo(() => {
-    const ativas = oportunidades.filter(o => o.status === 'ABERTA');
-    const fechadas = oportunidades.filter(o => o.estagio === 'FECHADA');
-    const perdidas = oportunidades.filter(o => o.estagio === 'PERDIDA');
+    const ativas = opsFiltradas.filter(o => o.status === 'ABERTA');
+    const fechadas = opsFiltradas.filter(o => o.estagio === 'FECHADA');
+    const perdidas = opsFiltradas.filter(o => o.estagio === 'PERDIDA');
     const valorPipeline = ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
     const valorFechado = fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
-    const taxaConversao = oportunidades.length > 0 ? (fechadas.length / oportunidades.length) * 100 : 0;
+    const taxaConversao = opsFiltradas.length > 0 ? (fechadas.length / opsFiltradas.length) * 100 : 0;
     const ticketMedio = fechadas.length > 0 ? valorFechado / fechadas.length : 0;
 
     // Mes atual - usar created_at como proxy para data de fechamento
@@ -164,7 +182,7 @@ export default function DashboardComercialPage() {
     const valorMes = fechadasMes.reduce((s, o) => s + toNum(o.valor_estimado), 0);
 
     return {
-      totalOps: oportunidades.length,
+      totalOps: opsFiltradas.length,
       ativas: ativas.length,
       valorPipeline,
       fechadas: fechadas.length,
@@ -176,11 +194,11 @@ export default function DashboardComercialPage() {
       valorMes,
       atrasadas: atividadeTotais.atrasadas,
     };
-  }, [oportunidades, atividadeTotais]);
+  }, [opsFiltradas, atividadeTotais]);
 
   const pipelineData = useMemo(() => {
     const estagios: Record<string, { qtd: number; valor: number }> = {};
-    oportunidades.forEach(o => {
+    opsFiltradas.forEach(o => {
       const est = normalizeEstagio(o.estagio);
       if (!estagios[est]) estagios[est] = { qtd: 0, valor: 0 };
       estagios[est].qtd++;
@@ -198,11 +216,11 @@ export default function DashboardComercialPage() {
         valor: estagios[k].valor,
         pct: (estagios[k].valor / maxValor) * 100,
       }));
-  }, [oportunidades]);
+  }, [opsFiltradas]);
 
   const produtoData = useMemo(() => {
     const prods: Record<string, { qtd: number; valor: number; fechadas: number; valorFechado: number }> = {};
-    oportunidades.forEach(o => {
+    opsFiltradas.forEach(o => {
       const p = o.produto || 'OUTROS';
       if (!prods[p]) prods[p] = { qtd: 0, valor: 0, fechadas: 0, valorFechado: 0 };
       prods[p].qtd++;
@@ -215,31 +233,38 @@ export default function DashboardComercialPage() {
     return Object.entries(prods)
       .map(([nome, d]) => ({ nome, ...d }))
       .sort((a, b) => b.valor - a.valor);
-  }, [oportunidades]);
+  }, [opsFiltradas]);
 
   const vendedorRanking = useMemo(() => {
     if (!isAdmin || vendedores.length === 0) return [];
     return vendedores
       .map(v => {
-        const ops = oportunidades.filter(o => o.vendedor_nome === v.nome);
+        const ops = opsFiltradas.filter(o => o.vendedor_nome === v.nome);
         const ativas = ops.filter(o => o.status === 'ABERTA');
+        const emNegociacao = ops.filter(o => ['EM_NEGOCIACAO', 'POS_NEGOCIACAO'].includes(normalizeEstagio(o.estagio)) && o.status === 'ABERTA');
         const fechadas = ops.filter(o => o.estagio === 'FECHADA');
+        const perdidas = ops.filter(o => o.estagio === 'PERDIDA');
+        const totalDecididas = fechadas.length + perdidas.length;
         return {
           ...v,
+          totalOps: ops.length,
           opsAtivas: ativas.length,
           valorAtivo: ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
+          emNegociacao: emNegociacao.length,
+          valorNegociacao: emNegociacao.reduce((s, o) => s + toNum(o.valor_estimado), 0),
           fechadas: fechadas.length,
           valorFechado: fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
+          indiceFechamento: totalDecididas > 0 ? (fechadas.length / totalDecididas) * 100 : 0,
         };
       })
-      .sort((a, b) => b.valorAtivo - a.valorAtivo);
-  }, [vendedores, oportunidades, isAdmin]);
+      .sort((a, b) => b.valorFechado - a.valorFechado);
+  }, [vendedores, opsFiltradas, isAdmin]);
 
   const oportunidadesRecentes = useMemo(() => {
-    return [...oportunidades]
+    return [...opsFiltradas]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 8);
-  }, [oportunidades]);
+  }, [opsFiltradas]);
 
   const proximasAtividades = useMemo(() => {
     return atividades
@@ -247,6 +272,36 @@ export default function DashboardComercialPage() {
       .sort((a, b) => new Date(a.data_agendada || '9999').getTime() - new Date(b.data_agendada || '9999').getTime())
       .slice(0, 6);
   }, [atividades]);
+
+  const handleShareRanking = useCallback(async () => {
+    if (!rankingRef.current) return;
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(rankingRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'ranking.png', { type: 'image/png' })] })) {
+          await navigator.share({
+            title: 'Ranking Vendedores - Pili',
+            files: [new File([blob], 'ranking-vendedores.png', { type: 'image/png' })],
+          });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'ranking-vendedores.png';
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.error('Erro ao compartilhar ranking:', err);
+    }
+  }, []);
 
   // ==================== RENDER ====================
 
@@ -261,7 +316,7 @@ export default function DashboardComercialPage() {
     );
   }
 
-  const maxVendedorValor = Math.max(...vendedorRanking.map(v => v.valorAtivo), 1);
+  // maxVendedorValor used to be here - now computed inside the ranking map
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -291,6 +346,22 @@ export default function DashboardComercialPage() {
             <Link href="/comercial/atividades" className="ml-auto text-red-600 hover:text-red-800 font-medium text-xs">Ver &rarr;</Link>
           </div>
         )}
+
+        {/* FILTRO DE PERÍODO */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-500 font-medium">Período:</span>
+          <input type="date" value={filtroDataInicio} onChange={e => setFiltroDataInicio(e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-700 focus:ring-1 focus:ring-red-500 focus:border-red-500 bg-white" />
+          <span className="text-xs text-gray-400">até</span>
+          <input type="date" value={filtroDataFim} onChange={e => setFiltroDataFim(e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-700 focus:ring-1 focus:ring-red-500 focus:border-red-500 bg-white" />
+          {(filtroDataInicio || filtroDataFim) && (
+            <button onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
+              className="px-2 py-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition" title="Limpar filtro">
+              Limpar
+            </button>
+          )}
+        </div>
 
         {/* ROW 1: KPI CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
@@ -366,30 +437,63 @@ export default function DashboardComercialPage() {
             <div className="bg-white rounded-lg border p-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold text-gray-900 text-sm">Ranking Vendedores</h2>
-                <Link href="/comercial/vendedores" className="text-xs text-red-600 hover:text-red-700">Ver todos &rarr;</Link>
+                <div className="flex items-center gap-2">
+                  <button onClick={handleShareRanking}
+                    title="Compartilhar ranking"
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition border border-gray-200">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Compartilhar
+                  </button>
+                  <Link href="/comercial/vendedores" className="text-xs text-red-600 hover:text-red-700">Ver todos &rarr;</Link>
+                </div>
               </div>
-              <div className="space-y-2">
-                {vendedorRanking.map((v, i) => (
-                  <div key={v.id} className="flex items-center gap-2">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${
-                      i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-amber-600' : 'bg-gray-300'
-                    }`}>{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-medium text-gray-800 truncate">{v.nome}</span>
-                        <span className="text-[10px] text-gray-500 ml-2 flex-shrink-0">{v.opsAtivas} ativas &bull; {v.fechadas} fechadas</span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-red-500 to-orange-500"
-                          style={{ width: `${(v.valorAtivo / maxVendedorValor) * 100}%` }} />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-                        <span>Pipeline: {fmtShort(v.valorAtivo)}</span>
-                        <span>Fechado: {fmtShort(v.valorFechado)}</span>
+              {/* Legenda das barras */}
+              <div className="flex items-center gap-4 mb-2 text-[10px] text-gray-400">
+                <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-green-500 inline-block" /> Fechadas</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-orange-200 inline-block" /> Em Negociação</span>
+              </div>
+              <div ref={rankingRef} className="space-y-2 bg-white p-1">
+                {vendedorRanking.map((v, i) => {
+                  const maxValorBarra = Math.max(...vendedorRanking.map(x => x.valorFechado + x.valorNegociacao), 1);
+                  const pctFechado = (v.valorFechado / maxValorBarra) * 100;
+                  const pctNegociacao = (v.valorNegociacao / maxValorBarra) * 100;
+                  return (
+                    <div key={v.id} className="flex items-center gap-2">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${
+                        i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-amber-600' : 'bg-gray-300'
+                      }`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-xs font-medium text-gray-800 truncate">{v.nome}</span>
+                          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                            <span className="text-[10px] text-gray-500">{v.fechadas} fechadas</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              v.indiceFechamento >= 30 ? 'bg-green-100 text-green-700' :
+                              v.indiceFechamento >= 15 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-500'
+                            }`}>{v.indiceFechamento.toFixed(0)}%</span>
+                          </div>
+                        </div>
+                        <div className="h-3 bg-gray-50 rounded-full overflow-hidden relative flex">
+                          {pctFechado > 0 && (
+                            <div className="h-full rounded-l-full bg-green-500 transition-all duration-500"
+                              style={{ width: `${Math.max(pctFechado, 1)}%` }} />
+                          )}
+                          {pctNegociacao > 0 && (
+                            <div className="h-full bg-orange-200 transition-all duration-500"
+                              style={{ width: `${Math.max(pctNegociacao, 1)}%`, borderRadius: pctFechado === 0 ? '9999px 0 0 9999px' : '0' }} />
+                          )}
+                        </div>
+                        <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                          <span>Fechado: {fmtShort(v.valorFechado)}</span>
+                          <span>Negociação: {fmtShort(v.valorNegociacao)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (

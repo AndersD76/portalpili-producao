@@ -647,6 +647,8 @@ export function gerarRelatorioVendedorIndividual(dados: VendedorIndividualData, 
 interface PropostaSelecionada {
   numero_proposta?: string;
   cliente_nome: string;
+  cliente_telefone?: string;
+  cliente_email?: string;
   produto?: string;
   tombador_tamanho?: number;
   tombador_modelo?: string;
@@ -707,9 +709,10 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
   // Table
   autoTable(doc, {
     startY: y,
-    head: [['Proposta', 'Cliente', 'Produto', 'Valor (R$)', 'Prob.', 'Etapa', 'Dias', 'Vendedor', 'Data']],
+    head: [['Proposta', 'Cliente', 'Produto', 'Valor (R$)', 'Prob.', 'Etapa', 'Dias', 'Vendedor', 'Contato', 'Data']],
     body: propostas.map(p => {
       const dataRef = p.data_abertura || p.created_at;
+      const contato = [p.cliente_telefone, p.cliente_email].filter(Boolean).join('\n');
       return [
         p.numero_proposta || '-',
         p.cliente_nome || '-',
@@ -722,6 +725,7 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
         ESTAGIOS_LABELS[p.estagio] || p.estagio,
         toNum(p.dias_no_estagio) > 0 ? `${toNum(p.dias_no_estagio)}d` : '-',
         p.vendedor_nome || '-',
+        contato || '-',
         dataRef ? new Date(dataRef).toLocaleDateString('pt-BR') : '-',
       ];
     }),
@@ -735,24 +739,26 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
       '',
       '',
       '',
+      '',
     ]],
     theme: 'striped',
-    headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 8, fontStyle: 'bold', halign: 'center' },
-    footStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8, textColor: [17, 24, 39] },
+    headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 7, fontStyle: 'bold', halign: 'center' },
+    footStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
+    bodyStyles: { fontSize: 7, textColor: [17, 24, 39] },
     alternateRowStyles: { fillColor: [249, 250, 251] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 22 },
+      0: { halign: 'center', cellWidth: 18 },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 30 },
-      3: { halign: 'right', cellWidth: 30 },
-      4: { halign: 'center', cellWidth: 14 },
-      5: { halign: 'center', cellWidth: 28 },
-      6: { halign: 'center', cellWidth: 14 },
-      7: { cellWidth: 30 },
-      8: { halign: 'center', cellWidth: 22 },
+      2: { cellWidth: 26 },
+      3: { halign: 'right', cellWidth: 26 },
+      4: { halign: 'center', cellWidth: 12 },
+      5: { halign: 'center', cellWidth: 24 },
+      6: { halign: 'center', cellWidth: 12 },
+      7: { cellWidth: 28 },
+      8: { cellWidth: 38 },
+      9: { halign: 'center', cellWidth: 18 },
     },
-    margin: { left: 14, right: 14 },
+    margin: { left: 10, right: 10 },
   });
 
   gerarFooter(doc);

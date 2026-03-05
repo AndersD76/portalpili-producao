@@ -99,6 +99,8 @@ export async function GET(request: Request) {
         c.razao_social as cliente_nome,
         c.nome_fantasia as cliente_fantasia,
         c.cpf_cnpj as cliente_cnpj,
+        c.telefone as cliente_telefone,
+        c.email as cliente_email,
         v.nome as vendedor_nome,
         COUNT(DISTINCT a.id) as total_atividades,
         COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,

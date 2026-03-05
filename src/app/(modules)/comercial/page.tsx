@@ -14,6 +14,8 @@ interface Oportunidade {
   cliente_nome: string;
   cliente_fantasia?: string;
   cliente_cnpj?: string;
+  cliente_telefone?: string;
+  cliente_email?: string;
   vendedor_nome?: string;
   vendedor_id?: number;
   produto?: string;
@@ -435,6 +437,8 @@ export default function ComercialPage() {
       selecionadas.map(o => ({
         numero_proposta: o.numero_proposta,
         cliente_nome: o.cliente_nome,
+        cliente_telefone: o.cliente_telefone,
+        cliente_email: o.cliente_email,
         produto: o.produto_detalhe || o.produto,
         tombador_tamanho: o.tombador_tamanho,
         tombador_modelo: o.tombador_modelo,
@@ -659,7 +663,7 @@ export default function ComercialPage() {
             <div className="text-center py-16 text-gray-400">Nenhuma proposta encontrada</div>
           ) : (
             <div className="bg-white rounded-lg border overflow-x-auto">
-              <table className="w-full min-w-[700px] table-fixed">
+              <table className="w-full min-w-[800px] table-fixed">
                 <thead>
                   <tr className="bg-gray-50 border-b text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide select-none">
                     {selectionMode && (
@@ -678,8 +682,9 @@ export default function ComercialPage() {
                     <th className="px-2 py-2 text-center w-[56px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('prob')}>Prob <SortArrow campo="prob" /></th>
                     <th className="px-2 py-2 text-center w-[110px] cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('estagio')}>Etapa <SortArrow campo="estagio" /></th>
                     <th className="px-2 py-2 text-center w-[54px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('dias')}>Dias <SortArrow campo="dias" /></th>
-                    {isAdmin && <th className="px-2 py-2 text-left w-[150px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
-                    <th className="px-2 py-2 text-center w-[84px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
+                    {isAdmin && <th className="px-2 py-2 text-left w-[130px] hidden sm:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('vendedor')}>Vendedor <SortArrow campo="vendedor" /></th>}
+                    <th className="px-2 py-2 text-left w-[160px] hidden lg:table-cell">Contato</th>
+                    <th className="px-2 py-2 text-center w-[70px] hidden md:table-cell cursor-pointer hover:bg-gray-100 transition" onClick={() => handleSort('data')}>Data <SortArrow campo="data" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -746,10 +751,24 @@ export default function ComercialPage() {
                           {dataRef ? `${diasNoFunil(dataRef)}d` : '-'}
                         </td>
                         {isAdmin && (
-                          <td className="px-2 py-1.5 text-xs text-gray-500 max-w-[160px] hidden sm:table-cell">
+                          <td className="px-2 py-1.5 text-xs text-gray-500 max-w-[130px] hidden sm:table-cell">
                             <span className="block truncate" title={op.vendedor_nome || ''}>{op.vendedor_nome || '-'}</span>
                           </td>
                         )}
+                        <td className="px-2 py-1.5 hidden lg:table-cell max-w-[160px]">
+                          {(op.cliente_telefone || op.cliente_email) ? (
+                            <div className="min-w-0">
+                              {op.cliente_telefone && (
+                                <div className="text-[10px] text-gray-600 truncate" title={op.cliente_telefone}>{op.cliente_telefone}</div>
+                              )}
+                              {op.cliente_email && (
+                                <div className="text-[10px] text-gray-400 truncate" title={op.cliente_email}>{op.cliente_email}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-gray-300">-</span>
+                          )}
+                        </td>
                         <td className="px-2 py-1.5 text-center text-[11px] text-gray-400 tabular-nums hidden md:table-cell">
                           {dataRef ? new Date(dataRef).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '-'}
                         </td>
