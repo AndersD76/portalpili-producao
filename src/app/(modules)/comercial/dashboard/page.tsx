@@ -100,6 +100,7 @@ export default function DashboardComercialPage() {
   const [atividadeTotais, setAtividadeTotais] = useState<AtividadeTotais>({ pendentes: 0, concluidas: 0, atrasadas: 0, proxima_semana: 0 });
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
+  const [rankingSort, setRankingSort] = useState<'valor' | 'numero'>('valor');
   const rankingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -256,8 +257,8 @@ export default function DashboardComercialPage() {
           indiceFechamento: totalDecididas > 0 ? (fechadas.length / totalDecididas) * 100 : 0,
         };
       })
-      .sort((a, b) => b.valorFechado - a.valorFechado);
-  }, [vendedores, opsFiltradas, isAdmin]);
+      .sort((a, b) => rankingSort === 'valor' ? b.valorFechado - a.valorFechado : b.fechadas - a.fechadas);
+  }, [vendedores, opsFiltradas, isAdmin, rankingSort]);
 
   const oportunidadesRecentes = useMemo(() => {
     return [...opsFiltradas]
@@ -445,7 +446,19 @@ export default function DashboardComercialPage() {
           {isAdmin && vendedorRanking.length > 0 ? (
             <div className="bg-white rounded-lg border p-4">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-gray-900 text-sm">Ranking Vendedores</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-gray-900 text-sm">Ranking Vendedores</h2>
+                  <div className="flex rounded-md border border-gray-200 overflow-hidden text-[11px]">
+                    <button
+                      onClick={() => setRankingSort('valor')}
+                      className={`px-2 py-0.5 transition ${rankingSort === 'valor' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >Valor</button>
+                    <button
+                      onClick={() => setRankingSort('numero')}
+                      className={`px-2 py-0.5 transition ${rankingSort === 'numero' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >N&ordm;</button>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <button onClick={handleShareRanking}
                     title="Compartilhar ranking"
@@ -465,9 +478,15 @@ export default function DashboardComercialPage() {
               </div>
               <div ref={rankingRef} className="space-y-2 bg-white p-1">
                 {vendedorRanking.map((v, i) => {
-                  const maxValorBarra = Math.max(...vendedorRanking.map(x => x.valorFechado + x.valorNegociacao), 1);
-                  const pctFechado = (v.valorFechado / maxValorBarra) * 100;
-                  const pctNegociacao = (v.valorNegociacao / maxValorBarra) * 100;
+                  const maxValorBarra = rankingSort === 'valor'
+                    ? Math.max(...vendedorRanking.map(x => x.valorFechado + x.valorNegociacao), 1)
+                    : Math.max(...vendedorRanking.map(x => x.fechadas + x.emNegociacao), 1);
+                  const pctFechado = rankingSort === 'valor'
+                    ? (v.valorFechado / maxValorBarra) * 100
+                    : (v.fechadas / maxValorBarra) * 100;
+                  const pctNegociacao = rankingSort === 'valor'
+                    ? (v.valorNegociacao / maxValorBarra) * 100
+                    : (v.emNegociacao / maxValorBarra) * 100;
                   return (
                     <div key={v.id} className="flex items-center gap-2">
                       <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${
