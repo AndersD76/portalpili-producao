@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
     const filtroStatus = searchParams.get('status');
     const filtroTipo = searchParams.get('tipo');
     const filtroProcesso = searchParams.get('processo');
-    const filtroPeriodo = searchParams.get('periodo');
+    const filtroDataInicio = searchParams.get('dataInicio');
+    const filtroDataFim = searchParams.get('dataFim');
 
     // Construir cláusulas WHERE para NCs
     const ncWhereConditions: string[] = [];
@@ -46,8 +47,15 @@ export async function GET(request: NextRequest) {
       ncParams.push(filtroProcesso);
       ncParamIndex++;
     }
-    if (filtroPeriodo && filtroPeriodo !== 'todos') {
-      ncWhereConditions.push(`data_ocorrencia >= NOW() - INTERVAL '${parseInt(filtroPeriodo)} days'`);
+    if (filtroDataInicio) {
+      ncWhereConditions.push(`data_ocorrencia >= $${ncParamIndex}`);
+      ncParams.push(filtroDataInicio);
+      ncParamIndex++;
+    }
+    if (filtroDataFim) {
+      ncWhereConditions.push(`data_ocorrencia <= $${ncParamIndex}`);
+      ncParams.push(filtroDataFim);
+      ncParamIndex++;
     }
 
     const ncWhereClause = ncWhereConditions.length > 0

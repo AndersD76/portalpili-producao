@@ -208,7 +208,8 @@ export default function QualidadeDashboardPage() {
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
   const [filtroTipo, setFiltroTipo] = useState<string>('todos');
   const [filtroProcesso, setFiltroProcesso] = useState<string>('todos');
-  const [filtroPeriodo, setFiltroPeriodo] = useState<string>('todos');
+  const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
+  const [filtroDataFim, setFiltroDataFim] = useState<string>('');
 
   useEffect(() => {
     if (authLoading) return;
@@ -224,7 +225,7 @@ export default function QualidadeDashboardPage() {
     if (user) {
       fetchData();
     }
-  }, [filtroLocal, filtroGravidade, filtroStatus, filtroTipo, filtroProcesso, filtroPeriodo]);
+  }, [filtroLocal, filtroGravidade, filtroStatus, filtroTipo, filtroProcesso, filtroDataInicio, filtroDataFim]);
 
   const fetchData = async () => {
     try {
@@ -235,7 +236,8 @@ export default function QualidadeDashboardPage() {
       if (filtroStatus !== 'todos') params.append('status', filtroStatus);
       if (filtroTipo !== 'todos') params.append('tipo', filtroTipo);
       if (filtroProcesso !== 'todos') params.append('processo', filtroProcesso);
-      if (filtroPeriodo !== 'todos') params.append('periodo', filtroPeriodo);
+      if (filtroDataInicio) params.append('dataInicio', filtroDataInicio);
+      if (filtroDataFim) params.append('dataFim', filtroDataFim);
 
       const url = `/api/qualidade/dashboard${params.toString() ? '?' + params.toString() : ''}`;
       const response = await fetch(url);
@@ -257,7 +259,8 @@ export default function QualidadeDashboardPage() {
     setFiltroStatus('todos');
     setFiltroTipo('todos');
     setFiltroProcesso('todos');
-    setFiltroPeriodo('todos');
+    setFiltroDataInicio('');
+    setFiltroDataFim('');
   };
 
   const formatDate = (dateString: string | null) => {
@@ -296,7 +299,7 @@ export default function QualidadeDashboardPage() {
 
   const pieColors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'];
   const filtrosAtivos = filtroLocal !== 'todos' || filtroGravidade !== 'todos' ||
-    filtroStatus !== 'todos' || filtroTipo !== 'todos' || filtroProcesso !== 'todos' || filtroPeriodo !== 'todos';
+    filtroStatus !== 'todos' || filtroTipo !== 'todos' || filtroProcesso !== 'todos' || filtroDataInicio !== '' || filtroDataFim !== '';
 
   if (loading && !data) {
     return (
@@ -372,7 +375,7 @@ export default function QualidadeDashboardPage() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Unidade</label>
               <select
@@ -439,18 +442,22 @@ export default function QualidadeDashboardPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Período</label>
-              <select
-                value={filtroPeriodo}
-                onChange={(e) => setFiltroPeriodo(e.target.value)}
+              <label className="block text-xs font-medium text-gray-700 mb-1">Data Início</label>
+              <input
+                type="date"
+                value={filtroDataInicio}
+                onChange={(e) => setFiltroDataInicio(e.target.value)}
                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="todos">Todo período</option>
-                <option value="30">Últimos 30 dias</option>
-                <option value="90">Últimos 90 dias</option>
-                <option value="180">Últimos 6 meses</option>
-                <option value="365">Último ano</option>
-              </select>
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim</label>
+              <input
+                type="date"
+                value={filtroDataFim}
+                onChange={(e) => setFiltroDataFim(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
           {loading && (
