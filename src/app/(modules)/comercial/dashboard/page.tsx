@@ -289,6 +289,8 @@ export default function DashboardComercialPage() {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
+        windowWidth: 600,
+        width: 560,
       });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
@@ -453,6 +455,7 @@ export default function DashboardComercialPage() {
           {/* Vendedor Ranking (admin) ou Oportunidades Recentes (vendedor) */}
           {isAdmin && vendedorRanking.length > 0 ? (
             <div className="bg-white rounded-lg border p-4">
+              <div ref={rankingRef} className="bg-white">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <h2 className="font-bold text-gray-900 text-sm">Ranking Vendedores</h2>
@@ -484,7 +487,7 @@ export default function DashboardComercialPage() {
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-green-500 inline-block" /> Fechadas</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-orange-200 inline-block" /> Em Negociação</span>
               </div>
-              <div ref={rankingRef} className="space-y-2 bg-white p-1">
+              <div className="space-y-2 bg-white p-1">
                 {vendedorRanking.map((v, i) => {
                   const maxValorBarra = rankingSort === 'valor'
                     ? Math.max(...vendedorRanking.map(x => x.valorFechado + x.valorNegociacao), 1)
@@ -502,7 +505,7 @@ export default function DashboardComercialPage() {
                       }`}>{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-xs font-medium text-gray-800 truncate">{v.nome}</span>
+                          <span className="text-xs font-bold text-gray-800">{v.nome}</span>
                           <div className="flex items-center gap-2 ml-2 flex-shrink-0">
                             <span className="text-[10px] text-gray-500">{v.fechadas} fechadas</span>
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -531,6 +534,7 @@ export default function DashboardComercialPage() {
                   );
                 })}
               </div>
+              </div>{/* fecha rankingRef */}
             </div>
           ) : (
             <div className="bg-white rounded-lg border p-4">
