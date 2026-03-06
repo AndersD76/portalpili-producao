@@ -114,10 +114,44 @@ export default function StatusCheckPage() {
       ...prev,
       [oppId]: { ...prev[oppId], [field]: value },
     }));
+    // Limpar erros deste card quando o usuário edita
+    if (erros[oppId]) {
+      setErros(prev => {
+        const copy = { ...prev };
+        delete copy[oppId];
+        return copy;
+      });
+    }
+  };
+
+  const [erros, setErros] = useState<Record<number, string[]>>({});
+
+  const validarRespostas = (): boolean => {
+    const novosErros: Record<number, string[]> = {};
+    let valido = true;
+
+    for (const item of (data?.items || []).filter(i => !i.respondido_at)) {
+      const r = respostas[item.oportunidade_id];
+      if (!r) { valido = false; continue; }
+      const campos: string[] = [];
+      if (!r.canal_contato) campos.push('Canal de contato');
+      if (!r.nivel_interesse) campos.push('Nível de interesse');
+      if (!r.o_que_discutiu?.trim()) campos.push('O que foi discutido');
+      if (!r.proximo_passo?.trim()) campos.push('Próximo passo');
+      if (!r.previsao_fechamento) campos.push('Previsão de fechamento');
+      if (r.estagio === item.estagio_anterior) campos.push('Deve alterar o status da proposta');
+      if (campos.length > 0) {
+        novosErros[item.oportunidade_id] = campos;
+        valido = false;
+      }
+    }
+    setErros(novosErros);
+    return valido;
   };
 
   const handleSubmit = async () => {
     if (!data) return;
+    if (!validarRespostas()) return;
     setSubmitting(true);
 
     const payload = data.items
@@ -300,7 +334,7 @@ export default function StatusCheckPage() {
 
                   {/* Último contato + Canal */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Último contato com o cliente</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Último contato com o cliente <span className="text-red-400">*</span></p>
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <label className="block text-[11px] text-gray-400 mb-1">Data</label>
@@ -330,7 +364,7 @@ export default function StatusCheckPage() {
 
                   {/* Nível de interesse */}
                   <div>
-                    <p className="text-[11px] text-gray-400 mb-2">Nível de interesse do cliente</p>
+                    <p className="text-[11px] text-gray-400 mb-2">Nível de interesse do cliente <span className="text-red-400">*</span></p>
                     <div className="flex gap-2">
                       {INTERESSE.map(i => (
                         <button
@@ -351,7 +385,7 @@ export default function StatusCheckPage() {
 
                   {/* O que foi discutido */}
                   <div>
-                    <label className="block text-[11px] text-gray-400 mb-1">O que foi discutido?</label>
+                    <label className="block text-[11px] text-gray-400 mb-1">O que foi discutido? <span className="text-red-400">*</span></label>
                     <textarea
                       value={r.o_que_discutiu || ''}
                       onChange={e => setField(item.oportunidade_id, 'o_que_discutiu', e.target.value)}
@@ -363,7 +397,7 @@ export default function StatusCheckPage() {
 
                   {/* Próximo passo */}
                   <div>
-                    <label className="block text-[11px] text-gray-400 mb-1">Próximo passo / ação</label>
+                    <label className="block text-[11px] text-gray-400 mb-1">Próximo passo / ação <span className="text-red-400">*</span></label>
                     <input
                       type="text"
                       value={r.proximo_passo || ''}
@@ -375,7 +409,7 @@ export default function StatusCheckPage() {
 
                   {/* Previsão de fechamento */}
                   <div>
-                    <label className="block text-[11px] text-gray-400 mb-1">Previsão de fechamento</label>
+                    <label className="block text-[11px] text-gray-400 mb-1">Previsão de fechamento <span className="text-red-400">*</span></label>
                     <input
                       type="date"
                       value={r.previsao_fechamento || ''}
@@ -387,9 +421,9 @@ export default function StatusCheckPage() {
 
                   {/* Novo status */}
                   <div>
-                    <label className="block text-[11px] text-gray-400 mb-1">Atualizar status da proposta</label>
+                    <label className="block text-[11px] text-gray-400 mb-1">Atualizar status da proposta <span className="text-red-400">*</span></label>
                     <div className="grid grid-cols-1 gap-1.5">
-                      {ESTAGIO_OPTIONS.map(opt => (
+                      {ESTAGIO_OPTIONS.filter(opt => opt.value !== item.estagio_anterior).map(opt => (
                         <button
                           key={opt.value}
                           type="button"
@@ -405,9 +439,6 @@ export default function StatusCheckPage() {
                             style={{ background: r.estagio === opt.value ? opt.color : '#d1d5db' }}
                           />
                           {opt.label}
-                          {opt.value === item.estagio_anterior && (
-                            <span className="ml-auto text-[10px] text-gray-400 font-normal">atual</span>
-                          )}
                         </button>
                       ))}
                     </div>
@@ -416,12 +447,24 @@ export default function StatusCheckPage() {
                 </div>
 
                 {/* Status badge */}
-                {estagioConfig && (
+                {estagioConfig && r.estagio !== item.estagio_anterior && (
                   <div
                     className="px-4 py-2 text-[11px] font-medium text-center"
                     style={{ background: estagioConfig.color + '15', color: estagioConfig.color }}
                   >
-                    Status selecionado: <strong>{estagioConfig.label}</strong>
+                    Novo status: <strong>{estagioConfig.label}</strong>
+                  </div>
+                )}
+
+                {/* Erros de validação */}
+                {erros[item.oportunidade_id]?.length > 0 && (
+                  <div className="px-4 py-3 bg-red-50 border-t border-red-100">
+                    <p className="text-xs font-semibold text-red-600 mb-1">Preencha os campos obrigatórios:</p>
+                    <ul className="text-xs text-red-500 space-y-0.5">
+                      {erros[item.oportunidade_id].map((e, i) => (
+                        <li key={i}>- {e}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
