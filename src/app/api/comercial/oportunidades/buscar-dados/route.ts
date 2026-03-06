@@ -24,22 +24,54 @@ interface ReceitaData {
   qsa?: Array<{ nome_socio: string; qualificacao_socio: string }>;
 }
 
-// Consulta CNPJ direto na BrasilAPI
+// Consulta CNPJ com fallback entre múltiplas APIs
 async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
   const cnpjLimpo = cnpj.replace(/\D/g, '');
   if (cnpjLimpo.length !== 14) return null;
 
+  // 1) BrasilAPI
   try {
     const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return parseBrasilAPI(data);
+    }
+  } catch (e) {
+    console.log('BrasilAPI falhou para', cnpjLimpo, e);
+  }
+
+  // 2) Fallback: ReceitaWS
+  try {
+    const res = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpjLimpo}`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { 'Accept': 'application/json' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status !== 'ERROR') {
+        return parseReceitaWS(data);
+      }
+    }
+  } catch (e) {
+    console.log('ReceitaWS falhou para', cnpjLimpo, e);
+  }
+
+  // 3) Fallback: publica.cnpj.ws
+  try {
+    const res = await fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`, {
       signal: AbortSignal.timeout(10000),
     });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return parseBrasilAPI(data);
+    if (res.ok) {
+      const data = await res.json();
+      return parseCnpjWs(data);
+    }
   } catch (e) {
-    console.log('Erro ao consultar CNPJ:', cnpjLimpo, e);
-    return null;
+    console.log('CNPJ.ws falhou para', cnpjLimpo, e);
   }
+
+  return null;
 }
 
 // Busca CNPJ pelo nome da empresa via CasaDosDados
@@ -107,6 +139,54 @@ async function buscarCNPJPorNome(nome: string, cidade?: string, estado?: string)
     // Fallback: tentar BrasilAPI com busca direta (não suportado, mas tenta receitaws)
     return null;
   }
+}
+
+function parseReceitaWS(data: any): ReceitaData {
+  return {
+    cnpj: data.cnpj ? String(data.cnpj).replace(/\D/g, '') : undefined,
+    razao_social: data.nome,
+    nome_fantasia: data.fantasia,
+    telefone: data.telefone ? formatTelefone(data.telefone.replace(/[().\-\s]/g, '')) : undefined,
+    email: data.email && data.email.trim() !== '' ? data.email.toLowerCase().trim() : undefined,
+    logradouro: data.logradouro,
+    numero: data.numero,
+    complemento: data.complemento,
+    bairro: data.bairro,
+    municipio: data.municipio,
+    uf: data.uf,
+    cep: data.cep ? data.cep.replace(/[.\-]/g, '').replace(/(\d{5})(\d{3})/, '$1-$2') : undefined,
+    situacao: data.situacao,
+    cnae_fiscal_descricao: data.atividade_principal?.[0]?.text,
+    porte: data.porte,
+    natureza_juridica: data.natureza_juridica,
+    capital_social: data.capital_social ? parseFloat(String(data.capital_social).replace(/\./g, '').replace(',', '.')) : undefined,
+    qsa: data.qsa?.map((s: any) => ({ nome_socio: s.nome, qualificacao_socio: s.qual })),
+  };
+}
+
+function parseCnpjWs(data: any): ReceitaData {
+  const estab = data.estabelecimento || {};
+  const tel1 = estab.ddd1 && estab.telefone1 ? `${estab.ddd1}${estab.telefone1}` : null;
+  return {
+    cnpj: estab.cnpj ? String(estab.cnpj).replace(/\D/g, '') : undefined,
+    razao_social: data.razao_social,
+    nome_fantasia: estab.nome_fantasia,
+    telefone: tel1 ? formatTelefone(tel1) : undefined,
+    email: estab.email && estab.email.trim() !== '' ? estab.email.toLowerCase().trim() : undefined,
+    logradouro: estab.logradouro,
+    numero: estab.numero,
+    complemento: estab.complemento,
+    bairro: estab.bairro,
+    municipio: estab.cidade?.nome,
+    uf: estab.estado?.sigla,
+    cep: estab.cep ? String(estab.cep).replace(/(\d{5})(\d{3})/, '$1-$2') : undefined,
+    situacao: estab.situacao_cadastral,
+    cnae_fiscal_descricao: estab.atividade_principal?.descricao,
+    porte: data.porte?.descricao,
+    natureza_juridica: data.natureza_juridica?.descricao,
+    capital_social: data.capital_social ? parseFloat(String(data.capital_social)) : undefined,
+    qsa: data.socios?.map((s: any) => ({ nome_socio: s.nome, qualificacao_socio: s.qualificacao?.descricao })),
+  };
 }
 
 function parseBrasilAPI(data: any): ReceitaData {
