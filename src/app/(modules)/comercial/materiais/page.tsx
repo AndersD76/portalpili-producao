@@ -134,16 +134,49 @@ export default function ComercialMateriaisPage() {
               <span className="truncate">{mat.arquivo_nome}</span>
               <span className="flex-shrink-0 ml-2">{formatFileSize(mat.arquivo_tamanho)}</span>
             </div>
-            <a
-              href={mat.arquivo_url}
-              download={mat.arquivo_nome}
-              className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download
-            </a>
+            <div className="flex gap-2">
+              <a
+                href={mat.arquivo_url}
+                download={mat.arquivo_nome}
+                className="flex items-center justify-center gap-2 flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </a>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(mat.arquivo_url);
+                    const blob = await res.blob();
+                    const file = new File([blob], mat.arquivo_nome, { type: mat.arquivo_tipo || blob.type });
+                    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                      await navigator.share({
+                        title: mat.titulo,
+                        text: mat.descricao || mat.titulo,
+                        files: [file],
+                      });
+                    } else {
+                      // Fallback: copiar link
+                      await navigator.clipboard.writeText(mat.arquivo_url);
+                      alert('Link copiado!');
+                    }
+                  } catch (e) {
+                    if ((e as Error).name !== 'AbortError') {
+                      console.error('Erro ao compartilhar:', e);
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-1 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition text-sm font-medium"
+                title="Enviar via WhatsApp"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Enviar
+              </button>
+            </div>
           </div>
         ))}
 
