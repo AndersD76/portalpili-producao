@@ -695,15 +695,17 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
   const valorPonderado = valorTotal * (probMedia / 100);
   const abertas = propostas.filter(p => !['FECHADA', 'PERDIDA', 'SUSPENSO', 'SUBSTITUIDO'].includes(p.estagio)).length;
 
-  const boxW = 58;
-  const gap = 5;
+  const availableW = pageW - 28; // 14 margin each side
+  const kpiGap = 4;
+  const kpiCount = 5;
+  const kpiW = (availableW - kpiGap * (kpiCount - 1)) / kpiCount;
   const startX = 14;
 
-  addKpiBox(doc, startX, y, boxW, 'Total de Propostas', String(propostas.length));
-  addKpiBox(doc, startX + boxW + gap, y, boxW, 'Em Aberto', String(abertas));
-  addKpiBox(doc, startX + 2 * (boxW + gap), y, boxW, 'Valor Total', formatCurrency(valorTotal));
-  addKpiBox(doc, startX + 3 * (boxW + gap), y, boxW, 'Valor Ponderado', formatCurrency(valorPonderado));
-  addKpiBox(doc, startX + 4 * (boxW + gap), y, boxW, 'Prob. Media', formatPercent(probMedia));
+  addKpiBox(doc, startX, y, kpiW, 'Total de Propostas', String(propostas.length));
+  addKpiBox(doc, startX + (kpiW + kpiGap), y, kpiW, 'Em Aberto', String(abertas));
+  addKpiBox(doc, startX + 2 * (kpiW + kpiGap), y, kpiW, 'Valor Total', formatCurrency(valorTotal));
+  addKpiBox(doc, startX + 3 * (kpiW + kpiGap), y, kpiW, 'Valor Ponderado', formatCurrency(valorPonderado));
+  addKpiBox(doc, startX + 4 * (kpiW + kpiGap), y, kpiW, 'Prob. Média', formatPercent(probMedia));
   y += 30;
 
   // Table
@@ -712,20 +714,31 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
     head: [['Proposta', 'Cliente', 'Produto', 'Valor (R$)', 'Prob.', 'Etapa', 'Dias', 'Vendedor', 'Contato', 'Data']],
     body: propostas.map(p => {
       const dataRef = p.data_abertura || p.created_at;
-      const contato = [p.cliente_telefone, p.cliente_email].filter(Boolean).join('\n');
+      const contato = p.cliente_email || p.cliente_telefone || '-';
+
+      // Produto: usar apenas tipo base + detalhe sem duplicar
+      let produtoLabel = p.produto || '-';
+      const tipoProduto = produtoLabel.split(' ')[0]; // "Tombador" ou "Coletor"
+      if (tipoProduto === 'Tombador' || tipoProduto === 'TOMBADOR') {
+        const detalhe = p.tombador_tamanho && p.tombador_tamanho > 0
+          ? `${p.tombador_tamanho}T${p.tombador_modelo ? ' ' + p.tombador_modelo : ''}`
+          : '';
+        produtoLabel = detalhe ? `Tombador ${detalhe}` : 'Tombador';
+      } else if (tipoProduto === 'Coletor' || tipoProduto === 'COLETOR') {
+        const detalhe = [p.coletor_tipo, p.coletor_modelo].filter(Boolean).join(' ');
+        produtoLabel = detalhe ? `Coletor ${detalhe}` : 'Coletor';
+      }
+
       return [
         p.numero_proposta || '-',
         p.cliente_nome || '-',
-        [
-          p.produto || '-',
-          p.tombador_tamanho && p.tombador_tamanho > 0 ? `${p.tombador_tamanho}T${p.tombador_modelo ? ' ' + p.tombador_modelo : ''}` : (p.coletor_tipo || p.coletor_modelo || ''),
-        ].filter(Boolean).join('\n'),
+        produtoLabel,
         formatCurrency(toNum(p.valor_estimado)),
         `${toNum(p.probabilidade_smart)}%`,
         ESTAGIOS_LABELS[p.estagio] || p.estagio,
         toNum(p.dias_no_estagio) > 0 ? `${toNum(p.dias_no_estagio)}d` : '-',
         p.vendedor_nome || '-',
-        contato || '-',
+        contato,
         dataRef ? new Date(dataRef).toLocaleDateString('pt-BR') : '-',
       ];
     }),

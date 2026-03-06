@@ -439,7 +439,7 @@ export default function ComercialPage() {
         cliente_nome: o.cliente_nome,
         cliente_telefone: o.cliente_telefone,
         cliente_email: o.cliente_email,
-        produto: o.produto_detalhe || o.produto,
+        produto: o.produto || '',
         tombador_tamanho: o.tombador_tamanho,
         tombador_modelo: o.tombador_modelo,
         coletor_tipo: o.coletor_tipo,
