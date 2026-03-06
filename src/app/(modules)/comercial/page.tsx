@@ -93,9 +93,12 @@ export default function ComercialPage() {
   const [selectedOportunidadeId, setSelectedOportunidadeId] = useState<number | null>(null);
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
-  const [selectionMode, setSelectionMode] = useState<'' | 'statusCheck' | 'pdf'>('');
+  const [selectionMode, setSelectionMode] = useState<'' | 'statusCheck' | 'pdf' | 'buscarDados'>('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [sendingStatusCheck, setSendingStatusCheck] = useState(false);
+  const [buscandoDados, setBuscandoDados] = useState(false);
+  const [dadosModal, setDadosModal] = useState<any[] | null>(null);
+  const [dadosResumo, setDadosResumo] = useState<any>(null);
 
   // Reset selection when vendedor filter changes
   useEffect(() => {
@@ -362,7 +365,7 @@ export default function ComercialPage() {
 
   const selectableIds = useMemo(() => {
     if (selectionMode === 'statusCheck') return emNegociacaoIds;
-    // pdf mode: all visible items
+    // pdf and buscarDados mode: all visible items
     return new Set(listaFiltrada.map(o => o.id));
   }, [selectionMode, emNegociacaoIds, listaFiltrada]);
 
@@ -455,6 +458,36 @@ export default function ComercialPage() {
       { vendedor: filtroVendedor || undefined, estagio: filtroEstagio || undefined }
     );
     cancelSelection();
+  };
+
+  const handleBuscarDados = async (atualizar = false) => {
+    if (selectedIds.size === 0) return;
+    setBuscandoDados(true);
+    try {
+      const res = await fetch('/api/comercial/oportunidades/buscar-dados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oportunidade_ids: Array.from(selectedIds),
+          atualizar,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDadosModal(json.data);
+        setDadosResumo(json.resumo);
+        if (atualizar) {
+          // Refresh data after update
+          fetchAll();
+        }
+      } else {
+        alert(json.error || 'Erro ao buscar dados');
+      }
+    } catch {
+      alert('Erro de conexão');
+    } finally {
+      setBuscandoDados(false);
+    }
   };
 
   const handleSort = (campo: string) => {
@@ -587,6 +620,16 @@ export default function ComercialPage() {
           {/* Action buttons */}
           {!selectionMode && (
             <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={() => { setSelectionMode('buscarDados'); setSelectedIds(new Set()); }}
+                className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
+                title="Buscar dados do cliente via Receita Federal"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Buscar Dados
+              </button>
               <button
                 onClick={() => { setSelectionMode('pdf'); setSelectedIds(new Set()); }}
                 className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition"
@@ -807,6 +850,20 @@ export default function ComercialPage() {
                   Gerar PDF
                 </button>
               )}
+              {selectionMode === 'buscarDados' && (
+                <button
+                  onClick={() => handleBuscarDados(false)}
+                  disabled={buscandoDados}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
+                    buscandoDados ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {buscandoDados ? 'Consultando...' : 'Consultar Receita Federal'}
+                </button>
+              )}
               {selectionMode === 'statusCheck' && (
                 <button
                   onClick={handleEnviarStatusCheck}
@@ -833,6 +890,130 @@ export default function ComercialPage() {
           onClose={() => setSelectedOportunidadeId(null)}
           onSave={() => fetchAll()}
         />
+      )}
+
+      {/* Modal Dados do Cliente (Receita Federal) */}
+      {dadosModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4" onClick={() => { setDadosModal(null); cancelSelection(); }}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-4 py-3 border-b bg-blue-50 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Dados dos Clientes - Receita Federal</h2>
+                {dadosResumo && (
+                  <div className="flex gap-3 text-xs mt-1">
+                    <span className="text-gray-500">{dadosResumo.total} propostas</span>
+                    {dadosResumo.cnpjs_descobertos > 0 && <span className="text-purple-600 font-medium">{dadosResumo.cnpjs_descobertos} CNPJs descobertos</span>}
+                    {dadosResumo.dados_novos > 0 && <span className="text-blue-600 font-medium">{dadosResumo.dados_novos} com dados novos</span>}
+                    {dadosResumo.atualizados > 0 && <span className="text-green-600 font-medium">{dadosResumo.atualizados} atualizados</span>}
+                    {dadosResumo.completos > 0 && <span className="text-gray-400">{dadosResumo.completos} completos</span>}
+                    {dadosResumo.erros > 0 && <span className="text-red-600">{dadosResumo.erros} erros</span>}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => { setDadosModal(null); cancelSelection(); }} className="text-gray-400 hover:text-gray-600 p-1">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-4">
+              <div className="space-y-3">
+                {dadosModal.map((item: any, idx: number) => (
+                  <div key={idx} className={`border rounded-lg p-3 ${
+                    item.status === 'dados_novos' ? 'border-blue-300 bg-blue-50/50' :
+                    item.status === 'atualizado' ? 'border-green-300 bg-green-50/50' :
+                    item.status === 'erro' ? 'border-red-200 bg-red-50/50' :
+                    item.status === 'sem_cnpj' ? 'border-amber-200 bg-amber-50/50' :
+                    'border-gray-200'
+                  }`}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <div className="font-semibold text-sm text-gray-900">
+                          {item.numero_proposta && <span className="text-gray-400 font-mono mr-1">#{item.numero_proposta}</span>}
+                          {item.cliente_nome}
+                        </div>
+                        {item.cliente_cnpj && (
+                          <div className="text-[10px] text-gray-400 font-mono">
+                            {item.cliente_cnpj}
+                            {item.cnpj_descoberto && <span className="ml-1 text-purple-600 font-sans font-medium">(CNPJ descoberto!)</span>}
+                          </div>
+                        )}
+                        {item.cnpj_descoberto && item.dados_receita?.razao_social && item.dados_receita.razao_social !== item.cliente_nome && (
+                          <div className="text-[10px] text-purple-500">RF: {item.dados_receita.razao_social}</div>
+                        )}
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                        item.status === 'dados_novos' ? 'bg-blue-100 text-blue-700' :
+                        item.status === 'atualizado' ? 'bg-green-100 text-green-700' :
+                        item.status === 'completo' ? 'bg-gray-100 text-gray-600' :
+                        item.status === 'sem_cnpj' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {item.mensagem}
+                      </span>
+                    </div>
+
+                    {/* Two columns: current data vs receita data */}
+                    {item.dados_receita && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Dados Atuais</div>
+                          <div className="space-y-0.5">
+                            <div><span className="text-gray-400">Tel:</span> <span className={item.dados_atuais?.telefone ? 'text-gray-700' : 'text-red-400'}>{item.dados_atuais?.telefone || 'vazio'}</span></div>
+                            <div><span className="text-gray-400">Email:</span> <span className={item.dados_atuais?.email ? 'text-gray-700' : 'text-red-400'}>{item.dados_atuais?.email || 'vazio'}</span></div>
+                            <div><span className="text-gray-400">WhatsApp:</span> <span className={item.dados_atuais?.whatsapp ? 'text-gray-700' : 'text-red-400'}>{item.dados_atuais?.whatsapp || 'vazio'}</span></div>
+                            <div><span className="text-gray-400">Contato:</span> <span className={item.dados_atuais?.contato_nome ? 'text-gray-700' : 'text-red-400'}>{item.dados_atuais?.contato_nome || 'vazio'}</span></div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-semibold text-blue-500 uppercase mb-1">Receita Federal</div>
+                          <div className="space-y-0.5">
+                            {item.cnpj_descoberto && item.dados_receita.cnpj && (
+                              <div><span className="text-gray-400">CNPJ:</span> <span className="text-purple-700 font-medium font-mono">{item.dados_receita.cnpj}</span></div>
+                            )}
+                            <div><span className="text-gray-400">Tel:</span> <span className={item.dados_receita.telefone ? 'text-blue-700 font-medium' : 'text-gray-300'}>{item.dados_receita.telefone || '-'}</span></div>
+                            <div><span className="text-gray-400">Email:</span> <span className={item.dados_receita.email ? 'text-blue-700 font-medium' : 'text-gray-300'}>{item.dados_receita.email || '-'}</span></div>
+                            <div><span className="text-gray-400">Situação:</span> <span className={item.dados_receita.situacao === 'ATIVA' ? 'text-green-600' : 'text-red-600'}>{item.dados_receita.situacao || '-'}</span></div>
+                            {item.dados_receita.endereco && <div><span className="text-gray-400">End:</span> <span className="text-gray-600">{item.dados_receita.endereco}</span></div>}
+                            {item.dados_receita.cnae && <div><span className="text-gray-400">CNAE:</span> <span className="text-gray-600">{item.dados_receita.cnae}</span></div>}
+                            {item.dados_receita.socios && <div><span className="text-gray-400">Sócios:</span> <span className="text-gray-600">{item.dados_receita.socios}</span></div>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t bg-gray-50 flex items-center justify-between">
+              <span className="text-xs text-gray-400">Fonte: BrasilAPI / Receita Federal</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setDadosModal(null); cancelSelection(); }}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition"
+                >
+                  Fechar
+                </button>
+                {dadosModal.some((d: any) => d.status === 'dados_novos') && (
+                  <button
+                    onClick={() => handleBuscarDados(true)}
+                    disabled={buscandoDados}
+                    className={`px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
+                      buscandoDados ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {buscandoDados ? 'Salvando...' : 'Salvar Dados no Cadastro'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
