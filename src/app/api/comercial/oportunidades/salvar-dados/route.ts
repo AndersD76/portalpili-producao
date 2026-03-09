@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
+// Garante que a coluna dados_receita_em existe
+async function ensureColumn() {
+  try {
+    await query(`ALTER TABLE crm_clientes ADD COLUMN IF NOT EXISTS dados_receita_em TIMESTAMP`);
+  } catch { /* coluna já existe */ }
+}
+
 // Salva dados da Receita Federal no cadastro dos clientes (apenas campos vazios)
 export async function POST(request: NextRequest) {
   try {
+    await ensureColumn();
     const body = await request.json();
     const { resultados } = body;
 
@@ -89,7 +97,7 @@ export async function POST(request: NextRequest) {
           setClauses.push(`${key} = $${idx++}`);
           values.push(val);
         }
-        setClauses.push(`updated_at = NOW()`);
+        setClauses.push(`updated_at = NOW()`, `dados_receita_em = NOW()`);
         values.push(item.cliente_id);
 
         try {

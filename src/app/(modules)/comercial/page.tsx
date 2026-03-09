@@ -16,6 +16,7 @@ interface Oportunidade {
   cliente_cnpj?: string;
   cliente_telefone?: string;
   cliente_email?: string;
+  dados_receita_em?: string;
   vendedor_nome?: string;
   vendedor_id?: number;
   produto?: string;
@@ -826,6 +827,11 @@ export default function ComercialPage() {
                               )}
                               {op.cliente_email && (
                                 <div className="text-[10px] text-gray-400 truncate" title={op.cliente_email}>{op.cliente_email}</div>
+                              )}
+                              {op.dados_receita_em && (
+                                <div className="text-[8px] text-blue-500 font-medium" title={`Dados da Receita Federal em ${new Date(op.dados_receita_em).toLocaleDateString('pt-BR')}`}>
+                                  RF {new Date(op.dados_receita_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                </div>
                               )}
                             </div>
                           ) : (
