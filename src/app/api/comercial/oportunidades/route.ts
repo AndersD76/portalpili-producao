@@ -7,6 +7,8 @@ export async function GET(request: Request) {
   const auth = await verificarPermissao('COMERCIAL', 'visualizar');
   if (!auth.permitido) return auth.resposta;
 
+  // Garante que a coluna dados_receita_em existe antes de usá-la no SELECT
+  try { await query(`ALTER TABLE crm_clientes ADD COLUMN IF NOT EXISTS dados_receita_em TIMESTAMP`); } catch { /* ok */ }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -102,6 +104,7 @@ export async function GET(request: Request) {
         c.cpf_cnpj as cliente_cnpj,
         c.telefone as cliente_telefone,
         c.email as cliente_email,
+        c.dados_receita_em,
         v.nome as vendedor_nome,
         COUNT(DISTINCT a.id) as total_atividades,
         COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,
@@ -155,7 +158,7 @@ export async function GET(request: Request) {
     }
 
     sql += `
-      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, c.telefone, c.email, v.nome, lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
+      GROUP BY o.id, c.razao_social, c.nome_fantasia, c.cpf_cnpj, c.telefone, c.email, c.dados_receita_em, v.nome, lp.tombador_modelo, lp.tombador_tamanho, lp.coletor_modelo, lp.coletor_tipo
       ORDER BY
         CASE o.estagio
           WHEN 'EM_ANALISE' THEN 1
