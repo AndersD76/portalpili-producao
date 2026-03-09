@@ -323,8 +323,9 @@ function parseBrasilAPI(data: any): ReceitaData {
 function formatTelefone(raw: string): string | undefined {
   if (!raw || raw.trim() === '') return undefined;
   const limpo = raw.replace(/\D/g, '');
-  if (limpo.length < 8) return undefined;
-  if (limpo.length <= 10) return `(${limpo.substring(0, 2)}) ${limpo.substring(2, 6)}-${limpo.substring(6)}`;
+  // Telefone BR: 10 dígitos (fixo) ou 11 dígitos (celular com 9)
+  if (limpo.length < 10 || limpo.length > 11) return undefined;
+  if (limpo.length === 10) return `(${limpo.substring(0, 2)}) ${limpo.substring(2, 6)}-${limpo.substring(6)}`;
   return `(${limpo.substring(0, 2)}) ${limpo.substring(2, 7)}-${limpo.substring(7)}`;
 }
 
