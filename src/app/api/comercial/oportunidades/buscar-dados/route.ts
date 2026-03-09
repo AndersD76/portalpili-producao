@@ -25,6 +25,19 @@ interface ReceitaData {
 }
 
 // Consulta CNPJ em paralelo (4 APIs ao mesmo tempo, usa a primeira que responder)
+// Mescla dados de múltiplas APIs: preenche campos vazios com dados de outras fontes
+function mesclarDados(resultados: ReceitaData[]): ReceitaData {
+  const merged: ReceitaData = {};
+  for (const r of resultados) {
+    for (const [key, val] of Object.entries(r)) {
+      if (val !== undefined && val !== null && val !== '' && !(merged as any)[key]) {
+        (merged as any)[key] = val;
+      }
+    }
+  }
+  return merged;
+}
+
 async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
   const cnpjLimpo = cnpj.replace(/\D/g, '');
   if (cnpjLimpo.length !== 14) {
@@ -32,7 +45,7 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
     return null;
   }
 
-  console.log(`[ConsultaCNPJ] Consultando ${cnpjLimpo} (4 APIs em paralelo)...`);
+  console.log(`[ConsultaCNPJ] Consultando ${cnpjLimpo} (4 APIs em paralelo, mesclando resultados)...`);
 
   // Dispara todas as APIs em paralelo
   const tentativas = [
@@ -61,7 +74,7 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
         console.log(`[ConsultaCNPJ] CNPJ.ws OK para ${cnpjLimpo}`);
         return parseCnpjWs(data);
       }),
-    // 4) CNPJA Open (busca por CNPJ direto)
+    // 4) CNPJA Open
     fetch(`https://open.cnpja.com/office/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000), headers: { 'Accept': 'application/json' } })
       .then(async res => {
         if (!res.ok) throw new Error(`CNPJA status ${res.status}`);
@@ -72,17 +85,28 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
       }),
   ];
 
-  // Promise.any retorna o primeiro sucesso (ignora rejeições até todas falharem)
-  try {
-    return await Promise.any(tentativas);
-  } catch (e) {
-    // AggregateError = todas falharam
-    const erros = e instanceof AggregateError ? e.errors.map((err: Error) => err.message) : [String(e)];
-    console.log(`[ConsultaCNPJ] TODAS falharam para ${cnpjLimpo}:`, erros);
-    // Salvar os erros para exibir no modal
+  // Espera TODAS as APIs (sucesso ou falha) e mescla os resultados
+  const results = await Promise.allSettled(tentativas);
+  const sucessos: ReceitaData[] = [];
+  const erros: string[] = [];
+
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      sucessos.push(r.value);
+    } else {
+      erros.push(r.reason?.message || String(r.reason));
+    }
+  }
+
+  console.log(`[ConsultaCNPJ] ${cnpjLimpo}: ${sucessos.length} APIs OK, ${erros.length} falharam${erros.length ? ` (${erros.join(' | ')})` : ''}`);
+
+  if (sucessos.length === 0) {
     ultimoErroConsulta = `APIs: ${erros.join(' | ')}`;
     return null;
   }
+
+  // Mescla dados de todas as APIs que responderam
+  return mesclarDados(sucessos);
 }
 
 // Armazena último erro para exibir no modal
