@@ -24,7 +24,7 @@ interface ReceitaData {
   qsa?: Array<{ nome_socio: string; qualificacao_socio: string }>;
 }
 
-// Consulta CNPJ em paralelo (3 APIs ao mesmo tempo, usa a primeira que responder)
+// Consulta CNPJ em paralelo (4 APIs ao mesmo tempo, usa a primeira que responder)
 async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
   const cnpjLimpo = cnpj.replace(/\D/g, '');
   if (cnpjLimpo.length !== 14) {
@@ -32,10 +32,11 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
     return null;
   }
 
-  console.log(`[ConsultaCNPJ] Consultando ${cnpjLimpo} (3 APIs em paralelo)...`);
+  console.log(`[ConsultaCNPJ] Consultando ${cnpjLimpo} (4 APIs em paralelo)...`);
 
   // Dispara todas as APIs em paralelo
   const tentativas = [
+    // 1) BrasilAPI
     fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000) })
       .then(async res => {
         if (!res.ok) throw new Error(`BrasilAPI status ${res.status}`);
@@ -43,6 +44,7 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
         console.log(`[ConsultaCNPJ] BrasilAPI OK para ${cnpjLimpo}`);
         return parseBrasilAPI(data);
       }),
+    // 2) ReceitaWS
     fetch(`https://receitaws.com.br/v1/cnpj/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000), headers: { 'Accept': 'application/json' } })
       .then(async res => {
         if (!res.ok) throw new Error(`ReceitaWS status ${res.status}`);
@@ -51,12 +53,22 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
         console.log(`[ConsultaCNPJ] ReceitaWS OK para ${cnpjLimpo}`);
         return parseReceitaWS(data);
       }),
+    // 3) CNPJ.ws
     fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000) })
       .then(async res => {
         if (!res.ok) throw new Error(`CNPJ.ws status ${res.status}`);
         const data = await res.json();
         console.log(`[ConsultaCNPJ] CNPJ.ws OK para ${cnpjLimpo}`);
         return parseCnpjWs(data);
+      }),
+    // 4) CNPJA Open (busca por CNPJ direto)
+    fetch(`https://open.cnpja.com/office/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000), headers: { 'Accept': 'application/json' } })
+      .then(async res => {
+        if (!res.ok) throw new Error(`CNPJA status ${res.status}`);
+        const data = await res.json();
+        if (!data?.taxId) throw new Error('CNPJA sem dados');
+        console.log(`[ConsultaCNPJ] CNPJA OK para ${cnpjLimpo}`);
+        return parseCNPJA(data);
       }),
   ];
 
@@ -67,9 +79,14 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
     // AggregateError = todas falharam
     const erros = e instanceof AggregateError ? e.errors.map((err: Error) => err.message) : [String(e)];
     console.log(`[ConsultaCNPJ] TODAS falharam para ${cnpjLimpo}:`, erros);
+    // Salvar os erros para exibir no modal
+    ultimoErroConsulta = `APIs: ${erros.join(' | ')}`;
     return null;
   }
 }
+
+// Armazena último erro para exibir no modal
+let ultimoErroConsulta = '';
 
 // Limpa nome da empresa para busca
 function limparNomeEmpresa(nome: string): string {
@@ -252,6 +269,32 @@ function parseCnpjWs(data: any): ReceitaData {
   };
 }
 
+function parseCNPJA(data: any): ReceitaData {
+  const addr = data.address || {};
+  const tel = data.phones?.[0];
+  const emails = data.emails?.[0];
+  return {
+    cnpj: String(data.taxId || '').replace(/\D/g, '') || undefined,
+    razao_social: data.company?.name || data.alias || data.name,
+    nome_fantasia: data.alias || data.company?.name,
+    telefone: tel ? formatTelefone(`${tel.area || ''}${tel.number || ''}`) : undefined,
+    email: emails?.address?.toLowerCase() || undefined,
+    logradouro: addr.street,
+    numero: addr.number,
+    complemento: addr.details,
+    bairro: addr.district,
+    municipio: addr.city,
+    uf: addr.state,
+    cep: addr.zip ? String(addr.zip).replace(/(\d{5})(\d{3})/, '$1-$2') : undefined,
+    situacao: data.status?.text || data.registration?.status,
+    cnae_fiscal_descricao: data.mainActivity?.text,
+    porte: data.company?.size?.text,
+    natureza_juridica: data.company?.nature?.text,
+    capital_social: data.company?.equity,
+    qsa: data.company?.members?.map((s: any) => ({ nome_socio: s.person?.name || s.name, qualificacao_socio: s.role?.text })),
+  };
+}
+
 function parseBrasilAPI(data: any): ReceitaData {
   return {
     cnpj: data.cnpj ? String(data.cnpj).replace(/\D/g, '') : undefined,
@@ -389,7 +432,7 @@ export async function POST(request: NextRequest) {
             status: semCNPJ ? 'sem_cnpj' : 'erro',
             mensagem: semCNPJ
               ? `Sem CNPJ - não encontrado pelo nome "${limparNomeEmpresa(info.nome)}"${info.cidade ? ` em ${info.cidade}` : ''}`
-              : 'Não foi possível consultar CNPJ',
+              : `Não foi possível consultar CNPJ${ultimoErroConsulta ? ` (${ultimoErroConsulta})` : ''}`,
             dados_atuais: {
               telefone: r.cliente_telefone,
               email: r.cliente_email,
