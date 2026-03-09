@@ -848,7 +848,7 @@ export default function ComercialPage() {
               )}
               {selectionMode === 'buscarDados' && (
                 <button
-                  onClick={() => handleBuscarDados(false)}
+                  onClick={() => handleBuscarDados()}
                   disabled={buscandoDados}
                   className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
                     buscandoDados ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
