@@ -363,7 +363,7 @@ function formatCNPJ(cnpj: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { oportunidade_ids, salvar } = body;
+    const { oportunidade_ids } = body;
 
     if (!oportunidade_ids || !Array.isArray(oportunidade_ids) || oportunidade_ids.length === 0) {
       return NextResponse.json({ success: false, error: 'IDs de oportunidades são obrigatórios' }, { status: 400 });
@@ -520,29 +520,6 @@ export async function POST(request: NextRequest) {
         camposAtualizados.push('estado');
       }
 
-      // Salvar no banco só quando o usuário clicar "Salvar"
-      if (salvar && Object.keys(dadosNovos).length > 0) {
-        const setClauses: string[] = [];
-        const values: any[] = [];
-        let idx = 1;
-        for (const [key, val] of Object.entries(dadosNovos)) {
-          setClauses.push(`${key} = $${idx++}`);
-          values.push(val);
-        }
-        setClauses.push(`updated_at = NOW()`);
-        values.push(clienteId);
-
-        try {
-          await query(
-            `UPDATE crm_clientes SET ${setClauses.join(', ')} WHERE id = $${idx}`,
-            values
-          );
-          atualizados++;
-        } catch (e) {
-          console.error('Erro ao atualizar cliente:', clienteId, e);
-          erros++;
-        }
-      }
 
       const socios = receita.qsa?.slice(0, 3).map(s => s.nome_socio).join(', ') || null;
 
@@ -554,9 +531,9 @@ export async function POST(request: NextRequest) {
           cliente_cnpj: r.cliente_cnpj || (receita.cnpj ? formatCNPJ(receita.cnpj) : null),
           cliente_id: clienteId,
           cnpj_descoberto: cnpjDescoberto,
-          status: camposAtualizados.length > 0 ? (salvar ? 'atualizado' : 'dados_novos') : 'completo',
+          status: camposAtualizados.length > 0 ? 'dados_novos' : 'completo',
           mensagem: camposAtualizados.length > 0
-            ? (salvar ? `Salvo: ${camposAtualizados.join(', ')}` : `Disponível: ${camposAtualizados.join(', ')}`)
+            ? `Disponível: ${camposAtualizados.join(', ')}`
             : 'Dados já completos',
           dados_atuais: {
             telefone: r.cliente_telefone,

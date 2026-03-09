@@ -460,7 +460,7 @@ export default function ComercialPage() {
     cancelSelection();
   };
 
-  const handleBuscarDados = async (salvar = false) => {
+  const handleBuscarDados = async () => {
     if (selectedIds.size === 0) return;
     setBuscandoDados(true);
     try {
@@ -469,16 +469,38 @@ export default function ComercialPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           oportunidade_ids: Array.from(selectedIds),
-          salvar,
         }),
       });
       const json = await res.json();
       if (json.success) {
         setDadosModal(json.data);
         setDadosResumo(json.resumo);
-        if (salvar) fetchAll();
       } else {
         alert(json.error || 'Erro ao buscar dados');
+      }
+    } catch {
+      alert('Erro de conexão');
+    } finally {
+      setBuscandoDados(false);
+    }
+  };
+
+  const handleSalvarDados = async () => {
+    if (!dadosModal) return;
+    setBuscandoDados(true);
+    try {
+      const res = await fetch('/api/comercial/oportunidades/salvar-dados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resultados: dadosModal }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDadosModal(json.data);
+        setDadosResumo(json.resumo);
+        fetchAll();
+      } else {
+        alert(json.error || 'Erro ao salvar');
       }
     } catch {
       alert('Erro de conexão');
@@ -995,7 +1017,7 @@ export default function ComercialPage() {
                   Fechar
                 </button>
                 <button
-                  onClick={() => handleBuscarDados(true)}
+                  onClick={() => handleSalvarDados()}
                   disabled={buscandoDados}
                   className={`px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
                     buscandoDados ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
