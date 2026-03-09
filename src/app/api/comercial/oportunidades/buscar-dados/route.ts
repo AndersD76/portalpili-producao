@@ -246,11 +246,13 @@ async function buscarViaCNPJA(nome: string, estado?: string): Promise<ReceitaDat
 }
 
 function parseReceitaWS(data: any): ReceitaData {
+  // ReceitaWS pode retornar múltiplos telefones separados por "/" ex: "(42) 3234-8000/4232-3480"
+  const primeiroTel = data.telefone ? data.telefone.split('/')[0].trim() : null;
   return {
     cnpj: data.cnpj ? String(data.cnpj).replace(/\D/g, '') : undefined,
     razao_social: data.nome,
     nome_fantasia: data.fantasia,
-    telefone: data.telefone ? formatTelefone(data.telefone.replace(/[().\-\s]/g, '')) : undefined,
+    telefone: primeiroTel ? formatTelefone(primeiroTel.replace(/[().\-\s]/g, '')) : undefined,
     email: data.email && data.email.trim() !== '' ? data.email.toLowerCase().trim() : undefined,
     logradouro: data.logradouro,
     numero: data.numero,
