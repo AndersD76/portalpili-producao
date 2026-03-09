@@ -7,8 +7,6 @@ export async function GET(request: Request) {
   const auth = await verificarPermissao('COMERCIAL', 'visualizar');
   if (!auth.permitido) return auth.resposta;
 
-  // Garantir que a coluna dados_receita_em existe
-  try { await query(`ALTER TABLE crm_clientes ADD COLUMN IF NOT EXISTS dados_receita_em TIMESTAMP`); } catch {}
 
   try {
     const { searchParams } = new URL(request.url);
@@ -104,7 +102,6 @@ export async function GET(request: Request) {
         c.cpf_cnpj as cliente_cnpj,
         c.telefone as cliente_telefone,
         c.email as cliente_email,
-        c.dados_receita_em,
         v.nome as vendedor_nome,
         COUNT(DISTINCT a.id) as total_atividades,
         COUNT(DISTINCT CASE WHEN a.status != 'CONCLUIDA' AND a.data_agendada < NOW() THEN a.id END) as atividades_atrasadas,
