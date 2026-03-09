@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Sempre marcar dados_receita_em quando há dados da receita (mesmo sem campos novos)
       if (Object.keys(dadosNovos).length > 0) {
         const setClauses: string[] = [];
         const values: any[] = [];
@@ -110,6 +111,14 @@ export async function POST(request: NextRequest) {
           console.error('Erro ao salvar cliente:', item.cliente_id, e);
           erros++;
         }
+      } else {
+        // Sem campos novos, mas marcar que RF foi consultada
+        try {
+          await query(
+            `UPDATE crm_clientes SET dados_receita_em = NOW() WHERE id = $1 AND dados_receita_em IS NULL`,
+            [item.cliente_id]
+          );
+        } catch { /* ok */ }
       }
 
       retorno.push({
