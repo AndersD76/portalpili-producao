@@ -496,8 +496,9 @@ export default function ComercialPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setDadosModal(json.data);
-        setDadosResumo(json.resumo);
+        setDadosModal(null);
+        setDadosResumo(null);
+        cancelSelection();
         fetchAll();
       } else {
         alert(json.error || 'Erro ao salvar');
