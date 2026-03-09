@@ -460,7 +460,7 @@ export default function ComercialPage() {
     cancelSelection();
   };
 
-  const handleBuscarDados = async () => {
+  const handleBuscarDados = async (salvar = false) => {
     if (selectedIds.size === 0) return;
     setBuscandoDados(true);
     try {
@@ -469,13 +469,14 @@ export default function ComercialPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           oportunidade_ids: Array.from(selectedIds),
+          salvar,
         }),
       });
       const json = await res.json();
       if (json.success) {
         setDadosModal(json.data);
         setDadosResumo(json.resumo);
-        fetchAll(); // Refresh data after update
+        if (salvar) fetchAll();
       } else {
         alert(json.error || 'Erro ao buscar dados');
       }
@@ -992,6 +993,15 @@ export default function ComercialPage() {
                   className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition"
                 >
                   Fechar
+                </button>
+                <button
+                  onClick={() => handleBuscarDados(true)}
+                  disabled={buscandoDados}
+                  className={`px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
+                    buscandoDados ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {buscandoDados ? 'Salvando...' : 'Salvar Dados no Cadastro'}
                 </button>
               </div>
             </div>

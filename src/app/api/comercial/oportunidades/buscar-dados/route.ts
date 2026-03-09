@@ -363,7 +363,7 @@ function formatCNPJ(cnpj: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { oportunidade_ids } = body;
+    const { oportunidade_ids, salvar } = body;
 
     if (!oportunidade_ids || !Array.isArray(oportunidade_ids) || oportunidade_ids.length === 0) {
       return NextResponse.json({ success: false, error: 'IDs de oportunidades são obrigatórios' }, { status: 400 });
@@ -485,43 +485,43 @@ export async function POST(request: NextRequest) {
         cnpjsDescobertos++;
       }
 
-      // Sempre salvar dados da Receita no cadastro do cliente
-      if (receita.telefone) {
+      // Só preencher campos VAZIOS (não sobrescrever dados existentes)
+      if (!row.cliente_telefone && receita.telefone) {
         dadosNovos.telefone = receita.telefone;
-        if (row.cliente_telefone !== receita.telefone) camposAtualizados.push('telefone');
+        camposAtualizados.push('telefone');
       }
-      if (receita.email) {
+      if (!row.cliente_email && receita.email) {
         dadosNovos.email = receita.email;
-        if (row.cliente_email !== receita.email) camposAtualizados.push('email');
+        camposAtualizados.push('email');
       }
-      if (receita.nome_fantasia) {
+      if (!row.cliente_fantasia && receita.nome_fantasia) {
         dadosNovos.nome_fantasia = receita.nome_fantasia;
-        if (!row.cliente_fantasia) camposAtualizados.push('nome_fantasia');
+        camposAtualizados.push('nome_fantasia');
       }
-      if (receita.cep) {
+      if (!row.cep && receita.cep) {
         dadosNovos.cep = receita.cep;
-        if (!row.cep) camposAtualizados.push('cep');
+        camposAtualizados.push('cep');
       }
-      if (receita.logradouro) {
+      if (!row.logradouro && receita.logradouro) {
         dadosNovos.logradouro = receita.logradouro;
         if (receita.numero) dadosNovos.numero = receita.numero;
         if (receita.complemento) dadosNovos.complemento = receita.complemento;
-        if (!row.logradouro) camposAtualizados.push('endereço');
+        camposAtualizados.push('endereço');
       }
-      if (receita.bairro) {
+      if (!row.bairro && receita.bairro) {
         dadosNovos.bairro = receita.bairro;
       }
-      if (receita.municipio) {
+      if (!row.cidade && receita.municipio) {
         dadosNovos.cidade = receita.municipio;
-        if (!row.cidade) camposAtualizados.push('cidade');
+        camposAtualizados.push('cidade');
       }
-      if (receita.uf) {
+      if (!row.estado && receita.uf) {
         dadosNovos.estado = receita.uf;
-        if (!row.estado) camposAtualizados.push('estado');
+        camposAtualizados.push('estado');
       }
 
-      // Sempre salvar dados da Receita no banco
-      if (Object.keys(dadosNovos).length > 0) {
+      // Salvar no banco só quando o usuário clicar "Salvar"
+      if (salvar && Object.keys(dadosNovos).length > 0) {
         const setClauses: string[] = [];
         const values: any[] = [];
         let idx = 1;
@@ -554,9 +554,9 @@ export async function POST(request: NextRequest) {
           cliente_cnpj: r.cliente_cnpj || (receita.cnpj ? formatCNPJ(receita.cnpj) : null),
           cliente_id: clienteId,
           cnpj_descoberto: cnpjDescoberto,
-          status: camposAtualizados.length > 0 ? 'atualizado' : 'completo',
+          status: camposAtualizados.length > 0 ? (salvar ? 'atualizado' : 'dados_novos') : 'completo',
           mensagem: camposAtualizados.length > 0
-            ? `Atualizado: ${camposAtualizados.join(', ')}`
+            ? (salvar ? `Salvo: ${camposAtualizados.join(', ')}` : `Disponível: ${camposAtualizados.join(', ')}`)
             : 'Dados já completos',
           dados_atuais: {
             telefone: r.cliente_telefone,
