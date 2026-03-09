@@ -336,7 +336,7 @@ function formatCNPJ(cnpj: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { oportunidade_ids, atualizar } = body;
+    const { oportunidade_ids } = body;
 
     if (!oportunidade_ids || !Array.isArray(oportunidade_ids) || oportunidade_ids.length === 0) {
       return NextResponse.json({ success: false, error: 'IDs de oportunidades são obrigatórios' }, { status: 400 });
@@ -458,44 +458,43 @@ export async function POST(request: NextRequest) {
         cnpjsDescobertos++;
       }
 
-      // Quando atualizar=true, sobrescreve dados existentes com os da Receita
-      // Quando atualizar=false, só preenche campos vazios
-      if (receita.telefone && (atualizar || !row.cliente_telefone)) {
+      // Sempre salvar dados da Receita no cadastro do cliente
+      if (receita.telefone) {
         dadosNovos.telefone = receita.telefone;
-        camposAtualizados.push('telefone');
+        if (row.cliente_telefone !== receita.telefone) camposAtualizados.push('telefone');
       }
-      if (receita.email && (atualizar || !row.cliente_email)) {
+      if (receita.email) {
         dadosNovos.email = receita.email;
-        camposAtualizados.push('email');
+        if (row.cliente_email !== receita.email) camposAtualizados.push('email');
       }
-      if (receita.nome_fantasia && (atualizar || !row.cliente_fantasia)) {
+      if (receita.nome_fantasia) {
         dadosNovos.nome_fantasia = receita.nome_fantasia;
-        camposAtualizados.push('nome_fantasia');
+        if (!row.cliente_fantasia) camposAtualizados.push('nome_fantasia');
       }
-      if (receita.cep && (atualizar || !row.cep)) {
+      if (receita.cep) {
         dadosNovos.cep = receita.cep;
-        camposAtualizados.push('cep');
+        if (!row.cep) camposAtualizados.push('cep');
       }
-      if (receita.logradouro && (atualizar || !row.logradouro)) {
+      if (receita.logradouro) {
         dadosNovos.logradouro = receita.logradouro;
         if (receita.numero) dadosNovos.numero = receita.numero;
         if (receita.complemento) dadosNovos.complemento = receita.complemento;
-        camposAtualizados.push('endereço');
+        if (!row.logradouro) camposAtualizados.push('endereço');
       }
-      if (receita.bairro && (atualizar || !row.bairro)) {
+      if (receita.bairro) {
         dadosNovos.bairro = receita.bairro;
       }
-      if (receita.municipio && (atualizar || !row.cidade)) {
+      if (receita.municipio) {
         dadosNovos.cidade = receita.municipio;
-        camposAtualizados.push('cidade');
+        if (!row.cidade) camposAtualizados.push('cidade');
       }
-      if (receita.uf && (atualizar || !row.estado)) {
+      if (receita.uf) {
         dadosNovos.estado = receita.uf;
-        camposAtualizados.push('estado');
+        if (!row.estado) camposAtualizados.push('estado');
       }
 
-      // Update DB if requested
-      if (atualizar && Object.keys(dadosNovos).length > 0) {
+      // Sempre salvar dados da Receita no banco
+      if (Object.keys(dadosNovos).length > 0) {
         const setClauses: string[] = [];
         const values: any[] = [];
         let idx = 1;
@@ -528,9 +527,9 @@ export async function POST(request: NextRequest) {
           cliente_cnpj: r.cliente_cnpj || (receita.cnpj ? formatCNPJ(receita.cnpj) : null),
           cliente_id: clienteId,
           cnpj_descoberto: cnpjDescoberto,
-          status: camposAtualizados.length > 0 ? (atualizar ? 'atualizado' : 'dados_novos') : 'completo',
+          status: camposAtualizados.length > 0 ? 'atualizado' : 'completo',
           mensagem: camposAtualizados.length > 0
-            ? (atualizar ? `Atualizado: ${camposAtualizados.join(', ')}` : `Dados disponíveis: ${camposAtualizados.join(', ')}`)
+            ? `Atualizado: ${camposAtualizados.join(', ')}`
             : 'Dados já completos',
           dados_atuais: {
             telefone: r.cliente_telefone,
@@ -582,7 +581,6 @@ export async function POST(request: NextRequest) {
         total: resultados.length,
         atualizados,
         cnpjs_descobertos: cnpjsDescobertos,
-        dados_novos: resultados.filter(r => r.status === 'dados_novos').length,
         completos: resultados.filter(r => r.status === 'completo').length,
         sem_cnpj: resultados.filter(r => r.status === 'sem_cnpj').length,
         erros: resultados.filter(r => r.status === 'erro').length,

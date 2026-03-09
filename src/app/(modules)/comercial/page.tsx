@@ -460,7 +460,7 @@ export default function ComercialPage() {
     cancelSelection();
   };
 
-  const handleBuscarDados = async (atualizar = false) => {
+  const handleBuscarDados = async () => {
     if (selectedIds.size === 0) return;
     setBuscandoDados(true);
     try {
@@ -469,17 +469,13 @@ export default function ComercialPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           oportunidade_ids: Array.from(selectedIds),
-          atualizar,
         }),
       });
       const json = await res.json();
       if (json.success) {
         setDadosModal(json.data);
         setDadosResumo(json.resumo);
-        if (atualizar) {
-          // Refresh data after update
-          fetchAll();
-        }
+        fetchAll(); // Refresh data after update
       } else {
         alert(json.error || 'Erro ao buscar dados');
       }
@@ -904,7 +900,6 @@ export default function ComercialPage() {
                   <div className="flex gap-3 text-xs mt-1">
                     <span className="text-gray-500">{dadosResumo.total} propostas</span>
                     {dadosResumo.cnpjs_descobertos > 0 && <span className="text-purple-600 font-medium">{dadosResumo.cnpjs_descobertos} CNPJs descobertos</span>}
-                    {dadosResumo.dados_novos > 0 && <span className="text-blue-600 font-medium">{dadosResumo.dados_novos} com dados novos</span>}
                     {dadosResumo.atualizados > 0 && <span className="text-green-600 font-medium">{dadosResumo.atualizados} atualizados</span>}
                     {dadosResumo.completos > 0 && <span className="text-gray-400">{dadosResumo.completos} completos</span>}
                     {dadosResumo.sem_cnpj > 0 && <span className="text-amber-600">{dadosResumo.sem_cnpj} sem CNPJ</span>}
@@ -924,7 +919,6 @@ export default function ComercialPage() {
               <div className="space-y-3">
                 {dadosModal.map((item: any, idx: number) => (
                   <div key={idx} className={`border rounded-lg p-3 ${
-                    item.status === 'dados_novos' ? 'border-blue-300 bg-blue-50/50' :
                     item.status === 'atualizado' ? 'border-green-300 bg-green-50/50' :
                     item.status === 'erro' ? 'border-red-200 bg-red-50/50' :
                     item.status === 'sem_cnpj' ? 'border-amber-200 bg-amber-50/50' :
@@ -947,7 +941,6 @@ export default function ComercialPage() {
                         )}
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
-                        item.status === 'dados_novos' ? 'bg-blue-100 text-blue-700' :
                         item.status === 'atualizado' ? 'bg-green-100 text-green-700' :
                         item.status === 'completo' ? 'bg-gray-100 text-gray-600' :
                         item.status === 'sem_cnpj' ? 'bg-amber-100 text-amber-700' :
@@ -1000,17 +993,6 @@ export default function ComercialPage() {
                 >
                   Fechar
                 </button>
-                {dadosModal.some((d: any) => d.status === 'dados_novos') && (
-                  <button
-                    onClick={() => handleBuscarDados(true)}
-                    disabled={buscandoDados}
-                    className={`px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition ${
-                      buscandoDados ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                  >
-                    {buscandoDados ? 'Salvando...' : 'Salvar Dados no Cadastro'}
-                  </button>
-                )}
               </div>
             </div>
           </div>
