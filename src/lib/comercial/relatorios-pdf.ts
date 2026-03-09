@@ -663,14 +663,22 @@ interface PropostaSelecionada {
   created_at: string;
 }
 
-export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?: { vendedor?: string; estagio?: string }) {
+export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?: { vendedor?: string; estagio?: string; dataInicio?: string; dataFim?: string }) {
   const doc = new jsPDF('landscape', 'mm', 'a4');
   const pageW = doc.internal.pageSize.width;
 
+  const periodoLabel = filtros?.dataInicio || filtros?.dataFim
+    ? [
+        filtros.dataInicio ? new Date(filtros.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : '',
+        filtros.dataFim ? new Date(filtros.dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : '',
+      ].filter(Boolean).join(' a ')
+    : '';
+
   const subtitulo = [
     filtros?.vendedor ? `Vendedor: ${filtros.vendedor}` : '',
-    filtros?.estagio ? `Etapa: ${ESTAGIOS_LABELS[filtros.estagio] || filtros.estagio}` : '',
-  ].filter(Boolean).join(' | ') || 'Todas as propostas';
+    filtros?.estagio ? `Etapa: ${ESTAGIOS_LABELS[filtros.estagio] || filtros.estagio}` : 'Em Negociação',
+    periodoLabel ? `Período: ${periodoLabel}` : '',
+  ].filter(Boolean).join(' | ');
 
   // Header
   doc.setFillColor(220, 38, 38);
@@ -775,5 +783,13 @@ export function gerarListaPipelinePDF(propostas: PropostaSelecionada[], filtros?
   });
 
   gerarFooter(doc);
-  doc.save('lista-propostas-pipeline.pdf');
+
+  // Nome do arquivo: vendedor + período
+  const sanitize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '-');
+  const partes = ['propostas'];
+  if (filtros?.vendedor) partes.push(sanitize(filtros.vendedor));
+  if (filtros?.dataInicio) partes.push(filtros.dataInicio);
+  if (filtros?.dataFim) partes.push(filtros.dataFim);
+  if (partes.length === 1) partes.push(new Date().toISOString().slice(0, 10));
+  doc.save(`${partes.join('-')}.pdf`);
 }

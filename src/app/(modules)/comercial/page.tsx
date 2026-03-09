@@ -435,8 +435,14 @@ export default function ComercialPage() {
   };
 
   const handleGerarPDF = () => {
-    const selecionadas = listaFiltrada.filter(o => selectedIds.has(o.id));
-    if (selecionadas.length === 0) return;
+    // Somente propostas em negociação (EM_NEGOCIACAO e POS_NEGOCIACAO)
+    const selecionadas = listaFiltrada
+      .filter(o => selectedIds.has(o.id))
+      .filter(o => ['EM_NEGOCIACAO', 'POS_NEGOCIACAO'].includes(o.estagio));
+    if (selecionadas.length === 0) {
+      alert('Nenhuma proposta em negociação selecionada.');
+      return;
+    }
     gerarListaPipelinePDF(
       selecionadas.map(o => ({
         numero_proposta: o.numero_proposta,
@@ -456,7 +462,7 @@ export default function ComercialPage() {
         data_abertura: o.data_abertura,
         created_at: o.created_at,
       })),
-      { vendedor: filtroVendedor || undefined, estagio: filtroEstagio || undefined }
+      { vendedor: filtroVendedor || undefined, estagio: filtroEstagio || undefined, dataInicio: filtroDataInicio || undefined, dataFim: filtroDataFim || undefined }
     );
     cancelSelection();
   };
