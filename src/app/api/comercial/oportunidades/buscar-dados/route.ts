@@ -446,6 +446,8 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
+      console.log(`[BuscarDados] Cliente ${clienteId} "${info.nome}" -> Receita: tel=${receita.telefone || 'N/A'}, email=${receita.email || 'N/A'}`);
+
       const dadosNovos: Record<string, any> = {};
       const camposAtualizados: string[] = [];
 
@@ -456,37 +458,38 @@ export async function POST(request: NextRequest) {
         cnpjsDescobertos++;
       }
 
-      // Only fill empty fields
-      if (!row.cliente_telefone && receita.telefone) {
+      // Quando atualizar=true, sobrescreve dados existentes com os da Receita
+      // Quando atualizar=false, só preenche campos vazios
+      if (receita.telefone && (atualizar || !row.cliente_telefone)) {
         dadosNovos.telefone = receita.telefone;
         camposAtualizados.push('telefone');
       }
-      if (!row.cliente_email && receita.email) {
+      if (receita.email && (atualizar || !row.cliente_email)) {
         dadosNovos.email = receita.email;
         camposAtualizados.push('email');
       }
-      if (!row.cliente_fantasia && receita.nome_fantasia) {
+      if (receita.nome_fantasia && (atualizar || !row.cliente_fantasia)) {
         dadosNovos.nome_fantasia = receita.nome_fantasia;
         camposAtualizados.push('nome_fantasia');
       }
-      if (!row.cep && receita.cep) {
+      if (receita.cep && (atualizar || !row.cep)) {
         dadosNovos.cep = receita.cep;
         camposAtualizados.push('cep');
       }
-      if (!row.logradouro && receita.logradouro) {
+      if (receita.logradouro && (atualizar || !row.logradouro)) {
         dadosNovos.logradouro = receita.logradouro;
         if (receita.numero) dadosNovos.numero = receita.numero;
         if (receita.complemento) dadosNovos.complemento = receita.complemento;
         camposAtualizados.push('endereço');
       }
-      if (!row.bairro && receita.bairro) {
+      if (receita.bairro && (atualizar || !row.bairro)) {
         dadosNovos.bairro = receita.bairro;
       }
-      if (!row.cidade && receita.municipio) {
+      if (receita.municipio && (atualizar || !row.cidade)) {
         dadosNovos.cidade = receita.municipio;
         camposAtualizados.push('cidade');
       }
-      if (!row.estado && receita.uf) {
+      if (receita.uf && (atualizar || !row.estado)) {
         dadosNovos.estado = receita.uf;
         camposAtualizados.push('estado');
       }
