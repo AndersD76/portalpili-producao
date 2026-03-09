@@ -24,54 +24,51 @@ interface ReceitaData {
   qsa?: Array<{ nome_socio: string; qualificacao_socio: string }>;
 }
 
-// Consulta CNPJ com fallback entre múltiplas APIs
+// Consulta CNPJ em paralelo (3 APIs ao mesmo tempo, usa a primeira que responder)
 async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
   const cnpjLimpo = cnpj.replace(/\D/g, '');
-  if (cnpjLimpo.length !== 14) return null;
-
-  // 1) BrasilAPI
-  try {
-    const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return parseBrasilAPI(data);
-    }
-  } catch (e) {
-    console.log('BrasilAPI falhou para', cnpjLimpo, e);
+  if (cnpjLimpo.length !== 14) {
+    console.log(`[ConsultaCNPJ] CNPJ inválido (${cnpjLimpo.length} dígitos): ${cnpjLimpo}`);
+    return null;
   }
 
-  // 2) Fallback: ReceitaWS
-  try {
-    const res = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpjLimpo}`, {
-      signal: AbortSignal.timeout(10000),
-      headers: { 'Accept': 'application/json' },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.status !== 'ERROR') {
+  console.log(`[ConsultaCNPJ] Consultando ${cnpjLimpo} (3 APIs em paralelo)...`);
+
+  // Dispara todas as APIs em paralelo
+  const tentativas = [
+    fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000) })
+      .then(async res => {
+        if (!res.ok) throw new Error(`BrasilAPI status ${res.status}`);
+        const data = await res.json();
+        console.log(`[ConsultaCNPJ] BrasilAPI OK para ${cnpjLimpo}`);
+        return parseBrasilAPI(data);
+      }),
+    fetch(`https://receitaws.com.br/v1/cnpj/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000), headers: { 'Accept': 'application/json' } })
+      .then(async res => {
+        if (!res.ok) throw new Error(`ReceitaWS status ${res.status}`);
+        const data = await res.json();
+        if (data.status === 'ERROR') throw new Error(`ReceitaWS ERROR: ${data.message}`);
+        console.log(`[ConsultaCNPJ] ReceitaWS OK para ${cnpjLimpo}`);
         return parseReceitaWS(data);
-      }
-    }
-  } catch (e) {
-    console.log('ReceitaWS falhou para', cnpjLimpo, e);
-  }
+      }),
+    fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`, { signal: AbortSignal.timeout(12000) })
+      .then(async res => {
+        if (!res.ok) throw new Error(`CNPJ.ws status ${res.status}`);
+        const data = await res.json();
+        console.log(`[ConsultaCNPJ] CNPJ.ws OK para ${cnpjLimpo}`);
+        return parseCnpjWs(data);
+      }),
+  ];
 
-  // 3) Fallback: publica.cnpj.ws
+  // Promise.any retorna o primeiro sucesso (ignora rejeições até todas falharem)
   try {
-    const res = await fetch(`https://publica.cnpj.ws/cnpj/${cnpjLimpo}`, {
-      signal: AbortSignal.timeout(10000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return parseCnpjWs(data);
-    }
+    return await Promise.any(tentativas);
   } catch (e) {
-    console.log('CNPJ.ws falhou para', cnpjLimpo, e);
+    // AggregateError = todas falharam
+    const erros = e instanceof AggregateError ? e.errors.map((err: Error) => err.message) : [String(e)];
+    console.log(`[ConsultaCNPJ] TODAS falharam para ${cnpjLimpo}:`, erros);
+    return null;
   }
-
-  return null;
 }
 
 // Limpa nome da empresa para busca
