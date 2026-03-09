@@ -907,6 +907,7 @@ export default function ComercialPage() {
                     {dadosResumo.dados_novos > 0 && <span className="text-blue-600 font-medium">{dadosResumo.dados_novos} com dados novos</span>}
                     {dadosResumo.atualizados > 0 && <span className="text-green-600 font-medium">{dadosResumo.atualizados} atualizados</span>}
                     {dadosResumo.completos > 0 && <span className="text-gray-400">{dadosResumo.completos} completos</span>}
+                    {dadosResumo.sem_cnpj > 0 && <span className="text-amber-600">{dadosResumo.sem_cnpj} sem CNPJ</span>}
                     {dadosResumo.erros > 0 && <span className="text-red-600">{dadosResumo.erros} erros</span>}
                   </div>
                 )}

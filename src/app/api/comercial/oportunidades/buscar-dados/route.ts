@@ -74,21 +74,62 @@ async function consultarCNPJ(cnpj: string): Promise<ReceitaData | null> {
   return null;
 }
 
-// Busca CNPJ pelo nome da empresa via CasaDosDados
+// Limpa nome da empresa para busca
+function limparNomeEmpresa(nome: string): string {
+  return nome
+    // Remover sufixos jurídicos comuns
+    .replace(/\s*(ltda\.?|me\.?|epp\.?|eireli\.?|s\.?\/?a\.?|empresa individual|ss|e importa[cç][aã]o|e exporta[cç][aã]o|com[ée]rcio|ind[uú]stria|comercial|industrial)\s*/gi, ' ')
+    .replace(/[.\-\/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Busca CNPJ pelo nome da empresa (múltiplas estratégias)
 async function buscarCNPJPorNome(nome: string, cidade?: string, estado?: string): Promise<ReceitaData | null> {
   if (!nome || nome.length < 3) return null;
 
-  // Limpar nome - remover sufixos comuns, pontuação etc.
-  const nomeLimpo = nome
-    .replace(/\s*(ltda|me|epp|eireli|s\.?a\.?|s\/a|empresa individual|ss)\s*\.?\s*$/i, '')
-    .replace(/[.-]/g, ' ')
-    .trim();
+  const nomeLimpo = limparNomeEmpresa(nome);
+  console.log(`[BuscarCNPJ] Nome original: "${nome}" -> Limpo: "${nomeLimpo}" | Cidade: ${cidade || '-'} | Estado: ${estado || '-'}`);
 
+  // Estratégia 1: CasaDosDados (busca por nome completo + filtros)
+  let resultado = await buscarViaCasaDosDados(nomeLimpo, cidade, estado);
+  if (resultado) return resultado;
+
+  // Estratégia 2: CasaDosDados sem filtro de cidade (às vezes a cidade está diferente)
+  if (cidade) {
+    resultado = await buscarViaCasaDosDados(nomeLimpo, undefined, estado);
+    if (resultado) return resultado;
+  }
+
+  // Estratégia 3: Usar apenas as primeiras palavras significativas do nome
+  const palavras = nomeLimpo.split(' ').filter(p => p.length > 2);
+  if (palavras.length > 2) {
+    const nomeReduzido = palavras.slice(0, 2).join(' ');
+    console.log(`[BuscarCNPJ] Tentando nome reduzido: "${nomeReduzido}"`);
+    resultado = await buscarViaCasaDosDados(nomeReduzido, cidade, estado);
+    if (resultado) return resultado;
+
+    // Sem cidade
+    if (cidade) {
+      resultado = await buscarViaCasaDosDados(nomeReduzido, undefined, estado);
+      if (resultado) return resultado;
+    }
+  }
+
+  // Estratégia 4: CNPJA Open API (busca por razão social)
+  resultado = await buscarViaCNPJA(nomeLimpo, estado);
+  if (resultado) return resultado;
+
+  console.log(`[BuscarCNPJ] Nenhuma API encontrou CNPJ para "${nome}"`);
+  return null;
+}
+
+// Busca via CasaDosDados API
+async function buscarViaCasaDosDados(nome: string, cidade?: string, estado?: string): Promise<ReceitaData | null> {
   try {
-    // CasaDosDados API - busca por nome
     const body: any = {
       query: {
-        termo: [nomeLimpo],
+        termo: [nome],
         situacao_cadastral: 'ATIVA',
       },
       range_query: {},
@@ -96,47 +137,72 @@ async function buscarCNPJPorNome(nome: string, cidade?: string, estado?: string)
       page: 1,
     };
 
-    // Add city/state filters if available
-    if (estado) {
-      body.query.uf = [estado.toUpperCase()];
-    }
-    if (cidade) {
-      body.query.municipio = [cidade.toUpperCase()];
-    }
+    if (estado) body.query.uf = [estado.toUpperCase()];
+    if (cidade) body.query.municipio = [cidade.toUpperCase()];
 
     const res = await fetch('https://api.casadosdados.com.br/v2/cnpj', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) {
-      console.log('CasaDosDados respondeu:', res.status);
+      console.log(`[CasaDosDados] Status ${res.status} para "${nome}"`);
       return null;
     }
 
     const data = await res.json();
     const resultados = data?.data?.cnpj;
+    if (!resultados || resultados.length === 0) {
+      console.log(`[CasaDosDados] Sem resultados para "${nome}"`);
+      return null;
+    }
 
-    if (!resultados || resultados.length === 0) return null;
-
-    // Pegar o primeiro resultado (mais relevante)
-    const primeiro = resultados[0];
-    const cnpjEncontrado = primeiro.cnpj?.replace(/\D/g, '');
-
+    // Pegar o primeiro resultado
+    const cnpjEncontrado = resultados[0].cnpj?.replace(/\D/g, '');
     if (!cnpjEncontrado) return null;
 
-    // Agora consultar os dados completos via BrasilAPI
+    console.log(`[CasaDosDados] Encontrou CNPJ ${cnpjEncontrado} para "${nome}" (${resultados.length} resultados)`);
+
     const dadosCompletos = await consultarCNPJ(cnpjEncontrado);
-    if (dadosCompletos) {
-      dadosCompletos.cnpj = cnpjEncontrado;
-    }
+    if (dadosCompletos) dadosCompletos.cnpj = cnpjEncontrado;
     return dadosCompletos;
   } catch (e) {
-    console.log('Erro ao buscar CNPJ por nome:', nomeLimpo, e);
+    console.log(`[CasaDosDados] Erro para "${nome}":`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
 
-    // Fallback: tentar BrasilAPI com busca direta (não suportado, mas tenta receitaws)
+// Busca via CNPJA Open API (alternativa gratuita)
+async function buscarViaCNPJA(nome: string, estado?: string): Promise<ReceitaData | null> {
+  try {
+    // CNPJA Open permite busca por razão social via query string
+    const params = new URLSearchParams({ razao_social: nome });
+    if (estado) params.set('estado', estado.toUpperCase());
+
+    const res = await fetch(`https://open.cnpja.com/office/${encodeURIComponent(nome)}`, {
+      signal: AbortSignal.timeout(10000),
+      headers: { 'Accept': 'application/json' },
+    });
+
+    if (!res.ok) {
+      console.log(`[CNPJA] Status ${res.status} para "${nome}"`);
+      return null;
+    }
+
+    const data = await res.json();
+    if (!data?.taxId) return null;
+
+    const cnpjEncontrado = String(data.taxId).replace(/\D/g, '');
+    console.log(`[CNPJA] Encontrou CNPJ ${cnpjEncontrado} para "${nome}"`);
+
+    // Buscar dados completos
+    const dadosCompletos = await consultarCNPJ(cnpjEncontrado);
+    if (dadosCompletos) dadosCompletos.cnpj = cnpjEncontrado;
+    return dadosCompletos;
+  } catch (e) {
+    console.log(`[CNPJA] Erro para "${nome}":`, e instanceof Error ? e.message : e);
     return null;
   }
 }
@@ -316,14 +382,17 @@ export async function POST(request: NextRequest) {
       if (!receita) {
         erros++;
         for (const r of info.rows) {
+          const semCNPJ = !info.cnpj;
           resultados.push({
             oportunidade_id: r.oportunidade_id,
             numero_proposta: r.numero_proposta,
             cliente_nome: r.cliente_nome,
             cliente_cnpj: r.cliente_cnpj,
             cliente_id: clienteId,
-            status: 'erro',
-            mensagem: info.cnpj ? 'Não foi possível consultar CNPJ' : 'CNPJ não encontrado pelo nome',
+            status: semCNPJ ? 'sem_cnpj' : 'erro',
+            mensagem: semCNPJ
+              ? `Sem CNPJ - não encontrado pelo nome "${limparNomeEmpresa(info.nome)}"${info.cidade ? ` em ${info.cidade}` : ''}`
+              : 'Não foi possível consultar CNPJ',
             dados_atuais: {
               telefone: r.cliente_telefone,
               email: r.cliente_email,
@@ -472,7 +541,8 @@ export async function POST(request: NextRequest) {
         cnpjs_descobertos: cnpjsDescobertos,
         dados_novos: resultados.filter(r => r.status === 'dados_novos').length,
         completos: resultados.filter(r => r.status === 'completo').length,
-        erros,
+        sem_cnpj: resultados.filter(r => r.status === 'sem_cnpj').length,
+        erros: resultados.filter(r => r.status === 'erro').length,
       },
     });
   } catch (error: any) {
