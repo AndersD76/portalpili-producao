@@ -468,8 +468,8 @@ export async function POST(request: NextRequest) {
             },
           });
         }
-        // Delay between calls
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Delay entre consultas para evitar rate limit (429)
+        await new Promise(resolve => setTimeout(resolve, 2000));
         continue;
       }
 
@@ -582,8 +582,8 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Delay between API calls
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Delay entre consultas para evitar rate limit (429)
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     // Add proposals without client_id
