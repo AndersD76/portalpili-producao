@@ -76,17 +76,17 @@ export async function POST(request: Request) {
 
     const dados = {
       total_ncs: parseInt(totalResult.rows[0]?.total || '0'),
-      ncs_por_tipo: tiposResult.rows.map(r => ({
+      ncs_por_tipo: tiposResult.rows.map((r: Record<string, string>) => ({
         tipo: r.tipo,
         quantidade: parseInt(r.quantidade)
       })),
-      ncs_por_gravidade: gravidadeResult.rows.map(r => ({
+      ncs_por_gravidade: gravidadeResult.rows.map((r: Record<string, string>) => ({
         gravidade: r.gravidade,
         quantidade: parseInt(r.quantidade)
       })),
       tempo_medio_resolucao: Math.round(parseFloat(tempoResult.rows[0]?.tempo_medio || '0')),
       taxa_reincidencia: Math.round(parseFloat(reincidenciaResult.rows[0]?.taxa || '0')),
-      principais_setores: setoresResult.rows.map(r => ({
+      principais_setores: setoresResult.rows.map((r: Record<string, string>) => ({
         setor: r.setor,
         quantidade: parseInt(r.quantidade)
       })),

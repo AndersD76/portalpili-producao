@@ -44,7 +44,7 @@ export async function GET() {
         publicKey: vapidPublic ? `${vapidPublic.substring(0, 20)}...` : 'NÃO CONFIGURADA',
         privateKey: vapidPrivate ? 'CONFIGURADA' : 'NÃO CONFIGURADA'
       },
-      subscriptions: result.rows.map(row => ({
+      subscriptions: result.rows.map((row: Record<string, string>) => ({
         id: row.id,
         endpoint: row.endpoint?.substring(0, 50) + '...',
         user: row.user_nome || row.user_id,

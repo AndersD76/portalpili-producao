@@ -200,7 +200,7 @@ export async function POST(request: Request) {
       SELECT column_name FROM information_schema.columns
       WHERE table_name = 'usuarios' AND column_name IN ('cargo', 'departamento', 'perfil_id', 'is_admin', 'ativo', 'id_funcionario', 'senha_hash')
     `);
-    const existingCols = new Set(colsCheck?.rows?.map(r => r.column_name) || []);
+    const existingCols = new Set(colsCheck?.rows?.map((r: Record<string, unknown>) => String(r.column_name)) || []);
 
     // Monta query dinamicamente baseada nas colunas existentes
     const fields = ['nome', 'email', 'password', 'telefone', 'role', 'active'];

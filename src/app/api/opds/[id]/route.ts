@@ -349,7 +349,7 @@ export async function DELETE(
       'SELECT id FROM registros_atividades WHERE numero_opd = $1',
       [numeroOpd]
     );
-    const atividadeIds = atividadesResult.rows.map(r => r.id);
+    const atividadeIds = atividadesResult.rows.map((r: Record<string, unknown>) => r.id);
 
     // 2. Deletar formulários preenchidos das atividades (se existirem)
     if (atividadeIds.length > 0) {

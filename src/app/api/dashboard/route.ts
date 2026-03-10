@@ -125,12 +125,12 @@ export async function GET(request: NextRequest) {
     // Buscar lista de OPDs para filtro
     const opdsQuery = `SELECT DISTINCT numero FROM opds ORDER BY numero DESC LIMIT 100`;
     const opdsResult = await pool.query(opdsQuery);
-    const opds = opdsResult.rows.map(r => r.numero);
+    const opds = opdsResult.rows.map((r: Record<string, unknown>) => r.numero);
 
     // Buscar lista de atividades únicas para filtro
     const atividadesQuery = `SELECT DISTINCT atividade FROM registros_atividades ORDER BY atividade`;
     const atividadesResult = await pool.query(atividadesQuery);
-    const atividades = atividadesResult.rows.map(r => r.atividade);
+    const atividades = atividadesResult.rows.map((r: Record<string, unknown>) => r.atividade);
 
     return NextResponse.json({
       success: true,
