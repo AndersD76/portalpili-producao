@@ -128,7 +128,7 @@ export default function NovaDespesaPage() {
     clienteDebounceRef.current = setTimeout(async () => {
       setSearchingClientes(true);
       try {
-        const res = await fetch(`/api/comercial/clientes?search=${encodeURIComponent(term)}&limit=8`);
+        const res = await fetch(`/api/servicos/buscar-clientes?search=${encodeURIComponent(term)}&limit=8`);
         const data = await res.json();
         if (data.success) {
           setClienteResults(data.data || []);
@@ -241,15 +241,16 @@ export default function NovaDespesaPage() {
   };
 
   const selectCliente = (c: ClienteResult) => {
+    const nome = c.nome_fantasia || c.razao_social;
+    const cidadeUf = c.municipio ? (c.estado ? `${c.municipio} - ${c.estado}` : c.municipio) : '';
+    const displayName = cidadeUf ? `${nome} - ${cidadeUf}` : nome;
+
     setClienteAtendidoId(c.id);
-    setClienteAtendidoNome(c.nome_fantasia || c.razao_social);
-    setClienteAtendidoSearch(c.nome_fantasia || c.razao_social);
+    setClienteAtendidoNome(nome);
+    setClienteAtendidoSearch(displayName);
+    setClienteAtendidoCidade(cidadeUf);
     // Preencher localidade com cidade/estado do cliente
-    if (c.municipio) {
-      const loc = c.estado ? `${c.municipio} - ${c.estado}` : c.municipio;
-      setClienteAtendidoCidade(loc);
-      if (!location) setLocation(loc);
-    }
+    if (cidadeUf && !location) setLocation(cidadeUf);
     setShowClienteDropdown(false);
   };
 
@@ -289,23 +290,41 @@ export default function NovaDespesaPage() {
       // Upload receipt image first
       let receiptImageUrl: string | null = null;
       if (imageBase64) {
-        const blob = await fetch(imageBase64).then(r => r.blob());
-        const formData = new FormData();
-        formData.append('file', blob, `comprovante_${Date.now()}.jpg`);
-        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-        const uploadData = await uploadRes.json();
-        if (uploadData.success) {
-          receiptImageUrl = uploadData.url;
+        try {
+          // Convert base64 data URI to blob
+          const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+          const mimeMatch = imageBase64.match(/data:([^;]+);/);
+          const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+          const byteChars = atob(base64Data);
+          const byteArray = new Uint8Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) {
+            byteArray[i] = byteChars.charCodeAt(i);
+          }
+          const blob = new Blob([byteArray], { type: mime });
+          const formData = new FormData();
+          formData.append('file', blob, `comprovante_${Date.now()}.jpg`);
+          const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+          const uploadData = await uploadRes.json();
+          if (uploadData.success) {
+            receiptImageUrl = uploadData.url;
+          }
+        } catch (uploadErr) {
+          console.error('Erro no upload da imagem:', uploadErr);
+          // Continua sem imagem
         }
       }
+
+      // Usar cliente atendido ou nome do estabelecimento
+      const finalClientName = clienteAtendidoNome || clienteAtendidoSearch || clientName || null;
+      const finalLocation = location || clienteAtendidoCidade || null;
 
       const payload = {
         receipt_image_url: receiptImageUrl,
         ai_raw_response: aiRaw,
         ai_confidence: confiancas,
         technician_name: user?.nome || 'Desconhecido',
-        client_name: clientName || clienteAtendidoNome || null,
-        location: location || clienteAtendidoCidade || null,
+        client_name: finalClientName,
+        location: finalLocation,
         category,
         expense_date: expenseDate || null,
         vehicle_id: vehicleId || null,
@@ -792,23 +811,22 @@ export default function NovaDespesaPage() {
             {/* Dropdown de resultados */}
             {showClienteDropdown && clienteResults.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
-                {clienteResults.map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => selectCliente(c)}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 text-sm"
-                  >
-                    <div className="font-medium text-gray-900 truncate">
-                      {c.nome_fantasia || c.razao_social}
-                    </div>
-                    {c.municipio && (
-                      <div className="text-xs text-gray-500">
-                        {c.municipio}{c.estado ? ` - ${c.estado}` : ''}
+                {clienteResults.map(c => {
+                  const nome = c.nome_fantasia || c.razao_social;
+                  const cidadeUf = c.municipio ? (c.estado ? `${c.municipio} - ${c.estado}` : c.municipio) : '';
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => selectCliente(c)}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 text-sm"
+                    >
+                      <div className="font-medium text-gray-900 truncate">
+                        {nome}{cidadeUf ? ` - ${cidadeUf}` : ''}
                       </div>
-                    )}
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
             {showClienteDropdown && clienteResults.length === 0 && clienteAtendidoSearch.length >= 2 && !searchingClientes && (
