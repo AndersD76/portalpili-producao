@@ -3,7 +3,7 @@ export const CATEGORIES = [
   'Janta',
   'Café',
   'Lanche',
-  'Hospedagem',
+  'Pernoite',
   'Combustível',
   'Estacionamento',
   'Pedágio',
@@ -34,20 +34,11 @@ export const FUEL_TYPES = [
   'GNV',
 ] as const;
 
+// Apenas categorias com limite definido. Demais não têm limite.
 export const EXPENSE_LIMITS: Record<string, number> = {
-  'Almoço': 50,
-  'Janta': 70,
-  'Refeição': 50,
-  'Café': 25,
-  'Lanche': 30,
-  'Hospedagem': 250,
-  'Combustível': 300,
-  'Estacionamento': 50,
-  'Pedágio': 100,
-  'Transporte': 150,
-  'Peças': 200,
-  'Material': 200,
-  'Outros': 100,
+  'Almoço': 45,
+  'Janta': 45,
+  'Pernoite': 140,
 };
 
 export const MANAGERS_CONFIG: Record<string, string> = {

@@ -9,7 +9,7 @@ Responda APENAS com JSON válido, sem texto adicional:
   "valor_total": 0.00,
   "data": "DD/MM/AAAA",
   "hora": "HH:MM",
-  "categoria_sugerida": "Almoço|Janta|Hospedagem|Combustível|Transporte|Peças|Outros",
+  "categoria_sugerida": "Almoço|Janta|Café|Lanche|Pernoite|Combustível|Estacionamento|Pedágio|Transporte|Peças|Material|Outros",
   "forma_pagamento": "Com dinheiro|Com cartão pessoal|Com cartão corporativo|null",
   "numero_nf": "número da NF/cupom fiscal ou null",
   "cidade": "cidade identificada ou null",
@@ -29,11 +29,16 @@ Responda APENAS com JSON válido, sem texto adicional:
 
 REGRAS DE CATEGORIZAÇÃO:
 - Restaurante, lanchonete, pizzaria, padaria, bar com comida → "Almoço" ou "Janta" (pela hora se visível)
+- Café, cafeteria, padaria (café) → "Café"
+- Lanche, salgado, fast food → "Lanche"
 - Posto de gasolina, combustível, Shell, Ipiranga, BR → "Combustível"
-- Hotel, pousada, motel, Airbnb → "Hospedagem"
+- Hotel, pousada, motel, Airbnb → "Pernoite"
 - Uber, 99, táxi, passagem ônibus/avião → "Transporte"
-- Loja de peças, ferragem, material → "Peças"
-- Estacionamento, pedágio, farmácia, outros → "Outros"
+- Estacionamento → "Estacionamento"
+- Pedágio → "Pedágio"
+- Loja de peças, ferragem → "Peças"
+- Material, loja de materiais → "Material"
+- Farmácia, outros → "Outros"
 
 Se a forma de pagamento não for visível, retorne null.
 Se o número da NF não for visível, retorne null.

@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { CATEGORIES, PAYMENT_METHODS, SERVICE_TYPES, FUEL_TYPES } from '@/lib/servicos/constants';
+import { useAuth } from '@/contexts/AuthContext';
+import { CATEGORIES, PAYMENT_METHODS, SERVICE_TYPES, FUEL_TYPES, EXPENSE_LIMITS } from '@/lib/servicos/constants';
 import { ConfidenceLevel } from '@/lib/servicos/types';
 
-interface Technician { id: number; name: string }
 interface Vehicle { id: number; plate: string; model: string; description: string }
+interface ClienteResult {
+  id: number;
+  razao_social: string;
+  nome_fantasia?: string;
+  municipio?: string;
+  estado?: string;
+}
 
 type PageStatus = 'capture' | 'analyzing' | 'review' | 'submitting' | 'success';
 
@@ -40,12 +47,12 @@ function fieldBorderClass(level?: ConfidenceLevel | null): string {
 }
 
 export default function NovaDespesaPage() {
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<PageStatus>('capture');
   const [analyzeMsg, setAnalyzeMsg] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imageMime, setImageMime] = useState<string>('image/jpeg');
   const [aiRaw, setAiRaw] = useState<unknown>(null);
   const [createdId, setCreatedId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,10 +65,8 @@ export default function NovaDespesaPage() {
   const [location, setLocation] = useState('');
   const [nfNumber, setNfNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [technicianName, setTechnicianName] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [serviceTypeCustom, setServiceTypeCustom] = useState('');
-  const [clientAtendido, setClientAtendido] = useState('');
   const [osvNumber, setOsvNumber] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [vehicleKm, setVehicleKm] = useState('');
@@ -71,11 +76,20 @@ export default function NovaDespesaPage() {
   const [itemDescription, setItemDescription] = useState('');
   const [notes, setNotes] = useState('');
 
+  // Cliente atendido - autocomplete from system clients
+  const [clienteAtendidoSearch, setClienteAtendidoSearch] = useState('');
+  const [clienteAtendidoId, setClienteAtendidoId] = useState<number | null>(null);
+  const [clienteAtendidoNome, setClienteAtendidoNome] = useState('');
+  const [clienteAtendidoCidade, setClienteAtendidoCidade] = useState('');
+  const [clienteResults, setClienteResults] = useState<ClienteResult[]>([]);
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const [searchingClientes, setSearchingClientes] = useState(false);
+  const clienteDebounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
   // Confidence levels from AI
   const [confiancas, setConfiancas] = useState<Record<string, ConfidenceLevel>>({});
 
   // Lookups
-  const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   // Auth code validation
@@ -88,7 +102,6 @@ export default function NovaDespesaPage() {
       .then(r => r.json())
       .then(res => {
         if (res.success) {
-          setTechnicians(res.data.technicians || []);
           setVehicles(res.data.vehicles || []);
         }
       })
@@ -103,6 +116,31 @@ export default function NovaDespesaPage() {
     }, 1200);
     return () => clearInterval(interval);
   }, [status]);
+
+  // Client search with debounce
+  const searchClientes = useCallback((term: string) => {
+    if (clienteDebounceRef.current) clearTimeout(clienteDebounceRef.current);
+    if (term.length < 2) {
+      setClienteResults([]);
+      setShowClienteDropdown(false);
+      return;
+    }
+    clienteDebounceRef.current = setTimeout(async () => {
+      setSearchingClientes(true);
+      try {
+        const res = await fetch(`/api/comercial/clientes?search=${encodeURIComponent(term)}&limit=8`);
+        const data = await res.json();
+        if (data.success) {
+          setClienteResults(data.data || []);
+          setShowClienteDropdown(true);
+        }
+      } catch {
+        setClienteResults([]);
+      } finally {
+        setSearchingClientes(false);
+      }
+    }, 300);
+  }, []);
 
   // Auth code validation with debounce
   useEffect(() => {
@@ -140,9 +178,7 @@ export default function NovaDespesaPage() {
     setStatus('analyzing');
     setAnalyzeMsg(0);
 
-    // Create local preview
     setPreviewUrl(URL.createObjectURL(file));
-    setImageMime(file.type || 'image/jpeg');
 
     try {
       const base64 = await fileToBase64(file);
@@ -158,19 +194,21 @@ export default function NovaDespesaPage() {
 
       if (!result.success) {
         setError(result.error || 'Não foi possível analisar o comprovante');
-        setStatus('review'); // Let user fill manually
+        setStatus('review');
         return;
       }
 
       const dados = result.dados;
       setAiRaw(result.ai_raw);
 
-      // Populate form with AI data
       if (dados.cliente_nome) setClientName(dados.cliente_nome);
       if (dados.valor) setAmount(String(dados.valor));
-      if (dados.categoria) setCategory(dados.categoria);
+      if (dados.categoria) {
+        // Map Hospedagem -> Pernoite
+        const cat = dados.categoria === 'Hospedagem' ? 'Pernoite' : dados.categoria;
+        setCategory(cat);
+      }
       if (dados.data) {
-        // Convert DD/MM/AAAA to YYYY-MM-DD for date input
         const parts = dados.data.split('/');
         if (parts.length === 3) {
           setExpenseDate(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
@@ -202,14 +240,38 @@ export default function NovaDespesaPage() {
     if (file && file.type.startsWith('image/')) handleImageCapture(file);
   };
 
+  const selectCliente = (c: ClienteResult) => {
+    setClienteAtendidoId(c.id);
+    setClienteAtendidoNome(c.nome_fantasia || c.razao_social);
+    setClienteAtendidoSearch(c.nome_fantasia || c.razao_social);
+    // Preencher localidade com cidade/estado do cliente
+    if (c.municipio) {
+      const loc = c.estado ? `${c.municipio} - ${c.estado}` : c.municipio;
+      setClienteAtendidoCidade(loc);
+      if (!location) setLocation(loc);
+    }
+    setShowClienteDropdown(false);
+  };
+
   const handleSubmit = async () => {
     setError(null);
 
     // Validate required fields
-    if (!technicianName) { setError('Selecione o técnico'); return; }
     if (!category) { setError('Selecione a categoria'); return; }
     if (!amount || parseFloat(amount) <= 0) { setError('Informe o valor'); return; }
     if (!expenseDate) { setError('Informe a data'); return; }
+
+    // Check expense limits
+    const limite = EXPENSE_LIMITS[category];
+    if (limite && parseFloat(amount) > limite) {
+      setError(`Valor R$${amount} excede o limite de R$${limite} para ${category}`);
+      return;
+    }
+
+    // OSV obrigatório apenas para Assistência e Montagem
+    if (['Assistência', 'Montagem'].includes(serviceType) && !osvNumber) {
+      setError('Informe o número da OSV'); return;
+    }
 
     // Category-specific validation
     if (category === 'Combustível') {
@@ -219,9 +281,6 @@ export default function NovaDespesaPage() {
     if (['Peças', 'Outros'].includes(category)) {
       if (!authCode || authCode.length !== 8) { setError('Informe o código de autorização (8 caracteres)'); return; }
       if (!itemDescription) { setError('Descreva o item/serviço'); return; }
-    }
-    if (['Assistência', 'Montagem'].includes(serviceType)) {
-      if (!osvNumber) { setError('Informe o número da OSV'); return; }
     }
 
     setStatus('submitting');
@@ -244,9 +303,9 @@ export default function NovaDespesaPage() {
         receipt_image_url: receiptImageUrl,
         ai_raw_response: aiRaw,
         ai_confidence: confiancas,
-        technician_name: technicianName,
-        client_name: clientName || clientAtendido || null,
-        location: location || null,
+        technician_name: user?.nome || 'Desconhecido',
+        client_name: clientName || clienteAtendidoNome || null,
+        location: location || clienteAtendidoCidade || null,
         category,
         expense_date: expenseDate || null,
         vehicle_id: vehicleId || null,
@@ -301,7 +360,11 @@ export default function NovaDespesaPage() {
     setPaymentMethod('');
     setServiceType('');
     setServiceTypeCustom('');
-    setClientAtendido('');
+    setClienteAtendidoSearch('');
+    setClienteAtendidoId(null);
+    setClienteAtendidoNome('');
+    setClienteAtendidoCidade('');
+    setClienteResults([]);
     setOsvNumber('');
     setVehicleId('');
     setVehicleKm('');
@@ -320,7 +383,6 @@ export default function NovaDespesaPage() {
 
   const showVehicleSection = category === 'Combustível';
   const showAuthSection = ['Peças', 'Outros'].includes(category);
-  const showOsvField = ['Assistência', 'Montagem'].includes(serviceType);
 
   // ==================== RENDER ====================
 
@@ -479,7 +541,10 @@ export default function NovaDespesaPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="font-bold text-lg">Nova Despesa</h1>
+        <div>
+          <h1 className="font-bold text-lg">Nova Despesa</h1>
+          <p className="text-red-200 text-xs">{user?.nome || 'Carregando...'}</p>
+        </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
@@ -545,6 +610,11 @@ export default function NovaDespesaPage() {
               placeholder="0,00"
               className={`w-full px-3 py-2.5 rounded-lg border text-sm ${fieldBorderClass(confiancas.valor_total)}`}
             />
+            {category && EXPENSE_LIMITS[category] && (
+              <p className="text-xs text-gray-400 mt-1">
+                Limite: R${EXPENSE_LIMITS[category]} para {category}
+              </p>
+            )}
           </div>
 
           {/* Categoria */}
@@ -634,21 +704,6 @@ export default function NovaDespesaPage() {
             Dados do Serviço
           </h3>
 
-          {/* Técnico */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Técnico *</label>
-            <select
-              value={technicianName}
-              onChange={e => setTechnicianName(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm"
-            >
-              <option value="">Selecione o técnico...</option>
-              {technicians.map(t => (
-                <option key={t.id} value={t.name}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Tipo de Serviço */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">Tipo de Serviço</label>
@@ -685,23 +740,11 @@ export default function NovaDespesaPage() {
             )}
           </div>
 
-          {/* Cliente Atendido */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Cliente Atendido</label>
-            <input
-              type="text"
-              value={clientAtendido}
-              onChange={e => setClientAtendido(e.target.value)}
-              placeholder="Nome do cliente"
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm"
-            />
-          </div>
-
-          {/* OSV */}
-          {showOsvField && (
+          {/* Número da OSV */}
+          {serviceType && (
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Número da OSV *
+                Número da OSV {['Assistência', 'Montagem'].includes(serviceType) ? '*' : ''}
               </label>
               <input
                 type="text"
@@ -712,6 +755,70 @@ export default function NovaDespesaPage() {
               />
             </div>
           )}
+
+          {/* Cliente Atendido - Autocomplete */}
+          <div className="relative">
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Cliente Atendido</label>
+            <input
+              type="text"
+              value={clienteAtendidoSearch}
+              onChange={e => {
+                const val = e.target.value;
+                setClienteAtendidoSearch(val);
+                setClienteAtendidoId(null);
+                setClienteAtendidoNome('');
+                setClienteAtendidoCidade('');
+                searchClientes(val);
+              }}
+              onFocus={() => {
+                if (clienteResults.length > 0) setShowClienteDropdown(true);
+              }}
+              placeholder="Buscar cliente do sistema..."
+              className={`w-full px-3 py-2.5 rounded-lg border text-sm ${
+                clienteAtendidoId ? 'border-green-400 bg-green-50' : 'border-gray-300'
+              }`}
+            />
+            {searchingClientes && (
+              <div className="absolute right-3 top-9">
+                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {clienteAtendidoId && clienteAtendidoCidade && (
+              <p className="text-xs text-green-600 mt-1">
+                {clienteAtendidoCidade}
+              </p>
+            )}
+
+            {/* Dropdown de resultados */}
+            {showClienteDropdown && clienteResults.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
+                {clienteResults.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => selectCliente(c)}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 text-sm"
+                  >
+                    <div className="font-medium text-gray-900 truncate">
+                      {c.nome_fantasia || c.razao_social}
+                    </div>
+                    {c.municipio && (
+                      <div className="text-xs text-gray-500">
+                        {c.municipio}{c.estado ? ` - ${c.estado}` : ''}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            {showClienteDropdown && clienteResults.length === 0 && clienteAtendidoSearch.length >= 2 && !searchingClientes && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-20 p-3 text-center text-sm text-gray-500">
+                Nenhum cliente encontrado.
+                <br />
+                <span className="text-xs text-gray-400">O nome digitado será usado como novo registro.</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* === Vehicle Section (Combustível only) === */}
