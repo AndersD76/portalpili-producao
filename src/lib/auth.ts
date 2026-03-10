@@ -264,6 +264,11 @@ export const rotaParaModulo: Record<string, string> = {
   'vendedores': 'COMERCIAL',
   'precos': 'COMERCIAL',
 
+  // Serviços
+  'servicos': 'SERVICOS',
+  'despesas': 'SERVICOS',
+  'autorizacoes': 'SERVICOS',
+
   // Admin
   'admin': 'ADMIN',
   'usuarios': 'ADMIN',
