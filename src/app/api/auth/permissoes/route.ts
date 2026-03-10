@@ -82,12 +82,12 @@ export async function GET(request: Request) {
     }
 
     const permPersonalizadasMap = new Map();
-    permPersonalizadas?.rows?.forEach(p => {
+    permPersonalizadas?.rows?.forEach((p: any) => {
       permPersonalizadasMap.set(p.modulo_id, p);
     });
 
     // Construir permissões finais
-    const permissoes = modulosResult?.rows?.map(modulo => {
+    const permissoes = modulosResult?.rows?.map((modulo: any) => {
       const permPersonalizada = permPersonalizadasMap.get(modulo.id);
       const permPerfil = permissoesPadrao[modulo.codigo] || {};
 

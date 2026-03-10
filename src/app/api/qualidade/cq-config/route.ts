@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     `);
 
     // Formatar resultado
-    const setores = result.rows.map(row => ({
+    const setores = result.rows.map((row: any) => ({
       id: row.setor_id,
       codigo: row.setor_codigo,
       nome: row.setor_nome,

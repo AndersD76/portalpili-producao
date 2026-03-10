@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     const subscriptionsParaRemover: number[] = [];
 
     // Enviar para cada subscription
-    const promises = result.rows.map(async (sub) => {
+    const promises = result.rows.map(async (sub: any) => {
       const pushSubscription = {
         endpoint: sub.endpoint,
         keys: {

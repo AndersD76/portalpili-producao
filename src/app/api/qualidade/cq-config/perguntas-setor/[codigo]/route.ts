@@ -61,7 +61,7 @@ export async function GET(
     }
 
     // Formatar perguntas
-    const perguntas = result.rows.map(row => ({
+    const perguntas = result.rows.map((row: any) => ({
       id: row.id,
       codigo: row.codigo,
       descricao: row.descricao,

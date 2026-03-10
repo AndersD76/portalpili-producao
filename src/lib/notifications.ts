@@ -68,7 +68,7 @@ export async function enviarNotificacaoPush(data: NotificationData): Promise<{ e
     const errosDetalhados: string[] = [];
 
     // Enviar para cada subscription
-    const promises = result.rows.map(async (sub) => {
+    const promises = result.rows.map(async (sub: any) => {
       const pushSubscription = {
         endpoint: sub.endpoint,
         keys: {

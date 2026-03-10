@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     if (countOnly === 'true') {
       return NextResponse.json({
         success: true,
-        count: result.rows.filter(ac => ac.status !== 'FECHADA').length
+        count: result.rows.filter((ac: any) => ac.status !== 'FECHADA').length
       });
     }
 
