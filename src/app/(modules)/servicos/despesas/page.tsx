@@ -92,7 +92,7 @@ export default function DespesasListPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-blue-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div className="bg-red-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Link href="/servicos" className="p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -100,8 +100,8 @@ export default function DespesasListPage() {
           <h1 className="font-bold text-lg">Despesas de Campo</h1>
         </div>
         <div className="flex gap-2">
-          <Link href="/servicos/despesas/validar" className="text-xs bg-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-500">Validar</Link>
-          <Link href="/servicos/despesas/relatorio" className="text-xs bg-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-500">Relatório</Link>
+          <Link href="/servicos/despesas/validar" className="text-xs bg-red-600 px-3 py-1.5 rounded-lg hover:bg-red-500">Validar</Link>
+          <Link href="/servicos/despesas/relatorio" className="text-xs bg-red-600 px-3 py-1.5 rounded-lg hover:bg-red-500">Relatório</Link>
         </div>
       </div>
 
@@ -137,7 +137,7 @@ export default function DespesasListPage() {
         <div className="max-w-6xl mx-auto mt-2 flex items-center justify-between text-xs text-gray-500">
           <span>{total} despesas encontradas — Total: {fmt(grandTotal)}</span>
           <button onClick={() => { setDateFrom(''); setDateTo(''); setTechnician(''); setCategory(''); setStatus(''); setClient(''); setOsv(''); setPage(1); }}
-            className="text-blue-600 hover:underline">Limpar filtros</button>
+            className="text-red-600 hover:underline">Limpar filtros</button>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ export default function DespesasListPage() {
                     <div className="flex items-center gap-2 mt-1 text-[10px]">
                       <span>{fmtDate(e.expense_date)}</span>
                       <span className="px-1.5 py-0.5 bg-gray-100 rounded">{e.category}</span>
-                      {e.osv_number && <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">{e.osv_number}</span>}
+                      {e.osv_number && <span className="px-1.5 py-0.5 bg-red-50 text-red-600 rounded">{e.osv_number}</span>}
                       <span className={`px-1.5 py-0.5 rounded ${
                         e.status === 'validado' ? 'bg-green-100 text-green-700' :
                         e.status === 'rejeitado' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'

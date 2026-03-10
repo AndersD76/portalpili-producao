@@ -51,7 +51,7 @@ export default function AutorizacoesAdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-blue-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div className="bg-red-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Link href="/servicos" className="p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -59,7 +59,7 @@ export default function AutorizacoesAdminPage() {
           <h1 className="font-bold text-lg">Autorizações</h1>
         </div>
         <Link href="/servicos/autorizacao" target="_blank"
-          className="text-xs bg-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-500">+ Solicitar</Link>
+          className="text-xs bg-red-600 px-3 py-1.5 rounded-lg hover:bg-red-500">+ Solicitar</Link>
       </div>
 
       {/* Filter tabs */}
@@ -67,7 +67,7 @@ export default function AutorizacoesAdminPage() {
         {['', 'Pendente', 'Aprovada', 'Reprovada'].map(s => (
           <button key={s} onClick={() => setFilterStatus(s)}
             className={`px-3 py-1 rounded-full text-sm whitespace-nowrap ${
-              filterStatus === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              filterStatus === s ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
             {s || 'Todas'}
           </button>
@@ -102,7 +102,7 @@ export default function AutorizacoesAdminPage() {
               {a.status === 'Pendente' && (
                 <div className="mt-3 pt-2 border-t">
                   <Link href={`/servicos/autorizacao/decisao/${a.id}`} target="_blank"
-                    className="text-xs text-blue-600 hover:underline">
+                    className="text-xs text-red-600 hover:underline">
                     Abrir página de decisão →
                   </Link>
                 </div>

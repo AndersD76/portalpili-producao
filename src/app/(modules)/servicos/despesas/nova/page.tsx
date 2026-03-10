@@ -340,7 +340,7 @@ export default function NovaDespesaPage() {
           <div className="flex gap-3">
             <button
               onClick={resetForm}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
             >
               Nova Despesa
             </button>
@@ -360,7 +360,7 @@ export default function NovaDespesaPage() {
   if (status === 'capture') {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="bg-blue-700 text-white px-4 py-4 flex items-center gap-3">
+        <div className="bg-red-700 text-white px-4 py-4 flex items-center gap-3">
           <Link href="/servicos" className="p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -371,13 +371,13 @@ export default function NovaDespesaPage() {
 
         <div className="max-w-lg mx-auto px-4 py-8">
           <div
-            className="bg-white rounded-2xl border-2 border-dashed border-blue-300 p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all"
+            className="bg-white rounded-2xl border-2 border-dashed border-red-300 p-8 text-center cursor-pointer hover:border-red-500 hover:bg-red-50/50 transition-all"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={e => e.preventDefault()}
             onDrop={handleDrop}
           >
             <div className="animate-pulse">
-              <svg className="w-16 h-16 mx-auto text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-16 h-16 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -387,7 +387,7 @@ export default function NovaDespesaPage() {
 
             <button
               type="button"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors mb-3"
+              className="bg-red-600 text-white px-6 py-3 rounded-lg font-bold text-lg hover:bg-red-700 transition-colors mb-3"
               onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
             >
               ABRIR CÂMERA
@@ -405,11 +405,11 @@ export default function NovaDespesaPage() {
             />
           </div>
 
-          <div className="mt-4 bg-blue-50 rounded-lg p-3 flex gap-2">
-            <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mt-4 bg-red-50 rounded-lg p-3 flex gap-2">
+            <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-red-700">
               Certifique-se que o valor e o nome do local estão visíveis na foto.
             </p>
           </div>
@@ -422,7 +422,7 @@ export default function NovaDespesaPage() {
   if (status === 'analyzing') {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="bg-blue-700 text-white px-4 py-4 flex items-center gap-3">
+        <div className="bg-red-700 text-white px-4 py-4 flex items-center gap-3">
           <button onClick={resetForm} className="p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -454,7 +454,7 @@ export default function NovaDespesaPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : i === analyzeMsg ? (
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <div className="w-5 h-5" />
                 )}
@@ -473,7 +473,7 @@ export default function NovaDespesaPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-blue-700 text-white px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
+      <div className="bg-red-700 text-white px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={resetForm} className="p-1">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -658,7 +658,7 @@ export default function NovaDespesaPage() {
                   key={s}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${
                     serviceType === s
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      ? 'border-red-500 bg-red-50 text-red-700'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -842,7 +842,7 @@ export default function NovaDespesaPage() {
             className={`w-full py-3.5 rounded-lg font-bold text-lg transition-colors ${
               status === 'submitting'
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+                : 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
             }`}
           >
             {status === 'submitting' ? (

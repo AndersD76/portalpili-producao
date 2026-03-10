@@ -76,7 +76,7 @@ export default function RelatorioPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header - hidden on print */}
-      <div className="bg-blue-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 print:hidden">
+      <div className="bg-red-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-10 print:hidden">
         <div className="flex items-center gap-3">
           <Link href="/servicos/despesas" className="p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -84,7 +84,7 @@ export default function RelatorioPage() {
           <h1 className="font-bold text-lg">Relatório de Despesas</h1>
         </div>
         {data && (
-          <button onClick={handlePrint} className="text-xs bg-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-500 flex items-center gap-1">
+          <button onClick={handlePrint} className="text-xs bg-red-600 px-3 py-1.5 rounded-lg hover:bg-red-500 flex items-center gap-1">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
             Imprimir
           </button>
@@ -102,7 +102,7 @@ export default function RelatorioPage() {
           </select>
           <input type="text" value={osv} onChange={e => setOsv(e.target.value)} className="px-2 py-1.5 border rounded text-sm" placeholder="OSV..." />
           <button onClick={generate} disabled={loading}
-            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            className="bg-red-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50">
             {loading ? 'Gerando...' : 'Gerar Relatório'}
           </button>
         </div>
@@ -125,7 +125,7 @@ export default function RelatorioPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             <div className="bg-white rounded-lg p-4 shadow-sm print:border">
               <div className="text-xs text-gray-500">Total Geral</div>
-              <div className="text-xl font-bold text-blue-700">{fmt(data.grandTotal)}</div>
+              <div className="text-xl font-bold text-red-700">{fmt(data.grandTotal)}</div>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm print:border">
               <div className="text-xs text-gray-500">Lançamentos</div>

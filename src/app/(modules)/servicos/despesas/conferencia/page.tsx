@@ -67,7 +67,7 @@ export default function ConferenciaPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-blue-700 text-white px-4 py-4 flex items-center gap-3 sticky top-0 z-10 print:hidden">
+      <div className="bg-red-700 text-white px-4 py-4 flex items-center gap-3 sticky top-0 z-10 print:hidden">
         <Link href="/servicos/despesas" className="p-1">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </Link>
@@ -89,7 +89,7 @@ export default function ConferenciaPage() {
                 className="w-full px-3 py-2 border rounded-lg text-sm font-mono resize-y"
               />
               <div className="mt-2">
-                <label className="text-xs text-blue-600 cursor-pointer hover:underline">
+                <label className="text-xs text-red-600 cursor-pointer hover:underline">
                   Ou carregar arquivo TXT/CSV
                   <input type="file" accept=".txt,.csv,.tsv" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -112,7 +112,7 @@ export default function ConferenciaPage() {
             <button
               onClick={handleConferir}
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analisando com IA...</>
@@ -130,7 +130,7 @@ export default function ConferenciaPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-white rounded-lg p-3 shadow-sm">
                 <div className="text-[10px] text-gray-500">Total Extrato</div>
-                <div className="font-bold text-blue-700">{fmt(data.totalStatement)}</div>
+                <div className="font-bold text-red-700">{fmt(data.totalStatement)}</div>
               </div>
               <div className="bg-white rounded-lg p-3 shadow-sm">
                 <div className="text-[10px] text-gray-500">Total Sistema</div>
@@ -209,7 +209,7 @@ export default function ConferenciaPage() {
                 Nova Conferência
               </button>
               <button onClick={() => window.print()}
-                className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
                 Imprimir Relatório
               </button>
             </div>

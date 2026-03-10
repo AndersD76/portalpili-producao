@@ -33,10 +33,17 @@ export default function ServicosPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-blue-700 text-white px-4 py-6">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-xl font-bold">Serviços</h1>
-          <p className="text-blue-200 text-sm mt-1">Gestão de Despesas de Campo</p>
+      <div className="bg-red-700 text-white px-4 py-6">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <Link href="/" className="p-1 hover:bg-red-600 rounded">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold">Serviços</h1>
+            <p className="text-red-200 text-sm mt-1">Gestão de Despesas de Campo</p>
+          </div>
         </div>
       </div>
 
@@ -44,7 +51,7 @@ export default function ServicosPage() {
         {/* Main CTA - Camera button */}
         <Link
           href="/servicos/despesas/nova"
-          className="block bg-blue-600 hover:bg-blue-700 text-white rounded-2xl p-6 text-center shadow-lg transition-all active:scale-[0.98]"
+          className="block bg-red-600 hover:bg-red-700 text-white rounded-2xl p-6 text-center shadow-lg transition-all active:scale-[0.98]"
         >
           <div className="text-4xl mb-2">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +60,7 @@ export default function ServicosPage() {
             </svg>
           </div>
           <span className="text-lg font-bold">REGISTRAR DESPESA</span>
-          <p className="text-blue-200 text-sm mt-1">
+          <p className="text-red-200 text-sm mt-1">
             Abra a câmera e fotografe o comprovante
           </p>
         </Link>
@@ -129,7 +136,7 @@ export default function ServicosPage() {
               href="/servicos/despesas"
               className="bg-white rounded-lg p-4 text-center shadow-sm hover:shadow transition-shadow"
             >
-              <svg className="w-6 h-6 mx-auto mb-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 mx-auto mb-1 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               <span className="text-sm font-medium text-gray-700">Despesas</span>
@@ -138,7 +145,7 @@ export default function ServicosPage() {
               href="/servicos/autorizacoes"
               className="bg-white rounded-lg p-4 text-center shadow-sm hover:shadow transition-shadow"
             >
-              <svg className="w-6 h-6 mx-auto mb-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 mx-auto mb-1 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
               <span className="text-sm font-medium text-gray-700">Autorizações</span>
@@ -147,7 +154,7 @@ export default function ServicosPage() {
               href="/servicos/despesas/relatorio"
               className="bg-white rounded-lg p-4 text-center shadow-sm hover:shadow transition-shadow"
             >
-              <svg className="w-6 h-6 mx-auto mb-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 mx-auto mb-1 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span className="text-sm font-medium text-gray-700">Relatórios</span>
@@ -156,7 +163,7 @@ export default function ServicosPage() {
               href="/servicos/despesas/conferencia"
               className="bg-white rounded-lg p-4 text-center shadow-sm hover:shadow transition-shadow"
             >
-              <svg className="w-6 h-6 mx-auto mb-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 mx-auto mb-1 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span className="text-sm font-medium text-gray-700">Conferência</span>

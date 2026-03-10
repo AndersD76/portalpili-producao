@@ -69,7 +69,7 @@ export default function ServicosLayout({
                 href={item.href}
                 className={`flex flex-col items-center justify-center gap-0.5 px-1 py-1 min-w-0 flex-1 transition-colors ${
                   isActive
-                    ? 'text-blue-600'
+                    ? 'text-red-600'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
