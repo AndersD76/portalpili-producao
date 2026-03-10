@@ -115,7 +115,7 @@ export async function GET(request: Request) {
       const deptResult = await query(
         `SELECT DISTINCT departamento FROM usuarios WHERE departamento IS NOT NULL ORDER BY departamento`
       );
-      departamentos = deptResult?.rows?.map((r: Record<string, unknown>) => r.departamento) || [];
+      departamentos = deptResult?.rows?.map((r: Record<string, unknown>) => String(r.departamento)) || [];
     } catch {
       // Coluna departamento não existe
     }
