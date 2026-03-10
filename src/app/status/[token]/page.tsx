@@ -126,13 +126,31 @@ export default function StatusCheckPage() {
 
   const [erros, setErros] = useState<Record<number, string[]>>({});
 
+  // Verifica se uma proposta foi parcialmente preenchida (pelo menos um campo editado)
+  const foiPreenchida = (r: Resposta, estagioAnterior: string): boolean => {
+    return !!(
+      r.canal_contato ||
+      r.nivel_interesse ||
+      r.o_que_discutiu?.trim() ||
+      r.proximo_passo?.trim() ||
+      r.previsao_fechamento ||
+      (r.estagio && r.estagio !== estagioAnterior)
+    );
+  };
+
+  // Valida apenas as propostas que foram preenchidas (parcial OK)
   const validarRespostas = (): boolean => {
     const novosErros: Record<number, string[]> = {};
-    let valido = true;
+    let temPreenchida = false;
 
     for (const item of (data?.items || []).filter(i => !i.respondido_at)) {
       const r = respostas[item.oportunidade_id];
-      if (!r) { valido = false; continue; }
+      if (!r) continue;
+
+      // Pular propostas que não foram tocadas
+      if (!foiPreenchida(r, item.estagio_anterior)) continue;
+
+      temPreenchida = true;
       const campos: string[] = [];
       if (!r.canal_contato) campos.push('Canal de contato');
       if (!r.nivel_interesse) campos.push('Nível de interesse');
@@ -142,11 +160,17 @@ export default function StatusCheckPage() {
       if (r.estagio === item.estagio_anterior) campos.push('Deve alterar o status da proposta');
       if (campos.length > 0) {
         novosErros[item.oportunidade_id] = campos;
-        valido = false;
       }
     }
+
     setErros(novosErros);
-    return valido;
+
+    if (!temPreenchida) {
+      alert('Preencha pelo menos uma proposta antes de enviar.');
+      return false;
+    }
+
+    return Object.keys(novosErros).length === 0;
   };
 
   const handleSubmit = async () => {
@@ -155,7 +179,7 @@ export default function StatusCheckPage() {
     setSubmitting(true);
 
     const payload = data.items
-      .filter(item => !item.respondido_at)
+      .filter(item => !item.respondido_at && foiPreenchida(respostas[item.oportunidade_id], item.estagio_anterior))
       .map(item => {
         const r = respostas[item.oportunidade_id];
         // Monta observação estruturada
@@ -193,7 +217,39 @@ export default function StatusCheckPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setSubmitted(true);
+        if (json.status === 'CONCLUIDO') {
+          // Todas respondidas
+          setSubmitted(true);
+        } else {
+          // Envio parcial - recarregar para mostrar apenas as pendentes
+          const reloadRes = await fetch(`/api/public/status-check/${token}`);
+          const reloadJson = await reloadRes.json();
+          if (reloadJson.success) {
+            setData(reloadJson.data);
+            // Reinicializar respostas apenas para items pendentes
+            const init: Record<number, Resposta> = {};
+            for (const item of reloadJson.data.items) {
+              if (!item.respondido_at) {
+                init[item.oportunidade_id] = {
+                  estagio: item.estagio_anterior,
+                  data_contato: hoje(),
+                  canal_contato: '',
+                  o_que_discutiu: '',
+                  proximo_passo: '',
+                  previsao_fechamento: '',
+                  nivel_interesse: '',
+                };
+              }
+            }
+            setRespostas(init);
+            setErros({});
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert(`${json.updated_count} proposta(s) atualizada(s)! Restam ${reloadJson.data.items.filter((i: any) => !i.respondido_at).length} pendente(s).`);
+          } else {
+            setSubmitted(true);
+          }
+        }
       } else {
         alert(json.error || 'Erro ao enviar');
       }
@@ -290,6 +346,7 @@ export default function StatusCheckPage() {
           <div className="mt-2 bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-700 space-y-1.5">
             <p>Precisamos de uma atualização sobre <strong>{pendingItems.length} proposta{pendingItems.length !== 1 ? 's' : ''}</strong> em negociação.</p>
             <p className="text-gray-500">Para cada uma, nos informe: houve contato com o cliente? O que foi discutido? Qual o próximo passo? Isso nos ajuda a apoiar você no fechamento.</p>
+            <p className="text-gray-400 text-xs mt-1">Preencha as que puder agora — você pode voltar ao link depois para completar as demais.</p>
           </div>
         </div>
 
@@ -417,6 +474,9 @@ export default function StatusCheckPage() {
                       onChange={e => setField(item.oportunidade_id, 'previsao_fechamento', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-gray-50"
                     />
+                    <p className="text-[10px] text-gray-400 mt-1 leading-snug">
+                      Apenas uma estimativa. O sistema usará essa data para agendar o próximo pedido de feedback automaticamente.
+                    </p>
                   </div>
 
                   {/* Novo status */}
@@ -481,10 +541,10 @@ export default function StatusCheckPage() {
               submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 active:bg-red-800'
             }`}
           >
-            {submitting ? 'Enviando...' : `Enviar Atualizações (${pendingItems.length})`}
+            {submitting ? 'Enviando...' : `Enviar Atualizações`}
           </button>
           <p className="text-center text-[11px] text-gray-400 mt-3">
-            Suas respostas são usadas para acompanhamento interno.
+            Preencha as propostas que quiser e envie. Você pode voltar depois para completar as demais.
           </p>
         </div>
       </div>
