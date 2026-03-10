@@ -62,7 +62,7 @@ export async function extractReceiptData(
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5-20250514',
+        model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
         max_tokens: 1200,
         messages: [
           {

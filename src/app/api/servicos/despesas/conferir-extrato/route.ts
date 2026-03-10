@@ -49,7 +49,7 @@ Valores negativos são débitos (despesas). Converta para positivo.`;
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20241022',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 4000,
         messages: [{ role: 'user', content: `${extractPrompt}\n\nEXTRATO:\n${extrato_texto}` }],
       }),
