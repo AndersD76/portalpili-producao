@@ -65,6 +65,7 @@ const ROTA_PARA_MODULO: Record<string, string> = {
   '/dashboard': 'PRODUCAO',
   '/producao/calendario': 'PRODUCAO',
   '/admin': 'ADMIN',
+  '/maquinas': 'PRODUCAO',
 };
 
 const CACHE_KEY = 'permissoes_cache';
