@@ -180,20 +180,36 @@ export default function NovaDespesaPage() {
 
     setPreviewUrl(URL.createObjectURL(file));
 
+    let base64: string;
     try {
-      const base64 = await fileToBase64(file);
+      base64 = await fileToBase64(file);
       setImageBase64(base64);
+    } catch {
+      // Failed to read the file — go straight to manual entry
+      setError('Não foi possível ler o arquivo. Preencha os campos manualmente.');
+      setStatus('review');
+      return;
+    }
 
+    try {
       const res = await fetch('/api/servicos/despesas/analisar-comprovante', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imagem_base64: base64, mime_type: file.type || 'image/jpeg' }),
       });
 
-      const result = await res.json();
+      let result;
+      try {
+        result = await res.json();
+      } catch {
+        // API returned non-JSON — fall back to manual
+        setError('A IA não conseguiu ler esta imagem. Preencha os campos manualmente.');
+        setStatus('review');
+        return;
+      }
 
       if (!result.success) {
-        setError(result.error || 'Não foi possível analisar o comprovante');
+        setError(result.error || 'Não foi possível analisar o comprovante. Preencha os campos manualmente.');
         setStatus('review');
         return;
       }
@@ -224,6 +240,7 @@ export default function NovaDespesaPage() {
       setStatus('review');
     } catch (err) {
       console.error('Error analyzing receipt:', err);
+      // Any unhandled error — never crash, always fall back to manual
       setError('Erro ao processar a imagem. Preencha os campos manualmente.');
       setStatus('review');
     }
@@ -587,10 +604,22 @@ export default function NovaDespesaPage() {
           </div>
         )}
 
-        {/* Error */}
+        {/* Error — AI couldn't read the image */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-            {error}
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 text-amber-800 text-sm">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-medium">{error}</p>
+                {Object.keys(confiancas).length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    A imagem será salva junto com a despesa. Preencha os campos abaixo.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

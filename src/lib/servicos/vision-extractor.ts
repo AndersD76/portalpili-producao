@@ -58,6 +58,18 @@ export async function extractReceiptData(
     ? imageBase64.split(',')[1]
     : imageBase64;
 
+  // Validate base64 data is not empty/corrupt
+  if (!base64Data || base64Data.length < 100) {
+    return { success: false, error: 'Imagem inválida ou corrompida. Tente fotografar novamente.' };
+  }
+
+  // Normalize mime type
+  const normalizedMime = mimeType.replace(/^image\/jpg$/, 'image/jpeg');
+  const supportedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!supportedTypes.includes(normalizedMime)) {
+    return { success: false, error: `Formato de imagem não suportado (${mimeType}). Use JPEG, PNG ou WebP.` };
+  }
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -77,7 +89,7 @@ export async function extractReceiptData(
                 type: 'image',
                 source: {
                   type: 'base64',
-                  media_type: mimeType,
+                  media_type: normalizedMime,
                   data: base64Data,
                 },
               },
@@ -92,21 +104,56 @@ export async function extractReceiptData(
     });
 
     if (!response.ok) {
-      const errText = await response.text();
+      let errText = '';
+      try { errText = await response.text(); } catch { /* ignore */ }
       console.error('Claude Vision API error:', response.status, errText);
-      return { success: false, error: `Erro na API de visão: ${response.status}` };
+
+      // Map common API errors to user-friendly messages
+      if (response.status === 400) {
+        if (errText.includes('Could not process image') || errText.includes('invalid_image')) {
+          return { success: false, error: 'Não foi possível ler esta imagem. Tente uma foto mais nítida.' };
+        }
+        if (errText.includes('too large') || errText.includes('size')) {
+          return { success: false, error: 'Imagem muito grande. Tente reduzir o tamanho ou tirar outra foto.' };
+        }
+        return { success: false, error: 'Imagem não pôde ser processada. Tente fotografar novamente.' };
+      }
+      if (response.status === 429) {
+        return { success: false, error: 'Sistema ocupado. Aguarde um momento e tente novamente.' };
+      }
+      if (response.status >= 500) {
+        return { success: false, error: 'Serviço de IA temporariamente indisponível. Preencha manualmente.' };
+      }
+      return { success: false, error: 'Erro ao analisar imagem. Preencha os campos manualmente.' };
     }
 
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      return { success: false, error: 'Resposta inválida da IA. Preencha os campos manualmente.' };
+    }
+
     const text = result.content?.[0]?.text?.trim() || '';
+
+    if (!text) {
+      return { success: false, error: 'A IA não conseguiu ler o comprovante. Preencha manualmente.' };
+    }
 
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return { success: false, error: 'Não foi possível extrair dados do comprovante' };
+      console.error('No JSON found in Vision response:', text.substring(0, 200));
+      return { success: false, error: 'Não foi possível extrair dados do comprovante. Preencha manualmente.' };
     }
 
-    const dados: AIExtractionResult = JSON.parse(jsonMatch[0]);
+    let dados: AIExtractionResult;
+    try {
+      dados = JSON.parse(jsonMatch[0]);
+    } catch {
+      console.error('Invalid JSON from Vision:', jsonMatch[0].substring(0, 200));
+      return { success: false, error: 'Dados extraídos em formato inválido. Preencha manualmente.' };
+    }
 
     return {
       success: true,
@@ -115,9 +162,14 @@ export async function extractReceiptData(
     };
   } catch (err) {
     console.error('Erro ao analisar comprovante:', err);
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Erro ao analisar comprovante',
-    };
+    // Network errors, timeouts, etc
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('fetch') || msg.includes('network') || msg.includes('ECONNREFUSED')) {
+      return { success: false, error: 'Sem conexão com o serviço de IA. Preencha manualmente.' };
+    }
+    if (msg.includes('timeout') || msg.includes('AbortError')) {
+      return { success: false, error: 'Tempo esgotado ao analisar imagem. Preencha manualmente.' };
+    }
+    return { success: false, error: 'Erro ao processar imagem. Preencha os campos manualmente.' };
   }
 }
