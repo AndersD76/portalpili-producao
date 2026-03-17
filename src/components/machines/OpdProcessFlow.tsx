@@ -46,13 +46,16 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
   const progressColor = opd.progress_pct >= 80 ? 'bg-green-500'
     : opd.progress_pct >= 50 ? 'bg-amber-500'
     : opd.progress_pct >= 20 ? 'bg-blue-500'
-    : 'bg-gray-600';
+    : 'bg-gray-400';
+
+  const progressTextColor = opd.progress_pct >= 80 ? 'text-green-600'
+    : opd.progress_pct >= 50 ? 'text-amber-600'
+    : 'text-gray-600';
 
   const productBadge = opd.tipo_produto === 'TOMBADOR'
-    ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
-    : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
+    ? 'bg-orange-100 text-orange-700 border-orange-200'
+    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
 
-  // Separate stages by status
   const activeStages = opd.stages.filter(s => s.status === 'EM ANDAMENTO');
   const nextStages = opd.stages.filter(s => s.status === 'A REALIZAR').slice(0, 3);
   const hasNc = opd.stages.some(s => s.tem_nao_conformidade);
@@ -62,11 +65,11 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
     : null;
 
   return (
-    <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {/* Header — always visible */}
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-800/50 transition-colors text-left"
+        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
       >
         {/* Product type badge */}
         <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${productBadge}`}>
@@ -76,21 +79,21 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
         {/* OPD number + client */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-white">OPD {opd.numero}</span>
+            <span className="text-sm font-bold text-gray-900">OPD {opd.numero}</span>
             {opd.cliente && (
-              <span className="text-xs text-gray-500 truncate">{opd.cliente}</span>
+              <span className="text-xs text-gray-400 truncate">{opd.cliente}</span>
             )}
             {hasNc && (
-              <span className="px-1 py-0.5 bg-red-500/20 text-red-400 text-[10px] rounded font-bold">NC</span>
+              <span className="px-1 py-0.5 bg-red-100 text-red-600 text-[10px] rounded font-bold">NC</span>
             )}
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span>{opd.concluidas}/{opd.total_atividades} etapas</span>
             {parseInt(opd.em_andamento) > 0 && (
-              <span className="text-blue-400">{opd.em_andamento} em andamento</span>
+              <span className="text-blue-600">{opd.em_andamento} em andamento</span>
             )}
             {daysUntilDelivery !== null && (
-              <span className={daysUntilDelivery < 0 ? 'text-red-400 font-medium' : daysUntilDelivery <= 7 ? 'text-amber-400' : 'text-gray-500'}>
+              <span className={daysUntilDelivery < 0 ? 'text-red-600 font-medium' : daysUntilDelivery <= 7 ? 'text-amber-600' : 'text-gray-400'}>
                 {daysUntilDelivery < 0 ? `${Math.abs(daysUntilDelivery)}d atrasada` : `${daysUntilDelivery}d restantes`}
               </span>
             )}
@@ -99,13 +102,11 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
 
         {/* Progress */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-700 ${progressColor}`} style={{ width: `${opd.progress_pct}%` }} />
           </div>
-          <span className={`text-sm font-bold w-10 text-right ${
-            opd.progress_pct >= 80 ? 'text-green-400' : opd.progress_pct >= 50 ? 'text-amber-400' : 'text-gray-400'
-          }`}>{opd.progress_pct}%</span>
-          <svg className={`w-4 h-4 text-gray-600 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <span className={`text-sm font-bold w-10 text-right ${progressTextColor}`}>{opd.progress_pct}%</span>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -125,8 +126,7 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
 
       {/* Expanded: full process flow */}
       {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-800">
-          {/* Stage flow */}
+        <div className="px-4 pb-4 border-t border-gray-100">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 mt-3">
             {opd.stages.map((stage, i) => (
               <ProcessStageCard
@@ -138,8 +138,8 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
           </div>
 
           {/* Quick actions */}
-          <div className="mt-3 pt-3 border-t border-gray-800 flex items-center justify-between">
-            <div className="flex gap-4 text-xs text-gray-600">
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+            <div className="flex gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-green-500" /> {opd.concluidas} concluídas
               </span>
@@ -147,7 +147,7 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
                 <span className="w-2 h-2 rounded-full bg-blue-500" /> {opd.em_andamento} andamento
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-gray-600" /> {opd.a_realizar} pendentes
+                <span className="w-2 h-2 rounded-full bg-gray-400" /> {opd.a_realizar} pendentes
               </span>
               {parseInt(opd.pausadas) > 0 && (
                 <span className="flex items-center gap-1">
@@ -157,7 +157,7 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
             </div>
             <Link
               href={`/producao/opd/${opd.numero}`}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium"
+              className="text-xs text-red-600 hover:text-red-700 font-medium"
             >
               Abrir OPD →
             </Link>

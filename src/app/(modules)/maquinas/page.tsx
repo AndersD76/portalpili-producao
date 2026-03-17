@@ -2,12 +2,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { PageHeader } from '@/components/PageHeader';
 import MachineCard from '@/components/machines/MachineCard';
 import OpdProcessFlow from '@/components/machines/OpdProcessFlow';
 import { useMachineWebSocket } from '@/hooks/useMachineWebSocket';
 import type { MachineWithKpis, WSMessage, MachineStatus } from '@/types/machines';
+
+const MAQUINAS_NAV = [
+  {
+    href: '/producao',
+    label: 'Produção',
+    icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z',
+  },
+  {
+    href: '/producao/dashboard',
+    label: 'Dashboard',
+    icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+  },
+];
 
 interface PanoramaStats {
   total_opds: number;
@@ -56,32 +69,30 @@ interface MachineInfo {
 type ViewMode = 'panorama' | 'cameras';
 
 export default function MaquinasDashboard() {
-  const { authenticated } = useAuth();
+  const { authenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  // View state
   const [viewMode, setViewMode] = useState<ViewMode>('panorama');
   const [filterTipo, setFilterTipo] = useState<string>('all');
   const [expandedOpds, setExpandedOpds] = useState<Set<string>>(new Set());
 
-  // Panorama data
   const [stats, setStats] = useState<PanoramaStats | null>(null);
   const [opds, setOpds] = useState<OpdData[]>([]);
   const [machinesByStage, setMachinesByStage] = useState<Record<string, MachineInfo>>({});
   const [loading, setLoading] = useState(true);
 
-  // Cameras data
   const [machines, setMachines] = useState<MachineWithKpis[]>([]);
   const [recentMotionIds, setRecentMotionIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (authLoading) return;
     if (!authenticated) {
       router.push('/login');
       return;
     }
     fetchPanorama();
     fetchMachines();
-  }, [authenticated, router]);
+  }, [authLoading, authenticated, router]);
 
   const fetchPanorama = async () => {
     try {
@@ -110,12 +121,11 @@ export default function MaquinasDashboard() {
     }
   };
 
-  // Refetch when filter changes
   useEffect(() => {
     if (authenticated) fetchPanorama();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterTipo]);
 
-  // Real-time events
   const handleMotionEvent = useCallback((msg: WSMessage) => {
     setRecentMotionIds(prev => new Set(prev).add(msg.machine_id));
     setTimeout(() => {
@@ -156,135 +166,127 @@ export default function MaquinasDashboard() {
 
   const online = machines.filter(m => m.status === 'online').length;
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-bold">PILI_MAQ — Panorama de Produção</h1>
-              <p className="text-xs text-gray-500">
-                {stats ? `${stats.total_opds} OPDs · ${stats.concluidas}/${stats.total_atividades} etapas concluídas · ${stats.avg_progress}% geral` : 'Carregando...'}
-                {machines.length > 0 && ` · ${machines.length} câmeras (${online} online)`}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`inline-flex items-center gap-1 text-xs ${
-                connectionState === 'connected' ? 'text-green-400' : 'text-gray-500'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  connectionState === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-gray-600'
-                }`} />
-                {connectionState === 'connected' ? 'Tempo real' : 'Offline'}
-              </span>
-              <Link href="/producao" className="text-xs text-gray-400 hover:text-white transition-colors">
-                ← Produção
-              </Link>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <PageHeader
+        title="Chão de Fábrica"
+        backHref="/"
+        navLinks={MAQUINAS_NAV}
+        rightExtra={
+          <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+            connectionState === 'connected'
+              ? 'text-green-700 bg-green-50'
+              : 'text-gray-500 bg-gray-100'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              connectionState === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+            }`} />
+            {connectionState === 'connected' ? 'Tempo real' : 'Offline'}
+          </span>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        {/* View toggle + filters */}
+        <div className="flex items-center gap-3 mb-4 overflow-x-auto pb-1">
+          <div className="flex bg-white rounded-lg border border-gray-200 p-0.5 shrink-0">
+            <button
+              onClick={() => setViewMode('panorama')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
+                viewMode === 'panorama'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Processos
+            </button>
+            <button
+              onClick={() => setViewMode('cameras')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
+                viewMode === 'cameras'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Câmeras
+            </button>
           </div>
 
-          {/* View tabs + Filters */}
-          <div className="flex items-center gap-3 mt-3 overflow-x-auto pb-1">
-            {/* View mode toggle */}
-            <div className="flex bg-gray-800 rounded-lg p-0.5 shrink-0">
-              <button
-                onClick={() => setViewMode('panorama')}
-                className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                  viewMode === 'panorama' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                Processos
-              </button>
-              <button
-                onClick={() => setViewMode('cameras')}
-                className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                  viewMode === 'cameras' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                Câmeras
-              </button>
-            </div>
+          <div className="w-px h-6 bg-gray-200" />
 
-            <div className="w-px h-5 bg-gray-800" />
+          {(['all', 'TOMBADOR', 'COLETOR'] as const).map(tipo => (
+            <button
+              key={tipo}
+              onClick={() => setFilterTipo(tipo)}
+              className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors font-medium ${
+                filterTipo === tipo
+                  ? 'bg-red-100 text-red-700 border border-red-200'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-transparent'
+              }`}
+            >
+              {tipo === 'all' ? 'Todos'
+                : tipo === 'TOMBADOR' ? `Tombadores (${stats?.tombadores || 0})`
+                : `Coletores (${stats?.coletores || 0})`}
+            </button>
+          ))}
 
-            {/* Product type filter */}
-            {(['all', 'TOMBADOR', 'COLETOR'] as const).map(tipo => (
+          {viewMode === 'panorama' && opds.length > 0 && (
+            <>
+              <div className="w-px h-6 bg-gray-200" />
               <button
-                key={tipo}
-                onClick={() => setFilterTipo(tipo)}
-                className={`px-3 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
-                  filterTipo === tipo ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                }`}
+                onClick={() => {
+                  if (expandedOpds.size === opds.length) {
+                    setExpandedOpds(new Set());
+                  } else {
+                    setExpandedOpds(new Set(opds.map(o => o.numero)));
+                  }
+                }}
+                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors whitespace-nowrap"
               >
-                {tipo === 'all' ? 'Todos'
-                  : tipo === 'TOMBADOR' ? `Tombadores (${stats?.tombadores || 0})`
-                  : `Coletores (${stats?.coletores || 0})`}
+                {expandedOpds.size === opds.length ? 'Recolher tudo' : 'Expandir tudo'}
               </button>
-            ))}
-
-            {viewMode === 'panorama' && opds.length > 0 && (
-              <>
-                <div className="w-px h-5 bg-gray-800" />
-                <button
-                  onClick={() => {
-                    if (expandedOpds.size === opds.length) {
-                      setExpandedOpds(new Set());
-                    } else {
-                      setExpandedOpds(new Set(opds.map(o => o.numero)));
-                    }
-                  }}
-                  className="px-3 py-1 text-xs text-gray-500 hover:text-gray-300 rounded-full hover:bg-white/5 transition-colors whitespace-nowrap"
-                >
-                  {expandedOpds.size === opds.length ? 'Recolher tudo' : 'Expandir tudo'}
-                </button>
-              </>
-            )}
-          </div>
+            </>
+          )}
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-4">
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-gray-900 rounded-lg border border-gray-800 h-20 animate-pulse" />
+              <div key={i} className="bg-white rounded-xl border border-gray-200 h-20 animate-pulse" />
             ))}
           </div>
         ) : viewMode === 'panorama' ? (
           <>
-            {/* Stats bar */}
+            {/* Stats cards */}
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 text-center">
-                  <div className="text-2xl font-bold text-white">{stats.total_opds}</div>
-                  <div className="text-[10px] text-gray-500 uppercase">OPDs</div>
-                </div>
-                <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 text-center">
-                  <div className="text-2xl font-bold text-green-400">{stats.concluidas}</div>
-                  <div className="text-[10px] text-gray-500 uppercase">Etapas Concluídas</div>
-                </div>
-                <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 text-center">
-                  <div className="text-2xl font-bold text-blue-400">{stats.em_andamento}</div>
-                  <div className="text-[10px] text-gray-500 uppercase">Em Andamento</div>
-                </div>
-                <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 text-center">
-                  <div className={`text-2xl font-bold ${
-                    stats.avg_progress >= 70 ? 'text-green-400' : stats.avg_progress >= 40 ? 'text-amber-400' : 'text-red-400'
-                  }`}>{stats.avg_progress}%</div>
-                  <div className="text-[10px] text-gray-500 uppercase">Progresso Geral</div>
-                </div>
-                <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 text-center">
-                  <div className="text-2xl font-bold text-white">{online}/{machines.length}</div>
-                  <div className="text-[10px] text-gray-500 uppercase">Câmeras Online</div>
-                </div>
+                {[
+                  { value: stats.total_opds, label: 'OPDs', color: 'text-gray-900' },
+                  { value: stats.concluidas, label: 'Etapas Concluídas', color: 'text-green-600' },
+                  { value: stats.em_andamento, label: 'Em Andamento', color: 'text-blue-600' },
+                  { value: `${stats.avg_progress}%`, label: 'Progresso Geral', color: stats.avg_progress >= 70 ? 'text-green-600' : stats.avg_progress >= 40 ? 'text-amber-600' : 'text-red-600' },
+                  { value: `${online}/${machines.length}`, label: 'Câmeras Online', color: 'text-gray-900' },
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                    <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">{stat.label}</div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* OPD Process flows */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {opds.length === 0 ? (
-                <div className="text-center py-20 text-gray-600">
+                <div className="text-center py-20 text-gray-400">
                   Nenhuma OPD encontrada
                 </div>
               ) : (
@@ -304,7 +306,7 @@ export default function MaquinasDashboard() {
           /* Camera view */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {machines.length === 0 ? (
-              <div className="col-span-2 text-center py-20 text-gray-600">
+              <div className="col-span-2 text-center py-20 text-gray-400">
                 Nenhuma câmera cadastrada
               </div>
             ) : (
@@ -320,7 +322,7 @@ export default function MaquinasDashboard() {
             )}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
