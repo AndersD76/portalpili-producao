@@ -4,15 +4,17 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 python-multipart==0.0.20
 
+# PyTorch CPU-only (MUST install before ultralytics to avoid 2GB CUDA download)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+
 # Computer Vision
 opencv-python-headless==4.11.0.86
 numpy>=1.26.0,<2.0
 
-# YOLOv11 (Ultralytics)
+# YOLOv11 (Ultralytics) — will use the CPU torch installed above
 ultralytics==8.3.57
-
-# ONNX Runtime (CPU optimized inference)
-onnxruntime==1.20.1
 
 # Image processing
 Pillow>=10.0.0
