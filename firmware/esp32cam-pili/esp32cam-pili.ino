@@ -48,9 +48,9 @@
 #define HEARTBEAT_SEC      60       // Heartbeat interval
 #define SNAPSHOT_UPLOAD_SEC 5       // Upload snapshot to server interval (VGA quality)
 
-// Camera resolution
-#define FRAME_SIZE         FRAMESIZE_QVGA  // 320x240 for motion detection
-#define SNAPSHOT_SIZE      FRAMESIZE_VGA   // 640x480 for snapshots
+// Camera resolution — VGA only (no resolution switching to avoid FB-OVF)
+#define FRAME_SIZE         FRAMESIZE_VGA   // 640x480
+#define SNAPSHOT_SIZE      FRAMESIZE_VGA   // 640x480
 
 // ============================================
 // AI-Thinker ESP32-CAM pin definitions
@@ -398,14 +398,6 @@ bool sendEvent(const char* eventType, float intensity, const char* zone,
 bool uploadSnapshot() {
   if (!wifi_connected || WiFi.status() != WL_CONNECTED) return false;
 
-  // Switch to VGA (640x480) for better quality snapshot
-  sensor_t* s = esp_camera_sensor_get();
-  if (s) {
-    s->set_framesize(s, SNAPSHOT_SIZE);
-    s->set_quality(s, 10); // Lower = better quality (10-63)
-  }
-  delay(150); // Let sensor adjust
-
   camera_fb_t* fb = esp_camera_fb_get();
 
   if (!fb) {
@@ -430,12 +422,6 @@ bool uploadSnapshot() {
 
   http.end();
   esp_camera_fb_return(fb);
-
-  // Switch back to QVGA for motion detection
-  if (s) {
-    s->set_framesize(s, FRAME_SIZE);
-    s->set_quality(s, 12);
-  }
 
   return success;
 }
