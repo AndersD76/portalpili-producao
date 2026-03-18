@@ -7,6 +7,8 @@ import type { MachineWithKpis, MachineStatus } from '@/types/machines';
 interface MachineCardProps {
   machine: MachineWithKpis;
   recentMotion?: boolean;
+  onEdit?: (machine: MachineWithKpis) => void;
+  onDelete?: (machine: MachineWithKpis) => void;
 }
 
 const statusConfig: Record<MachineStatus, { label: string; color: string; border: string; bg: string; dot: string }> = {
@@ -16,10 +18,12 @@ const statusConfig: Record<MachineStatus, { label: string; color: string; border
   offline: { label: 'OFFLINE', color: 'text-gray-500', border: 'border-l-gray-400', bg: 'bg-gray-100', dot: 'bg-gray-400' },
 };
 
-export default function MachineCard({ machine, recentMotion = false }: MachineCardProps) {
+export default function MachineCard({ machine, recentMotion = false, onEdit, onDelete }: MachineCardProps) {
   const config = statusConfig[machine.status] || statusConfig.offline;
   const kpis = machine.kpis;
   const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const imgIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -35,6 +39,18 @@ export default function MachineCard({ machine, recentMotion = false }: MachineCa
       if (imgIntervalRef.current) clearInterval(imgIntervalRef.current);
     };
   }, [machine.id, machine.status]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   const atingimento = kpis ? kpis.atingimento_pct : 0;
 
@@ -64,6 +80,67 @@ export default function MachineCard({ machine, recentMotion = false }: MachineCa
             <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
             {config.label}
           </span>
+        </div>
+
+        {/* Menu button */}
+        <div className="absolute top-2 right-2" ref={menuRef}>
+          <button
+            onClick={(e) => { e.preventDefault(); setMenuOpen(!menuOpen); }}
+            className="p-1.5 bg-white/80 hover:bg-white rounded-lg shadow-sm border border-gray-200 transition-colors"
+          >
+            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-40 z-20">
+              <Link
+                href={`/maquinas/${machine.id}`}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Ver detalhes
+              </Link>
+              <Link
+                href={`/maquinas/${machine.id}/configurar`}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Configurar ESP32
+              </Link>
+              {onEdit && (
+                <button
+                  onClick={() => { setMenuOpen(false); onEdit(machine); }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors w-full text-left"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Editar
+                </button>
+              )}
+              {onDelete && (
+                <>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    onClick={() => { setMenuOpen(false); onDelete(machine); }}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Excluir
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

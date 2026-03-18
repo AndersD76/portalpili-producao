@@ -110,3 +110,37 @@ export async function PUT(
     );
   }
 }
+
+// DELETE /api/machines/:id — Delete machine
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await verificarPermissao('PRODUCAO', 'excluir');
+  if (!auth.permitido) return auth.resposta;
+
+  const { id } = await params;
+
+  try {
+    // Delete related records first
+    await query('DELETE FROM machine_events WHERE machine_id = $1', [id]);
+    await query('DELETE FROM production_records WHERE machine_id = $1', [id]);
+
+    const result = await query('DELETE FROM machines WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Máquina não encontrada' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[MACHINES] Erro ao excluir máquina:', error);
+    return NextResponse.json(
+      { success: false, error: 'Erro ao excluir máquina' },
+      { status: 500 }
+    );
+  }
+}

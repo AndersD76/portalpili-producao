@@ -29,23 +29,24 @@
 // ============================================
 
 // WiFi
-#define WIFI_SSID          "PILI_FACTORY"
-#define WIFI_PASSWORD      "pili2025wifi"
+#define WIFI_SSID          "ANDERS 2.4"
+#define WIFI_PASSWORD      "Maier87@"
 #define WIFI_TIMEOUT_MS    15000
 
 // Server (Portal Pili backend)
-#define SERVER_URL         "https://portal-pili.up.railway.app"
+#define SERVER_URL         "https://portalpili-producao-production.up.railway.app"
 // For local dev: "http://192.168.1.100:3000"
 
 // Machine identity — CHANGE PER DEVICE
-#define MACHINE_ID         "CHANGE_ME"  // UUID from machines table
-#define API_KEY            "CHANGE_ME"  // From /maquinas/{id}/configurar
+#define MACHINE_ID         "34dacb1a-943c-4018-bcc8-838c397092c2"
+#define API_KEY            "7e339f7282d4cfbabc0561739aceca0de2fc4571b1262892a7f8ed3362b481c5"
 
 // Detection thresholds
 #define MOTION_THRESHOLD   15       // Pixel diff threshold (0-255)
 #define MOTION_MIN_PIXELS  500      // Min changed pixels to trigger motion
 #define IDLE_TIMEOUT_SEC   30       // Seconds without motion = idle event
 #define HEARTBEAT_SEC      60       // Heartbeat interval
+#define SNAPSHOT_UPLOAD_SEC 1       // Upload snapshot to server interval (video feed)
 
 // Camera resolution
 #define FRAME_SIZE         FRAMESIZE_QVGA  // 320x240 for motion detection
@@ -81,6 +82,7 @@ static uint8_t* prev_frame = NULL;
 static size_t prev_frame_len = 0;
 static unsigned long last_motion_time = 0;
 static unsigned long last_heartbeat_time = 0;
+static unsigned long last_snapshot_upload = 0;
 static unsigned long last_idle_sent = 0;
 static unsigned long boot_time = 0;
 static bool idle_sent = false;
@@ -390,6 +392,41 @@ bool sendEvent(const char* eventType, float intensity, const char* zone,
 }
 
 // ============================================
+// Upload snapshot to server (so cloud portal can display it)
+// ============================================
+
+bool uploadSnapshot() {
+  if (!wifi_connected || WiFi.status() != WL_CONNECTED) return false;
+
+  // Use QVGA for fast upload (video feed)
+  camera_fb_t* fb = esp_camera_fb_get();
+
+  if (!fb) {
+    Serial.println("[SNAP] Capture failed");
+    return false;
+  }
+
+  HTTPClient http;
+  String url = String(SERVER_URL) + "/api/machines/" + MACHINE_ID + "/snapshot";
+
+  http.begin(url);
+  http.addHeader("Content-Type", "image/jpeg");
+  http.addHeader("X-Pili-Key", API_KEY);
+  http.setTimeout(5000);
+
+  int httpCode = http.POST(fb->buf, fb->len);
+  bool success = (httpCode == 200);
+
+  if (!success) {
+    Serial.printf("[SNAP] Upload failed: %d\n", httpCode);
+  }
+
+  http.end();
+  esp_camera_fb_return(fb);
+  return success;
+}
+
+// ============================================
 // Time utilities
 // ============================================
 
@@ -491,6 +528,12 @@ void loop() {
     sendEvent("idle", 0.0, "ALL");
     idle_sent = true;
     last_idle_sent = now;
+  }
+
+  // ---- Upload snapshot to server ----
+  if (now - last_snapshot_upload > SNAPSHOT_UPLOAD_SEC * 1000) {
+    uploadSnapshot();
+    last_snapshot_upload = now;
   }
 
   // ---- Heartbeat ----

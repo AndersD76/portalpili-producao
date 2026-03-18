@@ -273,11 +273,7 @@ export const rotaParaModulo: Record<string, string> = {
   'admin': 'ADMIN',
   'usuarios': 'ADMIN',
   'perfis': 'ADMIN',
-  'modulos': 'ADMIN',
-
-  // Máquinas (PILI_MAQ)
-  'maquinas': 'PRODUCAO',
-  'machines': 'PRODUCAO'
+  'modulos': 'ADMIN'
 };
 
 /**

@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/PageHeader';
 import MachineCard from '@/components/machines/MachineCard';
+import MachineFormModal from '@/components/machines/MachineFormModal';
 import OpdProcessFlow from '@/components/machines/OpdProcessFlow';
 import { useMachineWebSocket } from '@/hooks/useMachineWebSocket';
+import { toast } from 'sonner';
 import type { MachineWithKpis, WSMessage, MachineStatus } from '@/types/machines';
 
 const MAQUINAS_NAV = [
@@ -86,6 +88,10 @@ export default function MaquinasDashboard() {
   const [machines, setMachines] = useState<MachineWithKpis[]>([]);
   const [recentMotionIds, setRecentMotionIds] = useState<Set<string>>(new Set());
 
+  // CRUD state
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingMachine, setEditingMachine] = useState<MachineWithKpis | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
     if (!authenticated) {
@@ -164,6 +170,38 @@ export default function MaquinasDashboard() {
       if (n.has(numero)) n.delete(numero); else n.add(numero);
       return n;
     });
+  };
+
+  const handleEditMachine = (machine: MachineWithKpis) => {
+    setEditingMachine(machine);
+    setFormOpen(true);
+  };
+
+  const handleNewMachine = () => {
+    setEditingMachine(null);
+    setFormOpen(true);
+  };
+
+  const handleDeleteMachine = async (machine: MachineWithKpis) => {
+    if (!confirm(`Tem certeza que deseja excluir "${machine.name}" (${machine.machine_code})?\n\nTodos os eventos e registros de produção serão apagados.`)) return;
+
+    try {
+      const res = await fetch(`/api/machines/${machine.id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(`Máquina "${machine.name}" excluída`);
+        fetchMachines();
+      } else {
+        toast.error(json.error || 'Erro ao excluir');
+      }
+    } catch {
+      toast.error('Erro de conexão');
+    }
+  };
+
+  const handleMachineSaved = () => {
+    toast.success(editingMachine ? 'Máquina atualizada' : 'Máquina criada');
+    fetchMachines();
   };
 
   const online = machines.filter(m => m.status === 'online').length;
@@ -340,25 +378,50 @@ export default function MaquinasDashboard() {
           </>
         ) : (
           /* Camera view — filtro por status da máquina */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {machines.length === 0 ? (
-              <div className="col-span-2 text-center py-20 text-gray-400">
-                Nenhuma máquina cadastrada
-              </div>
-            ) : (
-              machines
-                .filter(m => filterCamStatus === 'all' || m.status === filterCamStatus)
-                .map(machine => (
-                  <MachineCard
-                    key={machine.id}
-                    machine={machine}
-                    recentMotion={recentMotionIds.has(machine.id)}
-                  />
-                ))
-            )}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Add machine card */}
+              <button
+                onClick={handleNewMachine}
+                className="flex flex-col items-center justify-center bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-red-400 hover:bg-red-50/50 transition-all min-h-[260px] group"
+              >
+                <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-red-100 flex items-center justify-center mb-3 transition-colors">
+                  <svg className="w-6 h-6 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-gray-500 group-hover:text-red-600 transition-colors">Nova Máquina</span>
+                <span className="text-xs text-gray-400 mt-1">Cadastrar equipamento + câmera</span>
+              </button>
+
+              {machines.length === 0 ? (
+                <div className="flex items-center justify-center py-20 text-gray-400">
+                  Nenhuma máquina cadastrada
+                </div>
+              ) : (
+                machines
+                  .filter(m => filterCamStatus === 'all' || m.status === filterCamStatus)
+                  .map(machine => (
+                    <MachineCard
+                      key={machine.id}
+                      machine={machine}
+                      recentMotion={recentMotionIds.has(machine.id)}
+                      onEdit={handleEditMachine}
+                      onDelete={handleDeleteMachine}
+                    />
+                  ))
+              )}
+            </div>
+          </>
         )}
       </div>
+
+      <MachineFormModal
+        open={formOpen}
+        machine={editingMachine}
+        onClose={() => { setFormOpen(false); setEditingMachine(null); }}
+        onSaved={handleMachineSaved}
+      />
     </div>
   );
 }
