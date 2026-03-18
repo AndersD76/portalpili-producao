@@ -81,10 +81,10 @@ export default function CameraFeed({
           {/* Top overlay: LIVE badge + timestamp */}
           <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-              isOnline ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400'
+              streamLoaded ? 'bg-green-600 text-white' : isOnline ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-400'
             }`}>
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-white animate-pulse' : 'bg-gray-500'}`} />
-              {isOnline ? 'AO VIVO' : 'OFFLINE'}
+              <span className={`w-2 h-2 rounded-full ${streamLoaded ? 'bg-white animate-pulse' : 'bg-gray-500'}`} />
+              {streamLoaded ? 'AO VIVO' : isOnline ? 'CONECTANDO' : 'OFFLINE'}
             </span>
             <span className="text-xs text-gray-300 bg-black/60 px-2 py-0.5 rounded">
               {lastSeenStr}
