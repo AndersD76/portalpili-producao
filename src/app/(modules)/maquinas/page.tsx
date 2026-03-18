@@ -63,7 +63,6 @@ interface MachineInfo {
   status: string;
   cam_ip: string | null;
   linked_stages: string[];
-  product_type: string;
   operator_name: string;
   operator_shift: string;
 }
@@ -76,6 +75,7 @@ export default function MaquinasDashboard() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('panorama');
   const [filterTipo, setFilterTipo] = useState<string>('all');
+  const [filterCamStatus, setFilterCamStatus] = useState<string>('all');
   const [expandedOpds, setExpandedOpds] = useState<Set<string>>(new Set());
 
   const [stats, setStats] = useState<PanoramaStats | null>(null);
@@ -224,37 +224,71 @@ export default function MaquinasDashboard() {
 
           <div className="w-px h-6 bg-gray-200" />
 
-          {(['all', 'TOMBADOR', 'COLETOR'] as const).map(tipo => (
-            <button
-              key={tipo}
-              onClick={() => setFilterTipo(tipo)}
-              className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors font-medium ${
-                filterTipo === tipo
-                  ? 'bg-red-100 text-red-700 border border-red-200'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-transparent'
-              }`}
-            >
-              {tipo === 'all' ? 'Todos'
-                : tipo === 'TOMBADOR' ? `Tombadores (${stats?.tombadores || 0})`
-                : `Coletores (${stats?.coletores || 0})`}
-            </button>
-          ))}
-
-          {viewMode === 'panorama' && opds.length > 0 && (
+          {viewMode === 'panorama' ? (
             <>
-              <div className="w-px h-6 bg-gray-200" />
-              <button
-                onClick={() => {
-                  if (expandedOpds.size === opds.length) {
-                    setExpandedOpds(new Set());
-                  } else {
-                    setExpandedOpds(new Set(opds.map(o => o.numero)));
-                  }
-                }}
-                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors whitespace-nowrap"
-              >
-                {expandedOpds.size === opds.length ? 'Recolher tudo' : 'Expandir tudo'}
-              </button>
+              {(['all', 'TOMBADOR', 'COLETOR'] as const).map(tipo => (
+                <button
+                  key={tipo}
+                  onClick={() => setFilterTipo(tipo)}
+                  className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors font-medium ${
+                    filterTipo === tipo
+                      ? 'bg-red-100 text-red-700 border border-red-200'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-transparent'
+                  }`}
+                >
+                  {tipo === 'all' ? 'Todos'
+                    : tipo === 'TOMBADOR' ? `Tombadores (${stats?.tombadores || 0})`
+                    : `Coletores (${stats?.coletores || 0})`}
+                </button>
+              ))}
+
+              {opds.length > 0 && (
+                <>
+                  <div className="w-px h-6 bg-gray-200" />
+                  <button
+                    onClick={() => {
+                      if (expandedOpds.size === opds.length) {
+                        setExpandedOpds(new Set());
+                      } else {
+                        setExpandedOpds(new Set(opds.map(o => o.numero)));
+                      }
+                    }}
+                    className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors whitespace-nowrap"
+                  >
+                    {expandedOpds.size === opds.length ? 'Recolher tudo' : 'Expandir tudo'}
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {(['all', 'online', 'idle', 'offline'] as const).map(st => {
+                const countMap: Record<string, number> = {
+                  all: machines.length,
+                  online: machines.filter(m => m.status === 'online').length,
+                  idle: machines.filter(m => m.status === 'idle').length,
+                  offline: machines.filter(m => m.status === 'offline').length,
+                };
+                const labelMap: Record<string, string> = {
+                  all: `Todas (${countMap.all})`,
+                  online: `Operando (${countMap.online})`,
+                  idle: `Paradas (${countMap.idle})`,
+                  offline: `Offline (${countMap.offline})`,
+                };
+                return (
+                  <button
+                    key={st}
+                    onClick={() => setFilterCamStatus(st)}
+                    className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors font-medium ${
+                      filterCamStatus === st
+                        ? 'bg-red-100 text-red-700 border border-red-200'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-transparent'
+                    }`}
+                  >
+                    {labelMap[st]}
+                  </button>
+                );
+              })}
             </>
           )}
         </div>
@@ -305,15 +339,15 @@ export default function MaquinasDashboard() {
             </div>
           </>
         ) : (
-          /* Camera view */
+          /* Camera view — filtro por status da máquina */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {machines.length === 0 ? (
               <div className="col-span-2 text-center py-20 text-gray-400">
-                Nenhuma câmera cadastrada
+                Nenhuma máquina cadastrada
               </div>
             ) : (
               machines
-                .filter(m => filterTipo === 'all' || (m as unknown as MachineInfo).product_type === filterTipo)
+                .filter(m => filterCamStatus === 'all' || m.status === filterCamStatus)
                 .map(machine => (
                   <MachineCard
                     key={machine.id}

@@ -236,6 +236,88 @@ export default function MachineConfigPage({ params }: { params: Promise<{ id: st
             </div>
           </section>
 
+          {/* Firmware Config */}
+          <section className="bg-gray-900 rounded-lg border border-gray-800 p-5">
+            <h2 className="text-sm font-semibold mb-2">Firmware ESP32-CAM</h2>
+            <p className="text-xs text-gray-500 mb-4">
+              Copie o bloco abaixo e cole no arquivo <code className="text-amber-400">esp32cam-pili.ino</code> antes de gravar no ESP32-CAM.
+            </p>
+            <div className="relative">
+              <pre className="bg-gray-950 border border-gray-700 rounded-lg p-4 text-xs font-mono text-green-400 overflow-x-auto whitespace-pre">
+{`// ===== CONFIGURAÇÃO GERADA PELO PORTAL PILI =====
+// Máquina: ${name || machine.name} (${machineCode || machine.machine_code})
+// Gerado em: ${new Date().toLocaleDateString('pt-BR')}
+
+// WiFi da fábrica
+#define WIFI_SSID          "PILI_FACTORY"     // Altere para o SSID real
+#define WIFI_PASSWORD      "pili2025wifi"     // Altere para a senha real
+
+// Servidor Portal Pili
+#define SERVER_URL         "${typeof window !== 'undefined' ? window.location.origin : 'https://portalpili-producao-production.up.railway.app'}"
+
+// Identidade desta máquina (NÃO ALTERAR)
+#define MACHINE_ID         "${id}"
+#define API_KEY            "${machine.api_key}"
+
+// Ajustes de detecção
+#define MOTION_THRESHOLD   15
+#define MOTION_MIN_PIXELS  500
+#define IDLE_TIMEOUT_SEC   30
+#define HEARTBEAT_SEC      60`}
+              </pre>
+              <button
+                type="button"
+                onClick={() => {
+                  const text = `#define WIFI_SSID          "PILI_FACTORY"\n#define WIFI_PASSWORD      "pili2025wifi"\n#define SERVER_URL         "${typeof window !== 'undefined' ? window.location.origin : 'https://portalpili-producao-production.up.railway.app'}"\n#define MACHINE_ID         "${id}"\n#define API_KEY            "${machine.api_key}"\n#define MOTION_THRESHOLD   15\n#define MOTION_MIN_PIXELS  500\n#define IDLE_TIMEOUT_SEC   30\n#define HEARTBEAT_SEC      60`;
+                  navigator.clipboard.writeText(text);
+                  toast.success('Configuração copiada!');
+                }}
+                className="absolute top-2 right-2 px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded border border-gray-600 transition-colors"
+              >
+                Copiar
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Como gravar</h3>
+              <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                <li>Instale a <span className="text-gray-300">Arduino IDE</span> com suporte a ESP32</li>
+                <li>Abra o arquivo <code className="text-amber-400">firmware/esp32cam-pili/esp32cam-pili.ino</code></li>
+                <li>Substitua as linhas de configuração pelo bloco acima</li>
+                <li>Altere <code className="text-amber-400">WIFI_SSID</code> e <code className="text-amber-400">WIFI_PASSWORD</code> para a rede WiFi da fábrica</li>
+                <li>Selecione a placa <span className="text-gray-300">AI Thinker ESP32-CAM</span></li>
+                <li>Conecte o ESP32-CAM via USB-TTL e grave o firmware</li>
+                <li>Após ligar, o ESP32 conecta no WiFi e começa a enviar dados</li>
+              </ol>
+            </div>
+
+            {camIp && (
+              <div className="mt-4 p-3 bg-gray-950 rounded-lg border border-gray-700">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Testar câmera</h3>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs text-cyan-400">http://{camIp}:{camPort}/capture</code>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`http://${camIp}:${camPort}/capture`, '_blank')}
+                    className="px-2 py-1 bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-400 text-xs rounded border border-cyan-700/50 transition-colors"
+                  >
+                    Abrir
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="text-xs text-cyan-400">http://{camIp}:{camPort}/status</code>
+                  <button
+                    type="button"
+                    onClick={() => window.open(`http://${camIp}:${camPort}/status`, '_blank')}
+                    className="px-2 py-1 bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-400 text-xs rounded border border-cyan-700/50 transition-colors"
+                  >
+                    Abrir
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
           {/* Actions */}
           <div className="flex items-center justify-between">
             <Link
