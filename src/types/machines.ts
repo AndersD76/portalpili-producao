@@ -3,7 +3,7 @@
 // ============================================
 
 export type MachineStatus = 'online' | 'offline' | 'alert' | 'idle';
-export type EventType = 'motion' | 'idle' | 'heartbeat' | 'production';
+export type EventType = 'motion' | 'idle' | 'heartbeat' | 'production' | 'vision';
 export type MotionZone = 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'ALL';
 export type Shift = 'A' | 'B' | 'C';
 export type ProductionPeriod = 'shift' | 'day' | 'week';

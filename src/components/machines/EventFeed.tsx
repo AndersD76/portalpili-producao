@@ -13,6 +13,7 @@ const typeIcons: Record<EventType, { icon: string; color: string; label: string 
   idle: { icon: '⏸', color: 'text-amber-400', label: 'Parada' },
   production: { icon: '📦', color: 'text-blue-400', label: 'Produção' },
   heartbeat: { icon: '💓', color: 'text-gray-500', label: 'Heartbeat' },
+  vision: { icon: '👁', color: 'text-purple-400', label: 'Análise IA' },
 };
 
 export default function EventFeed({ events, maxItems = 20 }: EventFeedProps) {

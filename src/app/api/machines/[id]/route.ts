@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verificarPermissao } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { calculateShiftKpis } from '@/lib/machines/kpi-service';
+import { getLastAnalysis } from '@/lib/machines/vision-analyzer';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +37,11 @@ export async function GET(
       console.warn('[MACHINES] Erro ao calcular KPIs:', e);
     }
 
+    const vision = getLastAnalysis(id);
+
     return NextResponse.json({
       success: true,
-      data: { ...machine, kpis }
+      data: { ...machine, kpis, vision }
     });
   } catch (error) {
     console.error('[MACHINES] Erro ao buscar máquina:', error);

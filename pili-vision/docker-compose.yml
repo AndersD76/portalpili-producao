@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  pili-vision:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PILI_VISION_API_KEY=${PILI_VISION_API_KEY:-}
+      - PILI_VISION_YOLO_MODEL=yolo11n.pt
+      - PILI_VISION_YOLO_CONFIDENCE=0.35
+      - PILI_VISION_PERSON_CONFIDENCE=0.40
+      - PILI_VISION_ANALYSIS_COOLDOWN_SECONDS=10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G

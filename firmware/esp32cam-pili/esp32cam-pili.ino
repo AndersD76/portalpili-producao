@@ -46,7 +46,7 @@
 #define MOTION_MIN_PIXELS  500      // Min changed pixels to trigger motion
 #define IDLE_TIMEOUT_SEC   30       // Seconds without motion = idle event
 #define HEARTBEAT_SEC      60       // Heartbeat interval
-#define SNAPSHOT_UPLOAD_SEC 1       // Upload snapshot to server interval (video feed)
+#define SNAPSHOT_UPLOAD_SEC 5       // Upload snapshot to server interval (VGA quality)
 
 // Camera resolution
 #define FRAME_SIZE         FRAMESIZE_QVGA  // 320x240 for motion detection
@@ -398,7 +398,14 @@ bool sendEvent(const char* eventType, float intensity, const char* zone,
 bool uploadSnapshot() {
   if (!wifi_connected || WiFi.status() != WL_CONNECTED) return false;
 
-  // Use QVGA for fast upload (video feed)
+  // Switch to VGA (640x480) for better quality snapshot
+  sensor_t* s = esp_camera_sensor_get();
+  if (s) {
+    s->set_framesize(s, SNAPSHOT_SIZE);
+    s->set_quality(s, 10); // Lower = better quality (10-63)
+  }
+  delay(150); // Let sensor adjust
+
   camera_fb_t* fb = esp_camera_fb_get();
 
   if (!fb) {
@@ -423,6 +430,13 @@ bool uploadSnapshot() {
 
   http.end();
   esp_camera_fb_return(fb);
+
+  // Switch back to QVGA for motion detection
+  if (s) {
+    s->set_framesize(s, FRAME_SIZE);
+    s->set_quality(s, 12);
+  }
+
   return success;
 }
 
@@ -499,35 +513,10 @@ void loop() {
     return;
   }
 
-  // ---- Capture frame for motion detection ----
-  camera_fb_t* fb = esp_camera_fb_get();
-  if (!fb) {
-    Serial.println("[CAM] Capture failed");
-    delay(500);
-    return;
-  }
-
-  // ---- Detect motion ----
-  ZoneMotion motion = detectMotion(fb);
-  esp_camera_fb_return(fb);
-
-  float intensity = getZoneIntensity(motion);
-  bool motionDetected = (motion.total > MOTION_MIN_PIXELS);
-
-  // ---- Send motion event ----
-  if (motionDetected) {
-    last_motion_time = now;
-    idle_sent = false;
-
-    String zone = getMaxZone(motion);
-    sendEvent("motion", intensity, zone.c_str());
-  }
-
-  // ---- Send idle event ----
-  if (!motionDetected && !idle_sent && (now - last_motion_time > IDLE_TIMEOUT_SEC * 1000)) {
-    sendEvent("idle", 0.0, "ALL");
-    idle_sent = true;
-    last_idle_sent = now;
+  // ---- Upload snapshot to server (AI vision analysis happens server-side) ----
+  if (now - last_snapshot_upload > SNAPSHOT_UPLOAD_SEC * 1000) {
+    uploadSnapshot();
+    last_snapshot_upload = now;
   }
 
   // ---- Upload snapshot to server ----
