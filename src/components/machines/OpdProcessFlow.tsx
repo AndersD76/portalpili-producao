@@ -31,6 +31,8 @@ interface OpdData {
   em_andamento: string;
   a_realizar: string;
   pausadas: string;
+  sinprod_status: string | null;
+  sinprod_sync: string | null;
   stages: Stage[];
 }
 
@@ -92,6 +94,11 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
             <span className="text-sm font-bold text-gray-900">OPD {opd.numero}</span>
             {opd.cliente && (
               <span className="text-xs text-gray-400 truncate hidden sm:inline">{opd.cliente}</span>
+            )}
+            {opd.sinprod_status && (
+              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 border border-purple-200 text-[10px] rounded font-bold uppercase">
+                {opd.sinprod_status}
+              </span>
             )}
             {hasNc && (
               <span className="px-1 py-0.5 bg-red-100 text-red-600 text-[10px] rounded font-bold">NC</span>
@@ -194,12 +201,19 @@ export default function OpdProcessFlow({ opd, machinesByStage, expanded = false,
                 </span>
               )}
             </div>
-            <Link
-              href={`/producao/opd/${opd.numero}`}
-              className="text-xs text-red-600 hover:text-red-700 font-medium"
-            >
-              Abrir OPD →
-            </Link>
+            <div className="flex items-center gap-3">
+              {opd.sinprod_sync && (
+                <span className="text-[10px] text-purple-500" title="Última sincronização SinProd">
+                  Sync: {new Date(opd.sinprod_sync).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+              <Link
+                href={`/producao/opd/${opd.numero}`}
+                className="text-xs text-red-600 hover:text-red-700 font-medium"
+              >
+                Abrir OPD →
+              </Link>
+            </div>
           </div>
         </div>
       )}

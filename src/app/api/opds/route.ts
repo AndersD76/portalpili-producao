@@ -29,6 +29,8 @@ export async function GET() {
         o.anexo_pedido,
         o.registros_atividade,
         o.mensagens,
+        o.sinprod_status,
+        o.sinprod_sync,
         o.created,
         o.updated,
         COUNT(ra.id) as total_atividades,
@@ -44,7 +46,7 @@ export async function GET() {
       LEFT JOIN registros_atividades ra ON o.numero = ra.numero_opd
       GROUP BY o.id, o.opd, o.numero, o.cliente, o.data_pedido, o.previsao_inicio, o.previsao_termino,
                o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.tipo_produto, o.responsavel_opd, o.atividades_opd,
-               o.anexo_pedido, o.registros_atividade, o.mensagens, o.created, o.updated
+               o.anexo_pedido, o.registros_atividade, o.mensagens, o.sinprod_status, o.sinprod_sync, o.created, o.updated
       ORDER BY o.numero DESC
     `);
 

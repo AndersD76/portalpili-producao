@@ -41,6 +41,8 @@ export async function GET(request: Request) {
         o.inicio_producao,
         o.data_entrega,
         o.data_pedido,
+        o.sinprod_status,
+        o.sinprod_sync,
         COUNT(ra.id) FILTER (WHERE ra.parent_id IS NULL) as total_atividades,
         COUNT(ra.id) FILTER (WHERE ra.status = 'CONCLUÍDA' AND ra.parent_id IS NULL) as concluidas,
         COUNT(ra.id) FILTER (WHERE ra.status = 'EM ANDAMENTO' AND ra.parent_id IS NULL) as em_andamento,
@@ -50,7 +52,8 @@ export async function GET(request: Request) {
       LEFT JOIN registros_atividades ra ON ra.numero_opd = o.numero
       WHERE 1=1 ${opdFilter}
       GROUP BY o.numero, o.tipo_produto, o.cliente, o.responsavel_opd,
-               o.previsao_inicio, o.previsao_termino, o.inicio_producao, o.data_entrega, o.data_pedido
+               o.previsao_inicio, o.previsao_termino, o.inicio_producao, o.data_entrega, o.data_pedido,
+               o.sinprod_status, o.sinprod_sync
       ORDER BY
         CASE WHEN COUNT(ra.id) FILTER (WHERE ra.status = 'EM ANDAMENTO' AND ra.parent_id IS NULL) > 0 THEN 0 ELSE 1 END,
         o.previsao_termino ASC NULLS LAST,
