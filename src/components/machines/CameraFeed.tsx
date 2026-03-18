@@ -8,6 +8,8 @@ interface CameraFeedProps {
   showOverlay?: boolean;
   status?: string;
   lastSeen?: string | null;
+  rotation?: number;
+  onRotate?: () => void;
 }
 
 export default function CameraFeed({
@@ -15,18 +17,21 @@ export default function CameraFeed({
   showOverlay = true,
   status = 'offline',
   lastSeen,
+  rotation = 0,
+  onRotate,
 }: CameraFeedProps) {
   const [streamLoaded, setStreamLoaded] = useState(false);
   const [error, setError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // MJPEG stream URL — the browser handles multipart/x-mixed-replace natively
   const streamUrl = `/api/machines/${machineId}/video`;
 
   const isOnline = status === 'online' || status === 'idle';
   const lastSeenStr = lastSeen
     ? new Date(lastSeen).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : '--:--:--';
+
+  const rotationStyle = rotation ? { transform: `rotate(${rotation}deg)` } : {};
 
   return (
     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
@@ -46,7 +51,8 @@ export default function CameraFeed({
           ref={imgRef}
           src={streamUrl}
           alt="Camera feed"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-300"
+          style={rotationStyle}
           onLoad={() => setStreamLoaded(true)}
           onError={() => { setError(true); setStreamLoaded(false); }}
         />
@@ -73,7 +79,7 @@ export default function CameraFeed({
       {showOverlay && (
         <>
           {/* Top overlay: LIVE badge + timestamp */}
-          <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+          <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
               isOnline ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400'
             }`}>
@@ -85,8 +91,8 @@ export default function CameraFeed({
             </span>
           </div>
 
-          {/* Bottom overlay: machine status */}
-          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+          {/* Bottom overlay: status + rotate button */}
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between z-10">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
               status === 'online' ? 'bg-green-600/80 text-white'
               : status === 'idle' ? 'bg-amber-500/80 text-white'
@@ -98,9 +104,23 @@ export default function CameraFeed({
                 : status === 'alert' ? 'ALERTA'
                 : 'OFFLINE'}
             </span>
-            <span className={`w-2.5 h-2.5 rounded-full ${
-              isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
-            }`} />
+            <div className="flex items-center gap-2">
+              {onRotate && (
+                <button
+                  onClick={onRotate}
+                  className="p-1.5 bg-black/60 hover:bg-black/80 rounded transition-colors"
+                  title={`Girar câmera (${rotation}°)`}
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              )}
+              <span className={`w-2.5 h-2.5 rounded-full ${
+                isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+              }`} />
+            </div>
           </div>
         </>
       )}

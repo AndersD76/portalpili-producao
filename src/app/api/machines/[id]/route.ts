@@ -71,7 +71,7 @@ export async function PUT(
     const allowedFields = [
       'name', 'machine_code', 'location', 'cam_ip', 'cam_port',
       'operator_name', 'operator_shift', 'shift_start', 'shift_end',
-      'daily_target', 'status'
+      'daily_target', 'status', 'camera_rotation'
     ];
 
     for (const field of allowedFields) {

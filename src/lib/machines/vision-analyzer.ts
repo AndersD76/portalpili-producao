@@ -35,13 +35,15 @@ const VISION_ENGINE_URL = process.env.PILI_VISION_URL || 'http://localhost:8000'
 
 export async function analyzeMachineSnapshot(
   machineId: string,
-  imageBuffer: Buffer
+  imageBuffer: Buffer,
+  cameraRotation: number = 0
 ): Promise<MachineVisionResult | null> {
   try {
     // Send image to Pili Vision Engine as multipart/form-data
     const blob = new Blob([new Uint8Array(imageBuffer)], { type: 'image/jpeg' });
     const formData = new FormData();
     formData.append('file', blob, 'snapshot.jpg');
+    formData.append('rotation', String(cameraRotation));
 
     const apiKey = process.env.PILI_VISION_API_KEY || '';
     const response = await fetch(`${VISION_ENGINE_URL}/analyze/${machineId}`, {

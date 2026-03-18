@@ -49,7 +49,7 @@ export async function POST(
 
   try {
     const machineResult = await query(
-      'SELECT api_key, operator_shift FROM machines WHERE id = $1',
+      'SELECT api_key, operator_shift, camera_rotation FROM machines WHERE id = $1',
       [id]
     );
 
@@ -71,8 +71,10 @@ export async function POST(
 
     setSnapshot(id, buffer, contentType);
 
+    const cameraRotation = machineResult.rows[0].camera_rotation || 0;
+
     // Run vision analysis in background (Python engine handles throttling)
-    analyzeMachineSnapshot(id, buffer).then(async (analysis) => {
+    analyzeMachineSnapshot(id, buffer, cameraRotation).then(async (analysis) => {
       if (!analysis) return;
 
       // Map vision result to machine status

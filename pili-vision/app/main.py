@@ -5,16 +5,17 @@ FastAPI microservice that receives camera snapshots and returns:
 - Operator presence (person detection via YOLOv11)
 - Motion analysis (MOG2 background subtraction + optical flow)
 - Anomaly detection (lighting, obstruction, displacement)
-- OEE metrics (availability, performance, quality)
+- Auto-training: collects high-confidence frames for self-improvement
 """
 
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, Header, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from app.config import settings
@@ -24,6 +25,7 @@ from app.models.anomaly import get_anomaly_detector
 from app.models.detector import get_detector
 from app.services.frame_buffer import get_frame_buffer
 from app.services.oee import calculate_oee
+from app.services.auto_trainer import get_auto_trainer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,17 +39,39 @@ _last_analysis: dict[str, float] = {}
 _state_history: dict[str, list[dict]] = {}
 MAX_STATE_HISTORY = 17_280  # 24h at 5s intervals
 
+_models_loaded = False
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Warm up models on startup."""
-    logger.info("=== Pili Vision Engine starting ===")
+
+def _load_models():
+    """Load models lazily on first request (not blocking startup)."""
+    global _models_loaded
+    if _models_loaded:
+        return
     logger.info("Loading YOLOv11 model...")
     get_detector()
     logger.info("Initializing analyzers...")
     get_machine_state_analyzer()
     get_anomaly_detector()
-    logger.info("=== Pili Vision Engine ready ===")
+    _models_loaded = True
+    logger.info("=== Models loaded ===")
+
+
+def _apply_rotation(frame: np.ndarray, rotation: int) -> np.ndarray:
+    """Apply rotation to frame (0, 90, 180, 270 degrees)."""
+    rotation = rotation % 360
+    if rotation == 90:
+        return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    elif rotation == 180:
+        return cv2.rotate(frame, cv2.ROTATE_180)
+    elif rotation == 270:
+        return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return frame
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup/shutdown lifecycle."""
+    logger.info("=== Pili Vision Engine starting ===")
     yield
     logger.info("=== Pili Vision Engine shutting down ===")
 
@@ -55,18 +79,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Pili Vision Engine",
     description="Industrial machine monitoring via computer vision",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
 
 @app.get("/health")
 async def health():
+    trainer = get_auto_trainer()
     return {
         "status": "ok",
         "engine": "pili-vision",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "model": settings.yolo_model,
+        "training_samples": trainer.get_stats(),
     }
 
 
@@ -75,16 +101,11 @@ async def analyze_snapshot(
     machine_id: str,
     file: UploadFile = File(...),
     x_pili_key: str | None = Header(None),
+    rotation: int = Form(0),
 ):
-    """Analyze a camera snapshot for a machine.
+    """Analyze a camera snapshot for a machine."""
+    _load_models()
 
-    Receives a JPEG image and returns comprehensive analysis:
-    - machine_status: operating | idle | off | unknown
-    - operator_present: boolean
-    - motion metrics: intensity, flow, zones
-    - anomalies: if any visual anomaly detected
-    - oee: current shift OEE metrics
-    """
     # Auth check
     if settings.api_key and x_pili_key != settings.api_key:
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -112,6 +133,10 @@ async def analyze_snapshot(
     if frame is None:
         raise HTTPException(status_code=400, detail="Invalid image format")
 
+    # Apply camera rotation
+    if rotation:
+        frame = _apply_rotation(frame, rotation)
+
     _last_analysis[machine_id] = now
 
     # --- Store frame in buffer ---
@@ -138,17 +163,25 @@ async def analyze_snapshot(
 
     _state_history[machine_id].append({
         "state": machine_state.state.value,
+        "operator": operator.present,
         "timestamp": now,
     })
 
-    # Trim history
     if len(_state_history[machine_id]) > MAX_STATE_HISTORY:
         _state_history[machine_id] = _state_history[machine_id][-MAX_STATE_HISTORY:]
 
     oee = calculate_oee(_state_history[machine_id])
 
-    # --- 5. Build observations ---
+    # --- 5. Auto-training: save high-confidence frames ---
+    trainer = get_auto_trainer()
+    trainer.maybe_save(machine_id, frame, machine_state, operator)
+
+    # --- 6. Build observations ---
     observations = _build_observations(machine_state, operator, anomaly)
+
+    # --- 7. Compute extra metrics from history ---
+    history = _state_history[machine_id]
+    uptime_stats = _compute_uptime_stats(history)
 
     # --- Response ---
     result = {
@@ -182,14 +215,16 @@ async def analyze_snapshot(
             "idle_minutes": oee.idle_minutes,
             "off_minutes": oee.off_minutes,
         },
+        "uptime": uptime_stats,
         "observations": observations,
         "objects_detected": [
             {
                 "class": obj.class_name,
                 "confidence": round(obj.confidence, 2),
             }
-            for obj in detections.objects[:5]  # Top 5 objects
+            for obj in detections.objects[:5]
         ],
+        "training": trainer.get_stats().get(machine_id, {}),
     }
 
     logger.info(
@@ -233,12 +268,32 @@ async def get_oee(
     }
 
 
+@app.get("/training/{machine_id}")
+async def get_training_stats(
+    machine_id: str,
+    x_pili_key: str | None = Header(None),
+):
+    """Get auto-training statistics for a machine."""
+    if settings.api_key and x_pili_key != settings.api_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    trainer = get_auto_trainer()
+    stats = trainer.get_machine_stats(machine_id)
+
+    return {
+        "machine_id": machine_id,
+        "training": stats,
+        "ready_to_train": stats.get("total", 0) >= 150,
+        "min_samples_needed": 150,
+    }
+
+
 @app.post("/reset/{machine_id}")
 async def reset_machine(
     machine_id: str,
     x_pili_key: str | None = Header(None),
 ):
-    """Reset all state for a machine (e.g., after reconfiguration)."""
+    """Reset all state for a machine."""
     if settings.api_key and x_pili_key != settings.api_key:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -254,7 +309,6 @@ def _build_observations(machine_state, operator, anomaly) -> str:
     """Build a human-readable observation string in Portuguese."""
     parts = []
 
-    # Machine state
     state_labels = {
         MachineState.OPERATING: "Maquina em operacao",
         MachineState.IDLE: "Maquina parada (ligada)",
@@ -266,17 +320,58 @@ def _build_observations(machine_state, operator, anomaly) -> str:
         f"(confianca: {machine_state.confidence * 100:.0f}%)"
     )
 
-    # Motion detail
     if machine_state.motion_intensity > 0.001:
         parts.append(
             f"Movimento detectado: {machine_state.motion_intensity * 100:.1f}% da imagem"
         )
 
-    # Operator
     parts.append(operator.observations)
 
-    # Anomaly
     if anomaly.is_anomalous and anomaly.description:
         parts.append(f"ALERTA: {anomaly.description}")
 
     return ". ".join(parts)
+
+
+def _compute_uptime_stats(history: list[dict]) -> dict:
+    """Compute uptime statistics from state history."""
+    if len(history) < 2:
+        return {
+            "operating_pct": 0,
+            "idle_pct": 0,
+            "off_pct": 0,
+            "operator_presence_pct": 0,
+            "total_transitions": 0,
+            "current_state_duration_min": 0,
+        }
+
+    total = len(history)
+    operating = sum(1 for h in history if h["state"] == "operating")
+    idle = sum(1 for h in history if h["state"] == "idle")
+    off = sum(1 for h in history if h["state"] == "off")
+    with_operator = sum(1 for h in history if h.get("operator", False))
+
+    # Count state transitions
+    transitions = 0
+    for i in range(1, len(history)):
+        if history[i]["state"] != history[i - 1]["state"]:
+            transitions += 1
+
+    # Current state duration
+    current_state = history[-1]["state"]
+    current_start = len(history) - 1
+    for i in range(len(history) - 2, -1, -1):
+        if history[i]["state"] == current_state:
+            current_start = i
+        else:
+            break
+    current_duration_sec = (history[-1]["timestamp"] - history[current_start]["timestamp"])
+
+    return {
+        "operating_pct": round(operating / total * 100, 1),
+        "idle_pct": round(idle / total * 100, 1),
+        "off_pct": round(off / total * 100, 1),
+        "operator_presence_pct": round(with_operator / total * 100, 1),
+        "total_transitions": transitions,
+        "current_state_duration_min": round(current_duration_sec / 60, 1),
+    }
