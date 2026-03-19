@@ -85,11 +85,20 @@ interface SinprodData {
     opds_por_status: ChartItem[];
     operadores_30d: Array<{ OPERADOR: string; TOTAL: number; ABERTOS: number; FECHADOS: number; PECAS: number; REFUGO: number }>;
     recursos_30d: Array<{ CD_RECURSO: string; TOTAL: number; ATIVOS: number }>;
-    processos_30d: Array<{ PROCESSO: string; TOTAL: number; ABERTOS: number; FECHADOS: number }>;
+    processos_30d: Array<{ PROCESSO: string; NOME_PROCESSO: string | null; TOTAL: number; ABERTOS: number; FECHADOS: number }>;
   };
   trabalhando_agora: Array<{ nome: string; recurso: string | null; of: string | null; estagio: string; inicio: string }>;
   opds_em_producao: Array<{ NUMOPD: string; STATUS: string; COD_CLIENTE: string; DATA_FINAL_PREV: string; DATA_INICIO: string; PRIORIDADE: number; CLIENTE_NOME: string }>;
   tempo_recente: Array<{ DT_LEITURA_INI: string; DT_LEITURA_FIM: string | null; NOME_ABRIU: string; NOME_FECHOU: string | null; CD_RECURSO: string; ORDEM_FABRICACAO: string; CD_PROCESSO: string; HORAS_COMPUTADAS: string; QTDE_PRODUZIDA: number; QTDE_REFUGADA: number }>;
+}
+
+function agruparPorOperador(items: SinprodData['trabalhando_agora']) {
+  const grouped: Record<string, { nome: string; ofs: Array<{ of: string | null; recurso: string | null; estagio: string }> }> = {};
+  for (const t of items) {
+    if (!grouped[t.nome]) grouped[t.nome] = { nome: t.nome, ofs: [] };
+    grouped[t.nome].ofs.push({ of: t.of, recurso: t.recurso, estagio: t.estagio });
+  }
+  return Object.values(grouped).sort((a, b) => b.ofs.length - a.ofs.length);
 }
 
 type ViewMode = 'panorama' | 'cameras' | 'sinprod';
@@ -488,16 +497,24 @@ export default function MaquinasDashboard() {
                 {/* Quem está trabalhando agora */}
                 {sinprodData.trabalhando_agora.length > 0 && (
                   <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4 mb-4">
-                    <h3 className="text-sm font-semibold text-green-700 mb-3">Trabalhando Agora ({sinprodData.trabalhando_agora.length})</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {sinprodData.trabalhando_agora.map((t, i) => (
-                        <div key={i} className="flex items-center gap-2 bg-green-50 rounded-lg px-3 py-2">
-                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">{t.nome}</div>
-                            <div className="text-[10px] text-gray-500 truncate">
-                              {t.of && `OF ${t.of}`} {t.recurso && `· Rec ${t.recurso}`} · Est {t.estagio}
-                            </div>
+                    <h3 className="text-sm font-semibold text-green-700 mb-3">Trabalhando Agora — {agruparPorOperador(sinprodData.trabalhando_agora).length} operadores, {sinprodData.trabalhando_agora.length} apontamentos</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {agruparPorOperador(sinprodData.trabalhando_agora).map((op) => (
+                        <div key={op.nome} className="bg-green-50 rounded-lg px-3 py-2.5">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                            <span className="text-sm font-semibold text-gray-900 truncate">{op.nome}</span>
+                            {op.ofs.length > 1 && <span className="text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded font-medium">{op.ofs.length} OFs</span>}
+                          </div>
+                          <div className="space-y-0.5 ml-4">
+                            {op.ofs.slice(0, 3).map((o, i) => (
+                              <div key={i} className="text-[10px] text-gray-600 truncate">
+                                {o.of ? `OF ${o.of}` : ''} {o.recurso ? `· Rec ${o.recurso}` : ''} · Est {o.estagio}
+                              </div>
+                            ))}
+                            {op.ofs.length > 3 && (
+                              <div className="text-[10px] text-gray-400">+{op.ofs.length - 3} mais</div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -530,19 +547,24 @@ export default function MaquinasDashboard() {
 
                   {/* Processos */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Apontamentos por Processo (30d)</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Apontamentos por Processo (30d)</h3>
+                    <div className="flex items-center gap-4 text-[10px] text-gray-500 mb-3">
+                      <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500 rounded" /> Fechados</span>
+                      <span className="flex items-center gap-1"><span className="w-3 h-2 bg-red-400 rounded" /> Abertos</span>
+                    </div>
                     <div className="space-y-2">
                       {sinprodData.charts.processos_30d.map((p) => {
                         const maxVal = Math.max(...sinprodData.charts.processos_30d.map(d => d.TOTAL));
-                        const pct = maxVal > 0 ? (p.TOTAL / maxVal) * 100 : 0;
                         return (
                           <div key={p.PROCESSO} className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-600 w-16 text-right shrink-0">Proc {p.PROCESSO}</span>
+                            <span className="text-[11px] text-gray-600 w-40 text-right shrink-0 truncate" title={p.NOME_PROCESSO || p.PROCESSO}>
+                              {p.NOME_PROCESSO || `Processo ${p.PROCESSO}`}
+                            </span>
                             <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden flex">
                               <div className="h-full bg-emerald-500" style={{ width: `${maxVal > 0 ? (p.FECHADOS / maxVal) * 100 : 0}%` }} />
                               <div className="h-full bg-red-400" style={{ width: `${maxVal > 0 ? (p.ABERTOS / maxVal) * 100 : 0}%` }} />
                             </div>
-                            <span className="text-xs text-gray-900 w-16 text-right">{p.FECHADOS}F/{p.ABERTOS}A</span>
+                            <span className="text-xs text-gray-900 w-12 text-right">{p.TOTAL}</span>
                           </div>
                         );
                       })}

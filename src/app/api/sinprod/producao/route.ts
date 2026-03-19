@@ -73,15 +73,16 @@ export async function GET(request: Request) {
         GROUP BY t.CD_RECURSO ORDER BY COUNT(*) DESC
       `).catch(() => []),
 
-      // Processos últimos 30 dias
+      // Processos últimos 30 dias COM NOME
       sinprodQuery(`
-        SELECT t.CD_PROCESSO as PROCESSO, COUNT(*) as TOTAL,
+        SELECT t.CD_PROCESSO as PROCESSO, p.NOME as NOME_PROCESSO, COUNT(*) as TOTAL,
           SUM(CASE WHEN t.DT_LEITURA_FIM IS NULL THEN 1 ELSE 0 END) as ABERTOS,
           SUM(CASE WHEN t.DT_LEITURA_FIM IS NOT NULL THEN 1 ELSE 0 END) as FECHADOS
         FROM TEMPOS_PRODUCAO_LEITORES t
+        LEFT JOIN PROCESSOS p ON t.CD_PROCESSO = p.CODIGO
         WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
           AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
-        GROUP BY t.CD_PROCESSO ORDER BY COUNT(*) DESC
+        GROUP BY t.CD_PROCESSO, p.NOME ORDER BY COUNT(*) DESC
       `).catch(() => []),
 
       // Últimos 20 apontamentos (abertos e fechados) com detalhes
