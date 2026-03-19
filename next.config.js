@@ -10,7 +10,7 @@ const nextConfig = {
   },
   headers: async () => [
     {
-      source: '/:path*',
+      source: '/((?!api/machines/.*/video|api/machines/.*/snapshot|_next/static).*)',
       headers: [
         { key: 'Cache-Control', value: 'no-store, must-revalidate' },
       ],
