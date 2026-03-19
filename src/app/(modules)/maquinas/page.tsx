@@ -394,15 +394,16 @@ export default function MaquinasDashboard() {
           )}
         </div>
 
-        {loading ? (
+        {loading && (
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="bg-white rounded-xl border border-gray-200 h-20 animate-pulse" />
             ))}
           </div>
-        ) : viewMode === 'panorama' ? (
+        )}
+
+        {!loading && viewMode === 'panorama' && (
           <>
-            {/* Stats cards */}
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                 {[
@@ -419,83 +420,57 @@ export default function MaquinasDashboard() {
                 ))}
               </div>
             )}
-
-            {/* OPD Process flows */}
             <div className="space-y-3">
               {opds.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">
-                  Nenhuma OPD encontrada
-                </div>
+                <div className="text-center py-20 text-gray-400">Nenhuma OPD encontrada</div>
               ) : (
                 opds.map(opd => (
-                  <OpdProcessFlow
-                    key={opd.numero}
-                    opd={opd}
-                    machinesByStage={machinesByStage}
-                    expanded={expandedOpds.has(opd.numero)}
-                    onToggle={() => toggleOpd(opd.numero)}
-                  />
+                  <OpdProcessFlow key={opd.numero} opd={opd} machinesByStage={machinesByStage} expanded={expandedOpds.has(opd.numero)} onToggle={() => toggleOpd(opd.numero)} />
                 ))
               )}
             </div>
           </>
-        ) : (
-          /* Camera view — filtro por status da máquina */
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Add machine card */}
-              <button
-                onClick={handleNewMachine}
-                className="flex flex-col items-center justify-center bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-red-400 hover:bg-red-50/50 transition-all min-h-[260px] group"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-red-100 flex items-center justify-center mb-3 transition-colors">
-                  <svg className="w-6 h-6 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <span className="text-sm font-medium text-gray-500 group-hover:text-red-600 transition-colors">Nova Máquina</span>
-                <span className="text-xs text-gray-400 mt-1">Cadastrar equipamento + câmera</span>
-              </button>
+        )}
 
-              {machines.length === 0 ? (
-                <div className="flex items-center justify-center py-20 text-gray-400">
-                  Nenhuma máquina cadastrada
-                </div>
-              ) : (
-                machines
-                  .filter(m => filterCamStatus === 'all' || m.status === filterCamStatus)
-                  .map(machine => (
-                    <MachineCard
-                      key={machine.id}
-                      machine={machine}
-                      recentMotion={recentMotionIds.has(machine.id)}
-                      onEdit={handleEditMachine}
-                      onDelete={handleDeleteMachine}
-                    />
-                  ))
-              )}
-            </div>
-          </>
-        ) : viewMode === 'sinprod' ? (
-          /* SINPROD view */
+        {!loading && viewMode === 'cameras' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button onClick={handleNewMachine} className="flex flex-col items-center justify-center bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-red-400 hover:bg-red-50/50 transition-all min-h-[260px] group">
+              <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-red-100 flex items-center justify-center mb-3 transition-colors">
+                <svg className="w-6 h-6 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-gray-500 group-hover:text-red-600 transition-colors">Nova Máquina</span>
+              <span className="text-xs text-gray-400 mt-1">Cadastrar equipamento + câmera</span>
+            </button>
+            {machines.length === 0 ? (
+              <div className="flex items-center justify-center py-20 text-gray-400">Nenhuma máquina cadastrada</div>
+            ) : (
+              machines.filter(m => filterCamStatus === 'all' || m.status === filterCamStatus).map(machine => (
+                <MachineCard key={machine.id} machine={machine} recentMotion={recentMotionIds.has(machine.id)} onEdit={handleEditMachine} onDelete={handleDeleteMachine} />
+              ))
+            )}
+          </div>
+        )}
+
+        {!loading && viewMode === 'sinprod' && (
           <>
-            {sinprodLoading ? (
+            {sinprodLoading && (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="bg-white rounded-xl border border-gray-200 h-20 animate-pulse" />
                 ))}
               </div>
-            ) : sinprodError ? (
+            )}
+            {!sinprodLoading && sinprodError && (
               <div className="bg-white rounded-xl border border-red-200 p-8 text-center">
                 <p className="text-red-600 font-medium">{sinprodError}</p>
                 <p className="text-sm text-gray-500 mt-2">Verifique se o sinprod-api está rodando e o tunnel está ativo</p>
-                <button onClick={fetchSinprod} className="mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
-                  Tentar novamente
-                </button>
+                <button onClick={fetchSinprod} className="mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">Tentar novamente</button>
               </div>
-            ) : sinprodData ? (
+            )}
+            {!sinprodLoading && !sinprodError && sinprodData && (
               <>
-                {/* Stats */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
                     <div className="text-2xl font-bold text-blue-600">{sinprodData.total_opds}</div>
@@ -511,7 +486,6 @@ export default function MaquinasDashboard() {
                   </div>
                 </div>
 
-                {/* OPDs ativas */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <h3 className="text-sm font-semibold text-gray-900">OPDs Ativas no SINPROD</h3>
@@ -549,7 +523,6 @@ export default function MaquinasDashboard() {
                   </div>
                 </div>
 
-                {/* Apontamentos abertos */}
                 {sinprodData.apontamentos_abertos.length > 0 && (
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
                     <div className="px-4 py-3 border-b border-gray-100">
@@ -570,8 +543,7 @@ export default function MaquinasDashboard() {
                             </span>
                           </div>
                           <div className="mt-1 text-xs text-gray-500 ml-5">
-                            OPD: {(apt.numopd as string) || (apt.NUMOPD as string) || '-'} ·
-                            Processo: {(apt.processo as string) || (apt.PROCESSO as string) || '-'}
+                            OPD: {(apt.numopd as string) || (apt.NUMOPD as string) || '-'} · Processo: {(apt.processo as string) || (apt.PROCESSO as string) || '-'}
                           </div>
                         </div>
                       ))}
@@ -579,7 +551,6 @@ export default function MaquinasDashboard() {
                   </div>
                 )}
 
-                {/* Recursos */}
                 {sinprodData.recursos.length > 0 && (
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="px-4 py-3 border-b border-gray-100">
@@ -589,18 +560,16 @@ export default function MaquinasDashboard() {
                       {sinprodData.recursos.map((rec) => (
                         <div key={rec.CODIGO} className="px-4 py-3 border-b md:border-b-0 md:border-r border-gray-100 last:border-0">
                           <div className="text-sm font-medium text-gray-900">{rec.DESCRICAO}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            {rec.CENTRO || rec.TIPO || rec.CODIGO}
-                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">{rec.CENTRO || rec.TIPO || rec.CODIGO}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
               </>
-            ) : null}
+            )}
           </>
-        ) : null}
+        )}
       </div>
 
       <MachineFormModal
