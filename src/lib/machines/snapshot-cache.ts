@@ -12,7 +12,7 @@ type FrameListener = (snapshot: CachedSnapshot) => void;
 
 const cache = new Map<string, CachedSnapshot>();
 const listeners = new Map<string, Set<FrameListener>>();
-const MAX_AGE_MS = 60_000;
+const MAX_AGE_MS = 300_000; // 5 min — keep last frame longer
 let globalFrameId = 0;
 
 export function setSnapshot(machineId: string, buffer: Buffer, contentType: string = 'image/jpeg') {
