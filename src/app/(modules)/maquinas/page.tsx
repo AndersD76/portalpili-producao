@@ -84,7 +84,7 @@ interface SinprodData {
   charts: {
     opds_por_status: ChartItem[];
     operadores_30d: Array<{ OPERADOR: string; TOTAL: number; ABERTOS: number; FECHADOS: number; PECAS: number; REFUGO: number }>;
-    recursos_30d: Array<{ CD_RECURSO: string; TOTAL: number; ATIVOS: number }>;
+    recursos_30d: Array<{ CD_RECURSO: string; TOTAL: number; ATIVOS: number; NOME_RECURSO: string | null }>;
     processos_30d: Array<{ PROCESSO: string; NOME_PROCESSO: string | null; TOTAL: number; ABERTOS: number; FECHADOS: number }>;
   };
   trabalhando_agora: Array<{ nome: string; recurso: string | null; of: string | null; estagio: string; inicio: string }>;
@@ -583,7 +583,7 @@ export default function MaquinasDashboard() {
                           const pct = maxVal > 0 ? (r.TOTAL / maxVal) * 100 : 0;
                           return (
                             <div key={r.CD_RECURSO} className="flex items-center gap-2">
-                              <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate">{r.CD_RECURSO}</span>
+                              <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate" title={r.CD_RECURSO}>{r.NOME_RECURSO || r.CD_RECURSO}</span>
                               <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
                                 <div className="h-full rounded bg-orange-500" style={{ width: `${pct}%` }} />
                               </div>
@@ -632,9 +632,7 @@ export default function MaquinasDashboard() {
                           <th className="text-right py-2 px-2">Total</th>
                           <th className="text-right py-2 px-2">Abertos</th>
                           <th className="text-right py-2 px-2">Fechados</th>
-                          <th className="text-right py-2 px-2">Peças</th>
-                          <th className="text-right py-2 px-2">Refugo</th>
-                          <th className="text-left py-2 pl-3 w-32">Volume</th>
+                          <th className="text-left py-2 pl-3 w-40">Apontamentos</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -647,8 +645,6 @@ export default function MaquinasDashboard() {
                               <td className="py-2 px-2 text-right font-bold">{op.TOTAL}</td>
                               <td className="py-2 px-2 text-right text-red-500">{op.ABERTOS || '-'}</td>
                               <td className="py-2 px-2 text-right text-green-600">{op.FECHADOS}</td>
-                              <td className="py-2 px-2 text-right">{op.PECAS || '-'}</td>
-                              <td className="py-2 px-2 text-right text-red-400">{op.REFUGO || '-'}</td>
                               <td className="py-2 pl-3">
                                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                                   <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />

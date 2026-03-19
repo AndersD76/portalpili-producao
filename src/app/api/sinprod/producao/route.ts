@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         SELECT FIRST 50 o.NUMOPD, o.STATUS, o.COD_CLIENTE, o.DATA_FINAL_PREV, o.DATA_INICIO, o.PRIORIDADE,
           c.NOME as CLIENTE_NOME
         FROM CADOPD o LEFT JOIN CLIENTES c ON o.COD_CLIENTE = c.CODIGO
-        WHERE o.STATUS IN ('Em Produção', 'Paralisada')
+        WHERE (o.STATUS LIKE 'Em Produ%' OR o.STATUS = 'Paralisada')
         ORDER BY o.PRIORIDADE DESC, o.DATA_FINAL_PREV ASC
       `).catch(() => []),
 
@@ -63,14 +63,16 @@ export async function GET(request: Request) {
         GROUP BY f.NOME_FUN ORDER BY COUNT(*) DESC
       `).catch(() => []),
 
-      // Recursos últimos 30 dias: tempo ativo
+      // Recursos últimos 30 dias: tempo ativo com nome do patrimônio
       sinprodQuery(`
         SELECT t.CD_RECURSO, COUNT(*) as TOTAL,
-          SUM(CASE WHEN t.DT_LEITURA_FIM IS NULL THEN 1 ELSE 0 END) as ATIVOS
+          SUM(CASE WHEN t.DT_LEITURA_FIM IS NULL THEN 1 ELSE 0 END) as ATIVOS,
+          gp.DESCRICAO as NOME_RECURSO
         FROM TEMPOS_PRODUCAO_LEITORES t
+        LEFT JOIN GERAL_PATRIMONIO gp ON t.CD_RECURSO = gp.CODIGO
         WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
           AND t.CD_RECURSO IS NOT NULL AND t.CD_RECURSO <> ''
-        GROUP BY t.CD_RECURSO ORDER BY COUNT(*) DESC
+        GROUP BY t.CD_RECURSO, gp.DESCRICAO ORDER BY COUNT(*) DESC
       `).catch(() => []),
 
       // Processos últimos 30 dias COM NOME
