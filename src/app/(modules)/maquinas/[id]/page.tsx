@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import CameraFeed from '@/components/machines/CameraFeed';
-import EventFeed from '@/components/machines/EventFeed';
 import { useMachineWebSocket } from '@/hooks/useMachineWebSocket';
 import type {
-  Machine, MachineEvent, WSMessage,
+  Machine, WSMessage,
   MachineStatus
 } from '@/types/machines';
 
@@ -48,7 +47,6 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
   const router = useRouter();
 
   const [machine, setMachine] = useState<Machine | null>(null);
-  const [events, setEvents] = useState<MachineEvent[]>([]);
   const [vision, setVision] = useState<VisionData | null>(null);
   const [rotation, setRotation] = useState(0);
   const [motionHistory, setMotionHistory] = useState<number[]>([]);
@@ -60,7 +58,6 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
       return;
     }
     fetchMachineData();
-    fetchEvents();
     const interval = setInterval(fetchMachineData, 10000);
     return () => clearInterval(interval);
   }, [authenticated, router, id]);
@@ -86,32 +83,8 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  const fetchEvents = async () => {
-    try {
-      const res = await fetch(`/api/machines/${id}/events?limit=30`);
-      const json = await res.json();
-      if (json.success) setEvents(json.data);
-    } catch (err) {
-      console.error('Erro ao carregar eventos:', err);
-    }
-  };
-
   const handleMotionEvent = useCallback((msg: WSMessage) => {
     setMachine(prev => prev ? { ...prev, status: 'online' as MachineStatus, last_seen: msg.timestamp } : prev);
-    setEvents(prev => [{
-      id: `live-${Date.now()}`,
-      machine_id: msg.machine_id,
-      device_id: (msg.data.device_id as string) || null,
-      event_type: msg.data.event_type as MachineEvent['event_type'] || 'motion',
-      intensity: (msg.data.intensity as number) || 0,
-      zone: (msg.data.zone as MachineEvent['zone']) || null,
-      snapshot_url: null,
-      pieces_count: null,
-      cycle_time_seconds: null,
-      uptime_seconds: null,
-      raw_payload: null,
-      created_at: msg.timestamp,
-    }, ...prev].slice(0, 50));
   }, []);
 
   const handleMachineStatus = useCallback((msg: WSMessage) => {
@@ -232,40 +205,30 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Tempo Operando</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Em Movimento</p>
               <p className={`text-2xl font-bold mt-1 ${
                 (uptime?.operating_pct ?? 0) >= 60 ? 'text-green-400' :
-                (uptime?.operating_pct ?? 0) >= 30 ? 'text-amber-400' : 'text-red-400'
+                (uptime?.operating_pct ?? 0) >= 30 ? 'text-amber-400' : 'text-gray-500'
               }`}>{uptime?.operating_pct ?? 0}<span className="text-sm ml-0.5">%</span></p>
               <p className="text-[10px] text-gray-600 mt-0.5">do tempo monitorado</p>
             </div>
             <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Presença Operador</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Parado</p>
               <p className={`text-2xl font-bold mt-1 ${
-                (uptime?.operator_presence_pct ?? 0) >= 70 ? 'text-blue-400' :
-                (uptime?.operator_presence_pct ?? 0) >= 40 ? 'text-amber-400' : 'text-red-400'
-              }`}>{uptime?.operator_presence_pct ?? 0}<span className="text-sm ml-0.5">%</span></p>
-              <p className="text-[10px] text-gray-600 mt-0.5">detectado por YOLOv11</p>
+                (uptime?.idle_pct ?? 0) + (uptime?.off_pct ?? 0) >= 60 ? 'text-red-400' :
+                (uptime?.idle_pct ?? 0) + (uptime?.off_pct ?? 0) >= 30 ? 'text-amber-400' : 'text-green-400'
+              }`}>{((uptime?.idle_pct ?? 0) + (uptime?.off_pct ?? 0)).toFixed(1)}<span className="text-sm ml-0.5">%</span></p>
+              <p className="text-[10px] text-gray-600 mt-0.5">parado ou desligado</p>
             </div>
             <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Estado Atual</p>
-              <p className="text-2xl font-bold mt-1 text-white">
-                {uptime?.current_state_duration_min !== undefined
-                  ? uptime.current_state_duration_min >= 60
-                    ? `${Math.floor(uptime.current_state_duration_min / 60)}h${Math.round(uptime.current_state_duration_min % 60)}m`
-                    : `${Math.round(uptime.current_state_duration_min)}m`
-                  : '--'}
-              </p>
-              <p className="text-[10px] text-gray-600 mt-0.5">{statusLabel.toLowerCase()} há</p>
-            </div>
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Transições</p>
-              <p className="text-2xl font-bold mt-1 text-purple-400">
-                {uptime?.total_transitions ?? 0}
-              </p>
-              <p className="text-[10px] text-gray-600 mt-0.5">mudanças de estado</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">Sem Presença</p>
+              <p className={`text-2xl font-bold mt-1 ${
+                (100 - (uptime?.operator_presence_pct ?? 0)) >= 60 ? 'text-red-400' :
+                (100 - (uptime?.operator_presence_pct ?? 0)) >= 30 ? 'text-amber-400' : 'text-green-400'
+              }`}>{(100 - (uptime?.operator_presence_pct ?? 0)).toFixed(1)}<span className="text-sm ml-0.5">%</span></p>
+              <p className="text-[10px] text-gray-600 mt-0.5">sem operador detectado</p>
             </div>
           </div>
         </div>
@@ -588,13 +551,6 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
               </p>
             </div>
 
-            {/* Últimos Eventos */}
-            <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-              <h3 className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-3">
-                Últimos Eventos
-              </h3>
-              <EventFeed events={events} maxItems={10} />
-            </div>
           </div>
         </div>
       </main>
