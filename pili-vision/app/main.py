@@ -224,7 +224,7 @@ async def analyze_snapshot(
             }
             for obj in detections.objects[:5]
         ],
-        "training": trainer.get_stats().get(machine_id, {}),
+        "training": trainer.get_machine_stats(machine_id),
     }
 
     logger.info(
