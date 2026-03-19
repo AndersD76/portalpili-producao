@@ -70,7 +70,19 @@ interface MachineInfo {
 }
 
 interface SinprodData {
-  opds_ativas: Array<{
+  stats: {
+    total: number;
+    em_producao: number;
+    paralisadas: number;
+    concluidas: number;
+    faturadas: number;
+    entregues: number;
+    canceladas: number;
+    apontamentos_abertos: number;
+    recursos: number;
+  };
+  chart_data: Array<{ status: string; total: number }>;
+  opds_em_producao: Array<{
     CODIGO: string;
     NUMOPD: string;
     COD_CLIENTE: string;
@@ -81,16 +93,20 @@ interface SinprodData {
     PRIORIDADE: number;
     CLIENTE_NOME: string;
   }>;
-  apontamentos_abertos: Array<Record<string, unknown>>;
+  apontamentos_abertos: Array<{
+    DATA_HORA_INICIO: string;
+    ORDEM_FABRICACAO: string | null;
+    RECURSO: string | null;
+    ESTAGIO_INICIO: string;
+    FUNCIONARIO_INICIO: string;
+    NOME_FUNCIONARIO: string | null;
+  }>;
   recursos: Array<{
     CODIGO: string;
     DESCRICAO: string;
     TIPO: string;
     CENTRO: string;
   }>;
-  total_opds: number;
-  total_apontamentos: number;
-  total_recursos: number;
 }
 
 type ViewMode = 'panorama' | 'cameras' | 'sinprod';
@@ -323,7 +339,7 @@ export default function MaquinasDashboard() {
 
           {viewMode === 'sinprod' ? (
             <span className="text-xs text-gray-500 whitespace-nowrap">
-              {sinprodData ? `${sinprodData.total_opds} OPDs · ${sinprodData.total_apontamentos} apontamentos · ${sinprodData.total_recursos} recursos` : sinprodError || 'Carregando...'}
+              {sinprodData ? `${sinprodData.stats.em_producao} em produção · ${sinprodData.stats.apontamentos_abertos} apontamentos abertos` : sinprodError || 'Carregando...'}
             </span>
           ) : viewMode === 'panorama' ? (
             <>
@@ -471,94 +487,133 @@ export default function MaquinasDashboard() {
             )}
             {!sinprodLoading && !sinprodError && sinprodData && (
               <>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600">{sinprodData.total_opds}</div>
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">OPDs Ativas</div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600">{sinprodData.total_apontamentos}</div>
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Apontamentos Abertos</div>
-                  </div>
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
-                    <div className="text-2xl font-bold text-gray-900">{sinprodData.total_recursos}</div>
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Recursos / Máquinas</div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <h3 className="text-sm font-semibold text-gray-900">OPDs Ativas no SINPROD</h3>
-                  </div>
-                  <div className="divide-y divide-gray-100">
-                    {sinprodData.opds_ativas.length === 0 ? (
-                      <div className="p-8 text-center text-gray-400 text-sm">Nenhuma OPD ativa</div>
-                    ) : (
-                      sinprodData.opds_ativas.map((opd) => (
-                        <div key={opd.CODIGO} className="px-4 py-3 hover:bg-gray-50 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm font-bold text-gray-900">{opd.NUMOPD}</span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${
-                                opd.STATUS === 'Em Fabricação' || opd.STATUS === 'Em Produção' ? 'bg-blue-50 text-blue-700' :
-                                opd.STATUS === 'Concluída' ? 'bg-green-50 text-green-700' :
-                                opd.STATUS === 'Paralisada' ? 'bg-amber-50 text-amber-700' :
-                                'bg-gray-50 text-gray-600'
-                              }`}>{opd.STATUS}</span>
-                              {opd.PRIORIDADE > 0 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">P{opd.PRIORIDADE}</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {opd.DATA_FINAL_PREV ? `Prazo: ${new Date(opd.DATA_FINAL_PREV).toLocaleDateString('pt-BR')}` : ''}
-                            </div>
-                          </div>
-                          <div className="mt-1 flex items-center gap-4 text-xs text-gray-500">
-                            <span>{opd.CLIENTE_NOME || opd.COD_CLIENTE}</span>
-                            {opd.DATA_INICIO && <span>Início: {new Date(opd.DATA_INICIO).toLocaleDateString('pt-BR')}</span>}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {sinprodData.apontamentos_abertos.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900">Apontamentos em Aberto</h3>
+                {/* Stats cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                  {[
+                    { value: sinprodData.stats.em_producao, label: 'Em Produção', color: 'text-blue-600' },
+                    { value: sinprodData.stats.paralisadas, label: 'Paralisadas', color: 'text-amber-600' },
+                    { value: sinprodData.stats.concluidas, label: 'Concluídas', color: 'text-green-600' },
+                    { value: sinprodData.stats.faturadas + sinprodData.stats.entregues, label: 'Faturadas/Entregues', color: 'text-gray-600' },
+                    { value: sinprodData.stats.apontamentos_abertos, label: 'Apontamentos Abertos', color: 'text-red-600' },
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                      <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">{stat.label}</div>
                     </div>
-                    <div className="divide-y divide-gray-100">
-                      {sinprodData.apontamentos_abertos.map((apt, i) => (
-                        <div key={i} className="px-4 py-3 hover:bg-gray-50 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                              <span className="text-sm font-medium text-gray-900">
-                                {(apt.funcionario_inicio as string) || (apt.FUNCIONARIO as string) || 'Funcionário'}
+                  ))}
+                </div>
+
+                {/* Chart: OPDs por status */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">OPDs por Status</h3>
+                  <div className="space-y-2">
+                    {sinprodData.chart_data.map((item) => {
+                      const maxVal = Math.max(...sinprodData.chart_data.map(d => d.total));
+                      const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
+                      const colorMap: Record<string, string> = {
+                        'Em Produção': 'bg-blue-500',
+                        'Paralisada': 'bg-amber-500',
+                        'Concluída': 'bg-green-500',
+                        'Faturada': 'bg-purple-500',
+                        'Entregue': 'bg-gray-500',
+                        'Cancelada': 'bg-red-400',
+                      };
+                      return (
+                        <div key={item.status} className="flex items-center gap-3">
+                          <span className="text-xs text-gray-600 w-28 text-right shrink-0">{item.status}</span>
+                          <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${colorMap[item.status] || 'bg-gray-400'}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-gray-900 w-10">{item.total}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-100 text-right">
+                    <span className="text-xs text-gray-500">Total: </span>
+                    <span className="text-sm font-bold text-gray-900">{sinprodData.stats.total} OPDs</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  {/* OPDs em produção */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">OPDs em Produção ({sinprodData.opds_em_producao.length})</h3>
+                    </div>
+                    <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                      {sinprodData.opds_em_producao.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400 text-sm">Nenhuma OPD em produção</div>
+                      ) : (
+                        sinprodData.opds_em_producao.map((opd) => (
+                          <div key={opd.CODIGO} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-gray-900">{opd.NUMOPD}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                  opd.STATUS === 'Em Produção' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
+                                }`}>{opd.STATUS}</span>
+                                {opd.PRIORIDADE > 0 && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">P{opd.PRIORIDADE}</span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-gray-400">
+                                {opd.DATA_FINAL_PREV ? new Date(opd.DATA_FINAL_PREV).toLocaleDateString('pt-BR') : ''}
                               </span>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {(apt.recurso as string) || (apt.RECURSO as string) || ''}
-                            </span>
+                            <div className="mt-1 text-xs text-gray-500">{opd.CLIENTE_NOME || opd.COD_CLIENTE}</div>
                           </div>
-                          <div className="mt-1 text-xs text-gray-500 ml-5">
-                            OPD: {(apt.numopd as string) || (apt.NUMOPD as string) || '-'} · Processo: {(apt.processo as string) || (apt.PROCESSO as string) || '-'}
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
-                )}
 
+                  {/* Apontamentos abertos */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">Apontamentos em Aberto ({sinprodData.apontamentos_abertos.length})</h3>
+                    </div>
+                    <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                      {sinprodData.apontamentos_abertos.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400 text-sm">Nenhum apontamento aberto</div>
+                      ) : (
+                        sinprodData.apontamentos_abertos.map((apt, i) => (
+                          <div key={i} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                                <span className="text-sm font-medium text-gray-900">
+                                  {apt.NOME_FUNCIONARIO || `Func. ${apt.FUNCIONARIO_INICIO}`}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-gray-400">
+                                {apt.DATA_HORA_INICIO ? new Date(apt.DATA_HORA_INICIO).toLocaleDateString('pt-BR') : ''}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 ml-4">
+                              {apt.ORDEM_FABRICACAO && <span>OF: {apt.ORDEM_FABRICACAO}</span>}
+                              {apt.RECURSO && <span>Recurso: {apt.RECURSO}</span>}
+                              <span>Estágio: {apt.ESTAGIO_INICIO}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recursos */}
                 {sinprodData.recursos.length > 0 && (
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900">Recursos / Máquinas SINPROD</h3>
+                      <h3 className="text-sm font-semibold text-gray-900">Recursos / Máquinas ({sinprodData.recursos.length})</h3>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-y md:divide-y-0 divide-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                       {sinprodData.recursos.map((rec) => (
-                        <div key={rec.CODIGO} className="px-4 py-3 border-b md:border-b-0 md:border-r border-gray-100 last:border-0">
+                        <div key={rec.CODIGO} className="px-4 py-3 border-b md:border-r border-gray-100">
                           <div className="text-sm font-medium text-gray-900">{rec.DESCRICAO}</div>
                           <div className="text-xs text-gray-500 mt-0.5">{rec.CENTRO || rec.TIPO || rec.CODIGO}</div>
                         </div>

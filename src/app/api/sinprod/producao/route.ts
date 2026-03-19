@@ -24,78 +24,89 @@ async function sinprodQuery(sql: string) {
   return json.data;
 }
 
-// GET /api/sinprod/producao — Dados de produção para o Chão de Fábrica
 export async function GET(request: Request) {
   const auth = await verificarPermissao('PRODUCAO', 'visualizar');
   if (!auth.permitido) return auth.resposta;
 
-  const { searchParams } = new URL(request.url);
-  const view = searchParams.get('view') || 'dashboard';
-
   try {
-    if (view === 'dashboard') {
-      // OPDs ativas + apontamentos abertos + recursos
-      const [opdsAtivas, apontamentosAbertos, recursos] = await Promise.all([
-        sinprodQuery(`
-          SELECT FIRST 50 o.CODIGO, o.NUMOPD, o.COD_CLIENTE, o.STATUS,
-            o.DATA_PEDIDO, o.DATA_FINAL_PREV, o.DATA_INICIO, o.PRIORIDADE,
-            c.NOME as CLIENTE_NOME
-          FROM CADOPD o
-          LEFT JOIN CLIENTES c ON o.COD_CLIENTE = c.CODIGO
-          WHERE o.STATUS NOT IN ('Faturada', 'Cancelada')
-          ORDER BY o.PRIORIDADE DESC, o.DATA_FINAL_PREV ASC
-        `).catch(() => []),
-        sinprodQuery(`
-          SELECT * FROM vw_pili_maq_apontamentos
-        `).catch(() => []),
-        sinprodQuery(`
-          SELECT r.CODIGO, r.DESCRICAO, r.TIPO, cp.DESCRICAO as CENTRO
-          FROM CENTROS_PRODUCAO_RECURSOS r
-          LEFT JOIN CENTROS_PRODUCAO cp ON r.COD_CENTRO = cp.CODIGO
-          ORDER BY r.DESCRICAO
-        `).catch(() => []),
-      ]);
+    const [
+      opdsPorStatus,
+      opdsEmProducao,
+      apontamentosAbertos,
+      recursos,
+    ] = await Promise.all([
+      // Contagem de OPDs por status
+      sinprodQuery(`
+        SELECT COUNT(*) as TOTAL, STATUS FROM CADOPD GROUP BY STATUS
+      `).catch(() => []),
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          opds_ativas: opdsAtivas,
-          apontamentos_abertos: apontamentosAbertos,
-          recursos: recursos,
-          total_opds: opdsAtivas.length,
-          total_apontamentos: apontamentosAbertos.length,
-          total_recursos: recursos.length,
+      // OPDs em produção com cliente
+      sinprodQuery(`
+        SELECT FIRST 50 o.CODIGO, o.NUMOPD, o.STATUS, o.COD_CLIENTE,
+          o.DATA_PEDIDO, o.DATA_FINAL_PREV, o.DATA_INICIO, o.PRIORIDADE,
+          c.NOME as CLIENTE_NOME
+        FROM CADOPD o
+        LEFT JOIN CLIENTES c ON o.COD_CLIENTE = c.CODIGO
+        WHERE o.STATUS IN ('Em Produção', 'Paralisada')
+        ORDER BY o.PRIORIDADE DESC, o.DATA_FINAL_PREV ASC
+      `).catch(() => []),
+
+      // Apontamentos abertos com nome do funcionário
+      sinprodQuery(`
+        SELECT v.DATA_HORA_INICIO, v.ORDEM_FABRICACAO, v.RECURSO,
+          v.ESTAGIO_INICIO, v.FUNCIONARIO_INICIO,
+          f.NOME_FUN as NOME_FUNCIONARIO
+        FROM vw_pili_maq_apontamentos v
+        LEFT JOIN FUNCI f ON v.FUNCIONARIO_INICIO = f.CODIGO_FUN
+        ORDER BY v.DATA_HORA_INICIO DESC
+      `).catch(() => []),
+
+      // Recursos/máquinas
+      sinprodQuery(`
+        SELECT r.CODIGO, r.DESCRICAO, r.TIPO, cp.DESCRICAO as CENTRO
+        FROM CENTROS_PRODUCAO_RECURSOS r
+        LEFT JOIN CENTROS_PRODUCAO cp ON r.COD_CENTRO = cp.CODIGO
+        ORDER BY r.DESCRICAO
+      `).catch(() => []),
+    ]);
+
+    // Calcular stats
+    const statusMap: Record<string, number> = {};
+    for (const row of opdsPorStatus) {
+      statusMap[row.STATUS] = row.TOTAL;
+    }
+
+    const emProducao = statusMap['Em Produção'] || 0;
+    const paralisadas = statusMap['Paralisada'] || 0;
+    const concluidas = statusMap['Concluída'] || 0;
+    const faturadas = statusMap['Faturada'] || 0;
+    const entregues = statusMap['Entregue'] || 0;
+    const canceladas = statusMap['Cancelada'] || 0;
+    const totalOpds = Object.values(statusMap).reduce((a, b) => a + b, 0);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        stats: {
+          total: totalOpds,
+          em_producao: emProducao,
+          paralisadas,
+          concluidas,
+          faturadas,
+          entregues,
+          canceladas,
+          apontamentos_abertos: apontamentosAbertos.length,
+          recursos: recursos.length,
         },
-      });
-    }
-
-    if (view === 'apontamentos') {
-      const data = await sinprodQuery(`
-        SELECT FIRST 100 t.CODIGO, t.DATA_INICIO, t.HORA_INICIO, t.DATA_FIM,
-          t.HORA_FIM, t.HORAS_COMPUTADAS, t.CD_FUNCIONARIO, t.CD_RECURSO,
-          t.NUMOPD, t.CD_PROCESSO, t.CD_SETOR, t.QTDE_PRODUZIDA,
-          t.QTDE_REFUGADA, t.QTDE_RETRABALHO,
-          f.NOME_FUNCI as FUNCIONARIO_NOME
-        FROM TEMPOS_PRODUCAO_LEITORES t
-        LEFT JOIN FUNCI f ON t.CD_FUNCIONARIO = f.CODIGO_FUN
-        ORDER BY t.CODIGO DESC
-      `);
-
-      return NextResponse.json({ success: true, data });
-    }
-
-    if (view === 'funcionarios') {
-      const data = await sinprodQuery(`
-        SELECT f.CODIGO_FUN, f.CD_CRACHA, f.NOME_FUNCI, f.FORA_DE_USO
-        FROM FUNCI f
-        WHERE f.FORA_DE_USO = '0'
-        ORDER BY f.NOME_FUNCI
-      `);
-
-      return NextResponse.json({ success: true, data });
-    }
-
-    return NextResponse.json({ success: false, error: 'View inválida' }, { status: 400 });
+        chart_data: opdsPorStatus.map((r: Record<string, unknown>) => ({
+          status: r.STATUS,
+          total: r.TOTAL,
+        })),
+        opds_em_producao: opdsEmProducao,
+        apontamentos_abertos: apontamentosAbertos,
+        recursos,
+      },
+    });
   } catch (error) {
     console.error('[SINPROD] Erro:', error);
     return NextResponse.json({
