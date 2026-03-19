@@ -476,7 +476,7 @@ export default function MaquinasDashboard() {
               )}
             </div>
           </>
-        ) : (
+        ) : viewMode === 'sinprod' ? (
           /* SINPROD view */
           <>
             {sinprodLoading ? (
@@ -600,7 +600,7 @@ export default function MaquinasDashboard() {
               </>
             ) : null}
           </>
-        )}
+        ) : null}
       </div>
 
       <MachineFormModal
