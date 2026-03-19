@@ -124,7 +124,11 @@ export default function MaquinasDashboard() {
   const [sinprodData, setSinprodData] = useState<SinprodData | null>(null);
   const [sinprodLoading, setSinprodLoading] = useState(false);
   const [sinprodError, setSinprodError] = useState<string | null>(null);
-  const [sinprodPeriodo, setSinprodPeriodo] = useState(30);
+  const [sinprodDe, setSinprodDe] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [sinprodAte, setSinprodAte] = useState(() => new Date().toISOString().split('T')[0]);
 
   // CRUD state
   const [formOpen, setFormOpen] = useState(false);
@@ -162,7 +166,7 @@ export default function MaquinasDashboard() {
     setSinprodLoading(true);
     setSinprodError(null);
     try {
-      const res = await fetch(`/api/sinprod/producao?dias=${sinprodPeriodo}`);
+      const res = await fetch(`/api/sinprod/producao?de=${sinprodDe}&ate=${sinprodAte}`);
       const json = await res.json();
       if (json.success) {
         setSinprodData(json.data);
@@ -195,7 +199,7 @@ export default function MaquinasDashboard() {
   useEffect(() => {
     if (authenticated) fetchSinprod();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sinprodPeriodo]);
+  }, [sinprodDe, sinprodAte]);
 
   const handleMotionEvent = useCallback((msg: WSMessage) => {
     setRecentMotionIds(prev => new Set(prev).add(msg.machine_id));
@@ -336,21 +340,13 @@ export default function MaquinasDashboard() {
           <div className="w-px h-6 bg-gray-200" />
 
           {viewMode === 'sinprod' ? (
-            <>
-              {([7, 15, 30, 60, 90] as const).map(d => (
-                <button
-                  key={d}
-                  onClick={() => setSinprodPeriodo(d)}
-                  className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors font-medium ${
-                    sinprodPeriodo === d
-                      ? 'bg-red-100 text-red-700 border border-red-200'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-transparent'
-                  }`}
-                >
-                  {d}d
-                </button>
-              ))}
-            </>
+            <div className="flex items-center gap-2">
+              <input type="date" value={sinprodDe} onChange={e => setSinprodDe(e.target.value)}
+                className="px-2 py-1 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-red-500/50 focus:border-red-400" />
+              <span className="text-xs text-gray-400">até</span>
+              <input type="date" value={sinprodAte} onChange={e => setSinprodAte(e.target.value)}
+                className="px-2 py-1 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-red-500/50 focus:border-red-400" />
+            </div>
           ) : viewMode === 'panorama' ? (
             <>
               {(['all', 'TOMBADOR', 'COLETOR'] as const).map(tipo => (
@@ -565,7 +561,7 @@ export default function MaquinasDashboard() {
 
                   {/* Processos */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Apontamentos por Processo ({sinprodPeriodo}d)</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Apontamentos por Processo (período)</h3>
                     <div className="flex items-center gap-4 text-[10px] text-gray-500 mb-3">
                       <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-500 rounded" /> Fechados</span>
                       <span className="flex items-center gap-1"><span className="w-3 h-2 bg-red-400 rounded" /> Abertos</span>
@@ -591,7 +587,7 @@ export default function MaquinasDashboard() {
 
                   {/* Recursos */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Recursos Utilizados ({sinprodPeriodo}d)</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Recursos Utilizados (período)</h3>
                     {sinprodData.charts.recursos_30d.length === 0 ? (
                       <p className="text-sm text-gray-400 text-center py-4">Sem dados</p>
                     ) : (
@@ -641,7 +637,7 @@ export default function MaquinasDashboard() {
 
                 {/* Operadores - tabela completa */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Operadores — Últimos {sinprodPeriodo} dias</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Operadores — Período selecionado</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -679,7 +675,7 @@ export default function MaquinasDashboard() {
                 {/* Tempo recente - últimos apontamentos */}
                 {sinprodData.tempo_recente.length > 0 && (
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Últimos Apontamentos ({sinprodPeriodo} dias)</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Últimos Apontamentos</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
                         <thead>
