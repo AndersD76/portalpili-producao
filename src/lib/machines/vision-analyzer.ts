@@ -26,6 +26,21 @@ export interface MachineVisionResult {
     idle_minutes: number;
     off_minutes: number;
   };
+  uptime: {
+    operating_pct: number;
+    idle_pct: number;
+    off_pct: number;
+    operator_presence_pct: number;
+    total_transitions: number;
+    current_state_duration_min: number;
+  };
+  training: {
+    operating: number;
+    idle: number;
+    off: number;
+    total: number;
+    ready: boolean;
+  };
 }
 
 // Cache last result per machine
@@ -39,7 +54,6 @@ export async function analyzeMachineSnapshot(
   cameraRotation: number = 0
 ): Promise<MachineVisionResult | null> {
   try {
-    // Send image to Pili Vision Engine as multipart/form-data
     const blob = new Blob([new Uint8Array(imageBuffer)], { type: 'image/jpeg' });
     const formData = new FormData();
     formData.append('file', blob, 'snapshot.jpg');
@@ -54,7 +68,6 @@ export async function analyzeMachineSnapshot(
       body: formData,
     });
 
-    // Cooldown — the vision engine handles throttling
     if (response.status === 429) {
       return lastResult.get(machineId) || null;
     }
@@ -66,7 +79,6 @@ export async function analyzeMachineSnapshot(
 
     const data = await response.json();
 
-    // Map confidence from numeric to label
     let confidence: 'high' | 'medium' | 'low' = 'medium';
     if (data.confidence >= 0.8) confidence = 'high';
     else if (data.confidence < 0.5) confidence = 'low';
@@ -85,15 +97,21 @@ export async function analyzeMachineSnapshot(
         availability: 0, performance: 0, quality: 100,
         oee: 0, operating_minutes: 0, idle_minutes: 0, off_minutes: 0,
       },
+      uptime: data.uptime || {
+        operating_pct: 0, idle_pct: 0, off_pct: 0,
+        operator_presence_pct: 0, total_transitions: 0, current_state_duration_min: 0,
+      },
+      training: data.training || {
+        operating: 0, idle: 0, off: 0, total: 0, ready: false,
+      },
     };
 
-    // Cache result
     lastResult.set(machineId, analysis);
 
     console.log(
       `[VISION] Machine ${machineId.substring(0, 8)}: status=${analysis.machine_status}, ` +
       `operator=${analysis.operator_present}, confidence=${analysis.confidence}, ` +
-      `oee=${analysis.oee.oee}%`
+      `uptime=${analysis.uptime.operating_pct}%op/${analysis.uptime.operator_presence_pct}%pres`
     );
 
     return analysis;
