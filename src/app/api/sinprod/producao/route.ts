@@ -23,6 +23,10 @@ export async function GET(request: Request) {
   const auth = await verificarPermissao('PRODUCAO', 'visualizar');
   if (!auth.permitido) return auth.resposta;
 
+  const { searchParams } = new URL(request.url);
+  const dias = parseInt(searchParams.get('dias') || '30');
+  const periodo = Math.min(Math.max(dias, 1), 365);
+
   try {
     const [
       opdsPorStatus,
@@ -58,7 +62,7 @@ export async function GET(request: Request) {
           SUM(COALESCE(t.QTDE_PRODUZIDA, 0)) as PECAS,
           SUM(COALESCE(t.QTDE_REFUGADA, 0)) as REFUGO
         FROM TEMPOS_PRODUCAO_LEITORES t LEFT JOIN FUNCI f ON t.CD_FUNCIONARIO_INI = f.CODIGO_FUN
-        WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
+        WHERE t.DT_LEITURA_INI >= DATEADD(-${periodo} DAY TO CURRENT_DATE)
           AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
         GROUP BY f.NOME_FUN ORDER BY COUNT(*) DESC
       `).catch(() => []),
@@ -70,7 +74,7 @@ export async function GET(request: Request) {
           gp.DESCRICAO as NOME_RECURSO
         FROM TEMPOS_PRODUCAO_LEITORES t
         LEFT JOIN GERAL_PATRIMONIO gp ON t.CD_RECURSO = gp.CODIGO
-        WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
+        WHERE t.DT_LEITURA_INI >= DATEADD(-${periodo} DAY TO CURRENT_DATE)
           AND t.CD_RECURSO IS NOT NULL AND t.CD_RECURSO <> ''
         GROUP BY t.CD_RECURSO, gp.DESCRICAO ORDER BY COUNT(*) DESC
       `).catch(() => []),
@@ -82,7 +86,7 @@ export async function GET(request: Request) {
           SUM(CASE WHEN t.DT_LEITURA_FIM IS NOT NULL THEN 1 ELSE 0 END) as FECHADOS
         FROM TEMPOS_PRODUCAO_LEITORES t
         LEFT JOIN PROCESSOS p ON t.CD_PROCESSO = p.CODIGO
-        WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
+        WHERE t.DT_LEITURA_INI >= DATEADD(-${periodo} DAY TO CURRENT_DATE)
           AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
         GROUP BY t.CD_PROCESSO, p.NOME ORDER BY COUNT(*) DESC
       `).catch(() => []),
@@ -97,7 +101,7 @@ export async function GET(request: Request) {
         FROM TEMPOS_PRODUCAO_LEITORES t
         LEFT JOIN FUNCI f1 ON t.CD_FUNCIONARIO_INI = f1.CODIGO_FUN
         LEFT JOIN FUNCI f2 ON t.CD_FUNCIONARIO_FIM = f2.CODIGO_FUN
-        WHERE t.DT_LEITURA_INI >= DATEADD(-7 DAY TO CURRENT_DATE)
+        WHERE t.DT_LEITURA_INI >= DATEADD(-${periodo} DAY TO CURRENT_DATE)
           AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
         ORDER BY t.DT_LEITURA_INI DESC
       `).catch(() => []),
