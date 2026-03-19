@@ -70,52 +70,26 @@ interface MachineInfo {
 }
 
 interface ChartItem { label: string; value: number }
-interface ProdOperador { nome: string; horas: number; pecas: number; refugo: number }
 
 interface SinprodData {
   stats: {
-    total: number;
+    total_opds: number;
     em_producao: number;
     paralisadas: number;
     concluidas: number;
     faturadas: number;
-    entregues: number;
-    canceladas: number;
-    apontamentos_abertos: number;
-    recursos: number;
+    trabalhando_agora: number;
+    total_operadores_30d: number;
   };
   charts: {
     opds_por_status: ChartItem[];
-    por_operador: ChartItem[];
-    por_recurso: ChartItem[];
-    por_estagio: ChartItem[];
-    producao_operadores: ProdOperador[];
+    operadores_30d: Array<{ OPERADOR: string; TOTAL: number; ABERTOS: number; FECHADOS: number; PECAS: number; REFUGO: number }>;
+    recursos_30d: Array<{ CD_RECURSO: string; TOTAL: number; ATIVOS: number }>;
+    processos_30d: Array<{ PROCESSO: string; TOTAL: number; ABERTOS: number; FECHADOS: number }>;
   };
-  opds_em_producao: Array<{
-    CODIGO: string;
-    NUMOPD: string;
-    COD_CLIENTE: string;
-    STATUS: string;
-    DATA_PEDIDO: string;
-    DATA_FINAL_PREV: string;
-    DATA_INICIO: string;
-    PRIORIDADE: number;
-    CLIENTE_NOME: string;
-  }>;
-  apontamentos_abertos: Array<{
-    DATA_HORA_INICIO: string;
-    ORDEM_FABRICACAO: string | null;
-    RECURSO: string | null;
-    ESTAGIO_INICIO: string;
-    FUNCIONARIO_INICIO: string;
-    NOME_FUNCIONARIO: string | null;
-  }>;
-  recursos: Array<{
-    CODIGO: string;
-    DESCRICAO: string;
-    TIPO: string;
-    CENTRO: string;
-  }>;
+  trabalhando_agora: Array<{ nome: string; recurso: string | null; of: string | null; estagio: string; inicio: string }>;
+  opds_em_producao: Array<{ NUMOPD: string; STATUS: string; COD_CLIENTE: string; DATA_FINAL_PREV: string; DATA_INICIO: string; PRIORIDADE: number; CLIENTE_NOME: string }>;
+  tempo_recente: Array<{ DT_LEITURA_INI: string; DT_LEITURA_FIM: string | null; NOME_ABRIU: string; NOME_FECHOU: string | null; CD_RECURSO: string; ORDEM_FABRICACAO: string; CD_PROCESSO: string; HORAS_COMPUTADAS: string; QTDE_PRODUZIDA: number; QTDE_REFUGADA: number }>;
 }
 
 type ViewMode = 'panorama' | 'cameras' | 'sinprod';
@@ -348,7 +322,7 @@ export default function MaquinasDashboard() {
 
           {viewMode === 'sinprod' ? (
             <span className="text-xs text-gray-500 whitespace-nowrap">
-              {sinprodData ? `${sinprodData.stats.em_producao} em produção · ${sinprodData.stats.apontamentos_abertos} apontamentos abertos` : sinprodError || 'Carregando...'}
+              {sinprodData ? `${sinprodData.stats.em_producao} em produção · ${sinprodData.stats.trabalhando_agora} trabalhando agora · ${sinprodData.stats.total_operadores_30d} operadores (30d)` : sinprodError || 'Carregando...'}
             </span>
           ) : viewMode === 'panorama' ? (
             <>
@@ -496,23 +470,42 @@ export default function MaquinasDashboard() {
             )}
             {!sinprodLoading && !sinprodError && sinprodData && (
               <>
-                {/* Stats cards */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                {/* Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   {[
-                    { value: sinprodData.stats.em_producao, label: 'Em Produção', color: 'text-blue-600' },
+                    { value: sinprodData.stats.trabalhando_agora, label: 'Trabalhando Agora', color: 'text-green-600' },
+                    { value: sinprodData.stats.em_producao, label: 'OPDs em Produção', color: 'text-blue-600' },
                     { value: sinprodData.stats.paralisadas, label: 'Paralisadas', color: 'text-amber-600' },
-                    { value: sinprodData.stats.concluidas, label: 'Concluídas', color: 'text-green-600' },
-                    { value: sinprodData.stats.faturadas + sinprodData.stats.entregues, label: 'Faturadas/Entregues', color: 'text-gray-600' },
-                    { value: sinprodData.stats.apontamentos_abertos, label: 'Apontamentos Abertos', color: 'text-red-600' },
-                  ].map((stat, i) => (
+                    { value: sinprodData.stats.total_operadores_30d, label: 'Operadores (30d)', color: 'text-gray-900' },
+                  ].map((s, i) => (
                     <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
-                      <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">{stat.label}</div>
+                      <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">{s.label}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* Charts grid */}
+                {/* Quem está trabalhando agora */}
+                {sinprodData.trabalhando_agora.length > 0 && (
+                  <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4 mb-4">
+                    <h3 className="text-sm font-semibold text-green-700 mb-3">Trabalhando Agora ({sinprodData.trabalhando_agora.length})</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {sinprodData.trabalhando_agora.map((t, i) => (
+                        <div key={i} className="flex items-center gap-2 bg-green-50 rounded-lg px-3 py-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{t.nome}</div>
+                            <div className="text-[10px] text-gray-500 truncate">
+                              {t.of && `OF ${t.of}`} {t.recurso && `· Rec ${t.recurso}`} · Est {t.estagio}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Charts 2x2 */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                   {/* OPDs por status */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -526,7 +519,7 @@ export default function MaquinasDashboard() {
                           <div key={item.label} className="flex items-center gap-2">
                             <span className="text-[11px] text-gray-600 w-24 text-right shrink-0">{item.label}</span>
                             <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
-                              <div className={`h-full rounded transition-all duration-700 ${colors[item.label] || 'bg-gray-400'}`} style={{ width: `${pct}%` }} />
+                              <div className={`h-full rounded ${colors[item.label] || 'bg-gray-400'}`} style={{ width: `${pct}%` }} />
                             </div>
                             <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
                           </div>
@@ -535,170 +528,70 @@ export default function MaquinasDashboard() {
                     </div>
                   </div>
 
-                  {/* Apontamentos por operador */}
+                  {/* Processos */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Apontamentos Abertos por Operador</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Apontamentos por Processo (30d)</h3>
                     <div className="space-y-2">
-                      {sinprodData.charts.por_operador.slice(0, 8).map((item) => {
-                        const maxVal = Math.max(...sinprodData.charts.por_operador.map(d => d.value));
-                        const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                      {sinprodData.charts.processos_30d.map((p) => {
+                        const maxVal = Math.max(...sinprodData.charts.processos_30d.map(d => d.TOTAL));
+                        const pct = maxVal > 0 ? (p.TOTAL / maxVal) * 100 : 0;
                         return (
-                          <div key={item.label} className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate">{item.label}</span>
-                            <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
-                              <div className="h-full rounded bg-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                          <div key={p.PROCESSO} className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-600 w-16 text-right shrink-0">Proc {p.PROCESSO}</span>
+                            <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden flex">
+                              <div className="h-full bg-emerald-500" style={{ width: `${maxVal > 0 ? (p.FECHADOS / maxVal) * 100 : 0}%` }} />
+                              <div className="h-full bg-red-400" style={{ width: `${maxVal > 0 ? (p.ABERTOS / maxVal) * 100 : 0}%` }} />
                             </div>
-                            <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
+                            <span className="text-xs text-gray-900 w-16 text-right">{p.FECHADOS}F/{p.ABERTOS}A</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Por estágio/processo */}
+                  {/* Recursos */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Apontamentos por Processo</h3>
-                    <div className="space-y-2">
-                      {sinprodData.charts.por_estagio.map((item) => {
-                        const maxVal = Math.max(...sinprodData.charts.por_estagio.map(d => d.value));
-                        const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
-                        return (
-                          <div key={item.label} className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-600 w-24 text-right shrink-0">{item.label}</span>
-                            <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
-                              <div className="h-full rounded bg-emerald-500 transition-all duration-700" style={{ width: `${pct}%` }} />
-                            </div>
-                            <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Por recurso/máquina */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Recursos Mais Utilizados</h3>
-                    {sinprodData.charts.por_recurso.length === 0 ? (
-                      <p className="text-sm text-gray-400 text-center py-4">Sem dados de recurso</p>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Recursos Utilizados (30d)</h3>
+                    {sinprodData.charts.recursos_30d.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-4">Sem dados</p>
                     ) : (
                       <div className="space-y-2">
-                        {sinprodData.charts.por_recurso.slice(0, 8).map((item) => {
-                          const maxVal = Math.max(...sinprodData.charts.por_recurso.map(d => d.value));
-                          const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                        {sinprodData.charts.recursos_30d.map((r) => {
+                          const maxVal = Math.max(...sinprodData.charts.recursos_30d.map(d => d.TOTAL));
+                          const pct = maxVal > 0 ? (r.TOTAL / maxVal) * 100 : 0;
                           return (
-                            <div key={item.label} className="flex items-center gap-2">
-                              <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate">{item.label}</span>
+                            <div key={r.CD_RECURSO} className="flex items-center gap-2">
+                              <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate">{r.CD_RECURSO}</span>
                               <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
-                                <div className="h-full rounded bg-orange-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                                <div className="h-full rounded bg-orange-500" style={{ width: `${pct}%` }} />
                               </div>
-                              <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
+                              <span className="text-xs text-gray-900 w-16 text-right">{r.TOTAL} ({r.ATIVOS} ativo)</span>
                             </div>
                           );
                         })}
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* Top operadores produção (últimos 30 dias) */}
-                {sinprodData.charts.producao_operadores.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Top Operadores — Últimos 30 dias</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-[10px] text-gray-500 uppercase border-b border-gray-100">
-                            <th className="text-left py-2 pr-4">Operador</th>
-                            <th className="text-right py-2 px-3">Horas</th>
-                            <th className="text-right py-2 px-3">Peças</th>
-                            <th className="text-right py-2 px-3">Refugo</th>
-                            <th className="text-left py-2 pl-3 w-40">Proporção</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {sinprodData.charts.producao_operadores.map((op, i) => {
-                            const maxH = Math.max(...sinprodData.charts.producao_operadores.map(o => o.horas));
-                            const pct = maxH > 0 ? (op.horas / maxH) * 100 : 0;
-                            return (
-                              <tr key={i} className="hover:bg-gray-50">
-                                <td className="py-2 pr-4 font-medium text-gray-900">{op.nome}</td>
-                                <td className="py-2 px-3 text-right text-gray-700">{op.horas.toLocaleString('pt-BR')}</td>
-                                <td className="py-2 px-3 text-right text-green-600 font-medium">{op.pecas}</td>
-                                <td className="py-2 px-3 text-right text-red-500">{op.refugo}</td>
-                                <td className="py-2 pl-3">
-                                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                   {/* OPDs em produção */}
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-900">OPDs em Produção ({sinprodData.opds_em_producao.length})</h3>
                     </div>
-                    <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                    <div className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
                       {sinprodData.opds_em_producao.length === 0 ? (
-                        <div className="p-8 text-center text-gray-400 text-sm">Nenhuma OPD em produção</div>
+                        <div className="p-6 text-center text-gray-400 text-sm">Nenhuma OPD em produção</div>
                       ) : (
                         sinprodData.opds_em_producao.map((opd) => (
-                          <div key={opd.CODIGO} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                          <div key={opd.NUMOPD} className="px-4 py-2.5 hover:bg-gray-50">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-bold text-gray-900">{opd.NUMOPD}</span>
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                  opd.STATUS === 'Em Produção' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
-                                }`}>{opd.STATUS}</span>
-                                {opd.PRIORIDADE > 0 && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">P{opd.PRIORIDADE}</span>
-                                )}
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${opd.STATUS === 'Em Produção' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>{opd.STATUS}</span>
                               </div>
-                              <span className="text-[10px] text-gray-400">
-                                {opd.DATA_FINAL_PREV ? new Date(opd.DATA_FINAL_PREV).toLocaleDateString('pt-BR') : ''}
-                              </span>
+                              <span className="text-[10px] text-gray-400">{opd.DATA_FINAL_PREV ? new Date(opd.DATA_FINAL_PREV).toLocaleDateString('pt-BR') : ''}</span>
                             </div>
-                            <div className="mt-1 text-xs text-gray-500">{opd.CLIENTE_NOME || opd.COD_CLIENTE}</div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Apontamentos abertos */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900">Apontamentos em Aberto ({sinprodData.apontamentos_abertos.length})</h3>
-                    </div>
-                    <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
-                      {sinprodData.apontamentos_abertos.length === 0 ? (
-                        <div className="p-8 text-center text-gray-400 text-sm">Nenhum apontamento aberto</div>
-                      ) : (
-                        sinprodData.apontamentos_abertos.map((apt, i) => (
-                          <div key={i} className="px-4 py-3 hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                                <span className="text-sm font-medium text-gray-900">
-                                  {apt.NOME_FUNCIONARIO || `Func. ${apt.FUNCIONARIO_INICIO}`}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-gray-400">
-                                {apt.DATA_HORA_INICIO ? new Date(apt.DATA_HORA_INICIO).toLocaleDateString('pt-BR') : ''}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 ml-4">
-                              {apt.ORDEM_FABRICACAO && <span>OF: {apt.ORDEM_FABRICACAO}</span>}
-                              {apt.RECURSO && <span>Recurso: {apt.RECURSO}</span>}
-                              <span>Estágio: {apt.ESTAGIO_INICIO}</span>
-                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">{opd.CLIENTE_NOME || opd.COD_CLIENTE}</div>
                           </div>
                         ))
                       )}
@@ -706,19 +599,84 @@ export default function MaquinasDashboard() {
                   </div>
                 </div>
 
-                {/* Recursos */}
-                {sinprodData.recursos.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900">Recursos / Máquinas ({sinprodData.recursos.length})</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                      {sinprodData.recursos.map((rec) => (
-                        <div key={rec.CODIGO} className="px-4 py-3 border-b md:border-r border-gray-100">
-                          <div className="text-sm font-medium text-gray-900">{rec.DESCRICAO}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{rec.CENTRO || rec.TIPO || rec.CODIGO}</div>
-                        </div>
-                      ))}
+                {/* Operadores - tabela completa */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Operadores — Últimos 30 dias</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-[10px] text-gray-500 uppercase border-b border-gray-200">
+                          <th className="text-left py-2 pr-4">Operador</th>
+                          <th className="text-right py-2 px-2">Total</th>
+                          <th className="text-right py-2 px-2">Abertos</th>
+                          <th className="text-right py-2 px-2">Fechados</th>
+                          <th className="text-right py-2 px-2">Peças</th>
+                          <th className="text-right py-2 px-2">Refugo</th>
+                          <th className="text-left py-2 pl-3 w-32">Volume</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {sinprodData.charts.operadores_30d.map((op, i) => {
+                          const maxT = Math.max(...sinprodData.charts.operadores_30d.map(o => o.TOTAL));
+                          const pct = maxT > 0 ? (op.TOTAL / maxT) * 100 : 0;
+                          return (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="py-2 pr-4 font-medium text-gray-900">{op.OPERADOR}</td>
+                              <td className="py-2 px-2 text-right font-bold">{op.TOTAL}</td>
+                              <td className="py-2 px-2 text-right text-red-500">{op.ABERTOS || '-'}</td>
+                              <td className="py-2 px-2 text-right text-green-600">{op.FECHADOS}</td>
+                              <td className="py-2 px-2 text-right">{op.PECAS || '-'}</td>
+                              <td className="py-2 px-2 text-right text-red-400">{op.REFUGO || '-'}</td>
+                              <td className="py-2 pl-3">
+                                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Tempo recente - últimos apontamentos */}
+                {sinprodData.tempo_recente.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Últimos Apontamentos (7 dias)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-[10px] text-gray-500 uppercase border-b border-gray-200">
+                            <th className="text-left py-2">Início</th>
+                            <th className="text-left py-2">Fim</th>
+                            <th className="text-left py-2">Abriu</th>
+                            <th className="text-left py-2">Fechou</th>
+                            <th className="text-left py-2">OF</th>
+                            <th className="text-left py-2">Recurso</th>
+                            <th className="text-left py-2">Proc</th>
+                            <th className="text-right py-2">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {sinprodData.tempo_recente.map((t, i) => (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="py-1.5 text-gray-700">{t.DT_LEITURA_INI ? new Date(t.DT_LEITURA_INI).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="py-1.5 text-gray-700">{t.DT_LEITURA_FIM ? new Date(t.DT_LEITURA_FIM).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="py-1.5 font-medium text-gray-900">{t.NOME_ABRIU || '-'}</td>
+                              <td className="py-1.5 text-gray-700">{t.NOME_FECHOU || '-'}</td>
+                              <td className="py-1.5 text-gray-600">{t.ORDEM_FABRICACAO || '-'}</td>
+                              <td className="py-1.5 text-gray-600">{t.CD_RECURSO || '-'}</td>
+                              <td className="py-1.5 text-gray-600">{t.CD_PROCESSO || '-'}</td>
+                              <td className="py-1.5 text-right">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${t.DT_LEITURA_FIM ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                  {t.DT_LEITURA_FIM ? 'Fechado' : 'Aberto'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}

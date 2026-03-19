@@ -8,17 +8,12 @@ const SINPROD_API_KEY = process.env.SINPROD_API_KEY || 'pili-sinprod-2026';
 
 async function sinprodQuery(sql: string) {
   if (!SINPROD_API_URL) throw new Error('SINPROD_API_URL não configurado');
-
   const res = await fetch(`${SINPROD_API_URL}/api/query`, {
     method: 'POST',
-    headers: {
-      'X-API-Key': SINPROD_API_KEY,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'X-API-Key': SINPROD_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ sql }),
     signal: AbortSignal.timeout(15000),
   });
-
   const json = await res.json();
   if (!json.success) throw new Error(json.error);
   return json.data;
@@ -33,143 +28,114 @@ export async function GET(request: Request) {
       opdsPorStatus,
       opdsEmProducao,
       apontamentosAbertos,
-      recursos,
-      apontPorOperador,
-      apontPorRecurso,
-      apontPorEstagio,
-      producaoRecente,
+      operadores30d,
+      recursos30d,
+      processos30d,
+      tempoRecente,
     ] = await Promise.all([
       sinprodQuery(`SELECT COUNT(*) as TOTAL, STATUS FROM CADOPD GROUP BY STATUS`).catch(() => []),
 
       sinprodQuery(`
-        SELECT FIRST 50 o.CODIGO, o.NUMOPD, o.STATUS, o.COD_CLIENTE,
-          o.DATA_PEDIDO, o.DATA_FINAL_PREV, o.DATA_INICIO, o.PRIORIDADE,
+        SELECT FIRST 50 o.NUMOPD, o.STATUS, o.COD_CLIENTE, o.DATA_FINAL_PREV, o.DATA_INICIO, o.PRIORIDADE,
           c.NOME as CLIENTE_NOME
-        FROM CADOPD o
-        LEFT JOIN CLIENTES c ON o.COD_CLIENTE = c.CODIGO
+        FROM CADOPD o LEFT JOIN CLIENTES c ON o.COD_CLIENTE = c.CODIGO
         WHERE o.STATUS IN ('Em Produção', 'Paralisada')
         ORDER BY o.PRIORIDADE DESC, o.DATA_FINAL_PREV ASC
       `).catch(() => []),
 
       sinprodQuery(`
-        SELECT v.DATA_HORA_INICIO, v.ORDEM_FABRICACAO, v.RECURSO,
-          v.ESTAGIO_INICIO, v.FUNCIONARIO_INICIO,
+        SELECT v.DATA_HORA_INICIO, v.ORDEM_FABRICACAO, v.RECURSO, v.ESTAGIO_INICIO, v.FUNCIONARIO_INICIO,
           f.NOME_FUN as NOME_FUNCIONARIO
-        FROM vw_pili_maq_apontamentos v
-        LEFT JOIN FUNCI f ON v.FUNCIONARIO_INICIO = f.CODIGO_FUN
+        FROM vw_pili_maq_apontamentos v LEFT JOIN FUNCI f ON v.FUNCIONARIO_INICIO = f.CODIGO_FUN
         ORDER BY v.DATA_HORA_INICIO DESC
       `).catch(() => []),
 
+      // Operadores últimos 30 dias: quem abriu, quem fechou, quantos
       sinprodQuery(`
-        SELECT r.CODIGO, r.DESCRICAO, r.TIPO, cp.DESCRICAO as CENTRO
-        FROM CENTROS_PRODUCAO_RECURSOS r
-        LEFT JOIN CENTROS_PRODUCAO cp ON r.COD_CENTRO = cp.CODIGO
-        ORDER BY r.DESCRICAO
+        SELECT f.NOME_FUN as OPERADOR, COUNT(*) as TOTAL,
+          SUM(CASE WHEN t.DT_LEITURA_FIM IS NULL THEN 1 ELSE 0 END) as ABERTOS,
+          SUM(CASE WHEN t.DT_LEITURA_FIM IS NOT NULL THEN 1 ELSE 0 END) as FECHADOS,
+          SUM(COALESCE(t.QTDE_PRODUZIDA, 0)) as PECAS,
+          SUM(COALESCE(t.QTDE_REFUGADA, 0)) as REFUGO
+        FROM TEMPOS_PRODUCAO_LEITORES t LEFT JOIN FUNCI f ON t.CD_FUNCIONARIO_INI = f.CODIGO_FUN
+        WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
+          AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
+        GROUP BY f.NOME_FUN ORDER BY COUNT(*) DESC
       `).catch(() => []),
 
-      // Apontamentos abertos por operador (quem mais tem abertos)
+      // Recursos últimos 30 dias: tempo ativo
       sinprodQuery(`
-        SELECT f.NOME_FUN as OPERADOR, COUNT(*) as TOTAL
-        FROM vw_pili_maq_apontamentos v
-        LEFT JOIN FUNCI f ON v.FUNCIONARIO_INICIO = f.CODIGO_FUN
-        GROUP BY f.NOME_FUN
-        ORDER BY COUNT(*) DESC
-      `).catch(() => []),
-
-      // Apontamentos por recurso (máquina mais utilizada)
-      sinprodQuery(`
-        SELECT v.RECURSO, COUNT(*) as TOTAL
-        FROM vw_pili_maq_apontamentos v
-        WHERE v.RECURSO IS NOT NULL
-        GROUP BY v.RECURSO
-        ORDER BY COUNT(*) DESC
-      `).catch(() => []),
-
-      // Apontamentos por estágio/processo
-      sinprodQuery(`
-        SELECT v.ESTAGIO_INICIO as ESTAGIO, COUNT(*) as TOTAL
-        FROM vw_pili_maq_apontamentos v
-        GROUP BY v.ESTAGIO_INICIO
-        ORDER BY COUNT(*) DESC
-      `).catch(() => []),
-
-      // Produção recente (últimos 30 dias - apontamentos fechados)
-      sinprodQuery(`
-        SELECT FIRST 200 t.CD_FUNCIONARIO, f.NOME_FUN, t.CD_RECURSO,
-          t.CD_PROCESSO, t.CD_SETOR, t.HORAS_COMPUTADAS,
-          t.QTDE_PRODUZIDA, t.QTDE_REFUGADA, t.DATA_INICIO
+        SELECT t.CD_RECURSO, COUNT(*) as TOTAL,
+          SUM(CASE WHEN t.DT_LEITURA_FIM IS NULL THEN 1 ELSE 0 END) as ATIVOS
         FROM TEMPOS_PRODUCAO_LEITORES t
-        LEFT JOIN FUNCI f ON t.CD_FUNCIONARIO = f.CODIGO_FUN
-        WHERE t.DATA_INICIO >= DATEADD(-30 DAY TO CURRENT_DATE)
-        ORDER BY t.CODIGO DESC
+        WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
+          AND t.CD_RECURSO IS NOT NULL AND t.CD_RECURSO <> ''
+        GROUP BY t.CD_RECURSO ORDER BY COUNT(*) DESC
+      `).catch(() => []),
+
+      // Processos últimos 30 dias
+      sinprodQuery(`
+        SELECT t.CD_PROCESSO as PROCESSO, COUNT(*) as TOTAL,
+          SUM(CASE WHEN t.DT_LEITURA_FIM IS NULL THEN 1 ELSE 0 END) as ABERTOS,
+          SUM(CASE WHEN t.DT_LEITURA_FIM IS NOT NULL THEN 1 ELSE 0 END) as FECHADOS
+        FROM TEMPOS_PRODUCAO_LEITORES t
+        WHERE t.DT_LEITURA_INI >= DATEADD(-30 DAY TO CURRENT_DATE)
+          AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
+        GROUP BY t.CD_PROCESSO ORDER BY COUNT(*) DESC
+      `).catch(() => []),
+
+      // Últimos 20 apontamentos (abertos e fechados) com detalhes
+      sinprodQuery(`
+        SELECT FIRST 20 t.DT_LEITURA_INI, t.DT_LEITURA_FIM,
+          t.CD_FUNCIONARIO_INI, t.CD_FUNCIONARIO_FIM,
+          f1.NOME_FUN as NOME_ABRIU, f2.NOME_FUN as NOME_FECHOU,
+          t.CD_RECURSO, t.ORDEM_FABRICACAO, t.CD_PROCESSO, t.HORAS_COMPUTADAS,
+          t.QTDE_PRODUZIDA, t.QTDE_REFUGADA, t.CD_PARADA
+        FROM TEMPOS_PRODUCAO_LEITORES t
+        LEFT JOIN FUNCI f1 ON t.CD_FUNCIONARIO_INI = f1.CODIGO_FUN
+        LEFT JOIN FUNCI f2 ON t.CD_FUNCIONARIO_FIM = f2.CODIGO_FUN
+        WHERE t.DT_LEITURA_INI >= DATEADD(-7 DAY TO CURRENT_DATE)
+          AND (t.FL_CANCELADO IS NULL OR t.FL_CANCELADO = '0')
+        ORDER BY t.DT_LEITURA_INI DESC
       `).catch(() => []),
     ]);
 
-    // Calcular stats
+    // Stats
     const statusMap: Record<string, number> = {};
-    for (const row of opdsPorStatus) {
-      statusMap[row.STATUS] = row.TOTAL;
-    }
+    for (const row of opdsPorStatus) statusMap[row.STATUS] = row.TOTAL;
 
-    const emProducao = statusMap['Em Produção'] || 0;
-    const paralisadas = statusMap['Paralisada'] || 0;
-    const concluidas = statusMap['Concluída'] || 0;
-    const faturadas = statusMap['Faturada'] || 0;
-    const entregues = statusMap['Entregue'] || 0;
-    const canceladas = statusMap['Cancelada'] || 0;
-    const totalOpds = Object.values(statusMap).reduce((a, b) => a + b, 0);
-
-    // Agregar produção recente por operador
-    const prodPorOperador: Record<string, { horas: number; pecas: number; refugo: number }> = {};
-    for (const r of producaoRecente) {
-      const nome = r.NOME_FUN || r.CD_FUNCIONARIO || 'Desconhecido';
-      if (!prodPorOperador[nome]) prodPorOperador[nome] = { horas: 0, pecas: 0, refugo: 0 };
-      prodPorOperador[nome].horas += Number(r.HORAS_COMPUTADAS) || 0;
-      prodPorOperador[nome].pecas += Number(r.QTDE_PRODUZIDA) || 0;
-      prodPorOperador[nome].refugo += Number(r.QTDE_REFUGADA) || 0;
-    }
-
-    const topOperadores = Object.entries(prodPorOperador)
-      .map(([nome, data]) => ({ nome, ...data }))
-      .sort((a, b) => b.horas - a.horas)
-      .slice(0, 10);
+    // Quem está trabalhando agora (apontamentos abertos)
+    const trabalhando = apontamentosAbertos.map((a: Record<string, unknown>) => ({
+      nome: a.NOME_FUNCIONARIO || `Func. ${a.FUNCIONARIO_INICIO}`,
+      recurso: a.RECURSO || null,
+      of: a.ORDEM_FABRICACAO || null,
+      estagio: a.ESTAGIO_INICIO,
+      inicio: a.DATA_HORA_INICIO,
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
         stats: {
-          total: totalOpds,
-          em_producao: emProducao,
-          paralisadas,
-          concluidas,
-          faturadas,
-          entregues,
-          canceladas,
-          apontamentos_abertos: apontamentosAbertos.length,
-          recursos: recursos.length,
+          total_opds: Object.values(statusMap).reduce((a, b) => a + b, 0),
+          em_producao: statusMap['Em Produção'] || 0,
+          paralisadas: statusMap['Paralisada'] || 0,
+          concluidas: statusMap['Concluída'] || 0,
+          faturadas: (statusMap['Faturada'] || 0) + (statusMap['Entregue'] || 0),
+          trabalhando_agora: trabalhando.length,
+          total_operadores_30d: operadores30d.length,
         },
         charts: {
           opds_por_status: opdsPorStatus.map((r: Record<string, unknown>) => ({
-            label: r.STATUS as string,
-            value: r.TOTAL as number,
+            label: r.STATUS as string, value: r.TOTAL as number,
           })),
-          por_operador: apontPorOperador.map((r: Record<string, unknown>) => ({
-            label: (r.OPERADOR as string) || 'Sem nome',
-            value: r.TOTAL as number,
-          })),
-          por_recurso: apontPorRecurso.map((r: Record<string, unknown>) => ({
-            label: r.RECURSO as string,
-            value: r.TOTAL as number,
-          })),
-          por_estagio: apontPorEstagio.map((r: Record<string, unknown>) => ({
-            label: `Estágio ${r.ESTAGIO}`,
-            value: r.TOTAL as number,
-          })),
-          producao_operadores: topOperadores,
+          operadores_30d: operadores30d,
+          recursos_30d: recursos30d,
+          processos_30d: processos30d,
         },
+        trabalhando_agora: trabalhando,
         opds_em_producao: opdsEmProducao,
-        apontamentos_abertos: apontamentosAbertos,
-        recursos,
+        tempo_recente: tempoRecente,
       },
     });
   } catch (error) {
