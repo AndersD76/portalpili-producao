@@ -69,7 +69,31 @@ interface MachineInfo {
   operator_shift: string;
 }
 
-type ViewMode = 'panorama' | 'cameras';
+interface SinprodData {
+  opds_ativas: Array<{
+    CODIGO: string;
+    NUMOPD: string;
+    COD_CLIENTE: string;
+    STATUS: string;
+    DATA_PEDIDO: string;
+    DATA_FINAL_PREV: string;
+    DATA_INICIO: string;
+    PRIORIDADE: number;
+    CLIENTE_NOME: string;
+  }>;
+  apontamentos_abertos: Array<Record<string, unknown>>;
+  recursos: Array<{
+    CODIGO: string;
+    DESCRICAO: string;
+    TIPO: string;
+    CENTRO: string;
+  }>;
+  total_opds: number;
+  total_apontamentos: number;
+  total_recursos: number;
+}
+
+type ViewMode = 'panorama' | 'cameras' | 'sinprod';
 
 export default function MaquinasDashboard() {
   const { authenticated, loading: authLoading } = useAuth();
@@ -88,6 +112,11 @@ export default function MaquinasDashboard() {
   const [machines, setMachines] = useState<MachineWithKpis[]>([]);
   const [recentMotionIds, setRecentMotionIds] = useState<Set<string>>(new Set());
 
+  // SINPROD state
+  const [sinprodData, setSinprodData] = useState<SinprodData | null>(null);
+  const [sinprodLoading, setSinprodLoading] = useState(false);
+  const [sinprodError, setSinprodError] = useState<string | null>(null);
+
   // CRUD state
   const [formOpen, setFormOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState<MachineWithKpis | null>(null);
@@ -100,6 +129,7 @@ export default function MaquinasDashboard() {
     }
     fetchPanorama();
     fetchMachines();
+    fetchSinprod();
   }, [authLoading, authenticated, router]);
 
   const fetchPanorama = async () => {
@@ -116,6 +146,25 @@ export default function MaquinasDashboard() {
       console.error('Erro ao carregar panorama:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSinprod = async () => {
+    setSinprodLoading(true);
+    setSinprodError(null);
+    try {
+      const res = await fetch('/api/sinprod/producao?view=dashboard');
+      const json = await res.json();
+      if (json.success) {
+        setSinprodData(json.data);
+      } else {
+        setSinprodError(json.error || 'Erro ao carregar dados SINPROD');
+      }
+    } catch (err) {
+      setSinprodError('SINPROD indisponível');
+      console.error('Erro SINPROD:', err);
+    } finally {
+      setSinprodLoading(false);
     }
   };
 
@@ -258,11 +307,25 @@ export default function MaquinasDashboard() {
             >
               Câmeras
             </button>
+            <button
+              onClick={() => setViewMode('sinprod')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors font-medium ${
+                viewMode === 'sinprod'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              SINPROD
+            </button>
           </div>
 
           <div className="w-px h-6 bg-gray-200" />
 
-          {viewMode === 'panorama' ? (
+          {viewMode === 'sinprod' ? (
+            <span className="text-xs text-gray-500 whitespace-nowrap">
+              {sinprodData ? `${sinprodData.total_opds} OPDs · ${sinprodData.total_apontamentos} apontamentos · ${sinprodData.total_recursos} recursos` : sinprodError || 'Carregando...'}
+            </span>
+          ) : viewMode === 'panorama' ? (
             <>
               {(['all', 'TOMBADOR', 'COLETOR'] as const).map(tipo => (
                 <button
@@ -412,6 +475,130 @@ export default function MaquinasDashboard() {
                   ))
               )}
             </div>
+          </>
+        ) : (
+          /* SINPROD view */
+          <>
+            {sinprodLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 h-20 animate-pulse" />
+                ))}
+              </div>
+            ) : sinprodError ? (
+              <div className="bg-white rounded-xl border border-red-200 p-8 text-center">
+                <p className="text-red-600 font-medium">{sinprodError}</p>
+                <p className="text-sm text-gray-500 mt-2">Verifique se o sinprod-api está rodando e o tunnel está ativo</p>
+                <button onClick={fetchSinprod} className="mt-4 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+                  Tentar novamente
+                </button>
+              </div>
+            ) : sinprodData ? (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-600">{sinprodData.total_opds}</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">OPDs Ativas</div>
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                    <div className="text-2xl font-bold text-green-600">{sinprodData.total_apontamentos}</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Apontamentos Abertos</div>
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-center">
+                    <div className="text-2xl font-bold text-gray-900">{sinprodData.total_recursos}</div>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Recursos / Máquinas</div>
+                  </div>
+                </div>
+
+                {/* OPDs ativas */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-gray-900">OPDs Ativas no SINPROD</h3>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {sinprodData.opds_ativas.length === 0 ? (
+                      <div className="p-8 text-center text-gray-400 text-sm">Nenhuma OPD ativa</div>
+                    ) : (
+                      sinprodData.opds_ativas.map((opd) => (
+                        <div key={opd.CODIGO} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-bold text-gray-900">{opd.NUMOPD}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase ${
+                                opd.STATUS === 'Em Fabricação' || opd.STATUS === 'Em Produção' ? 'bg-blue-50 text-blue-700' :
+                                opd.STATUS === 'Concluída' ? 'bg-green-50 text-green-700' :
+                                opd.STATUS === 'Paralisada' ? 'bg-amber-50 text-amber-700' :
+                                'bg-gray-50 text-gray-600'
+                              }`}>{opd.STATUS}</span>
+                              {opd.PRIORIDADE > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">P{opd.PRIORIDADE}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {opd.DATA_FINAL_PREV ? `Prazo: ${new Date(opd.DATA_FINAL_PREV).toLocaleDateString('pt-BR')}` : ''}
+                            </div>
+                          </div>
+                          <div className="mt-1 flex items-center gap-4 text-xs text-gray-500">
+                            <span>{opd.CLIENTE_NOME || opd.COD_CLIENTE}</span>
+                            {opd.DATA_INICIO && <span>Início: {new Date(opd.DATA_INICIO).toLocaleDateString('pt-BR')}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Apontamentos abertos */}
+                {sinprodData.apontamentos_abertos.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">Apontamentos em Aberto</h3>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {sinprodData.apontamentos_abertos.map((apt, i) => (
+                        <div key={i} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                              <span className="text-sm font-medium text-gray-900">
+                                {(apt.funcionario_inicio as string) || (apt.FUNCIONARIO as string) || 'Funcionário'}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {(apt.recurso as string) || (apt.RECURSO as string) || ''}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-xs text-gray-500 ml-5">
+                            OPD: {(apt.numopd as string) || (apt.NUMOPD as string) || '-'} ·
+                            Processo: {(apt.processo as string) || (apt.PROCESSO as string) || '-'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recursos */}
+                {sinprodData.recursos.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">Recursos / Máquinas SINPROD</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-y md:divide-y-0 divide-gray-100">
+                      {sinprodData.recursos.map((rec) => (
+                        <div key={rec.CODIGO} className="px-4 py-3 border-b md:border-b-0 md:border-r border-gray-100 last:border-0">
+                          <div className="text-sm font-medium text-gray-900">{rec.DESCRICAO}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {rec.CENTRO || rec.TIPO || rec.CODIGO}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
           </>
         )}
       </div>
