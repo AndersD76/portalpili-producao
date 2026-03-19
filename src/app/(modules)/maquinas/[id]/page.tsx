@@ -484,16 +484,6 @@ export default function MachineDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              <div className="mt-3 space-y-2 pt-3 border-t border-gray-800">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Nome</span>
-                  <span className="text-white">{machine.operator_name || 'Não definido'}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Turno</span>
-                  <span className="text-white">{machine.operator_shift || '-'} ({machine.shift_start} - {machine.shift_end})</span>
-                </div>
-              </div>
             </div>
 
             {/* Motion Metrics */}
