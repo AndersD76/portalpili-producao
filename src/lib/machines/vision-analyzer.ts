@@ -60,13 +60,26 @@ export async function analyzeMachineSnapshot(
     formData.append('rotation', String(cameraRotation));
 
     const apiKey = process.env.PILI_VISION_API_KEY || '';
-    const response = await fetch(`${VISION_ENGINE_URL}/analyze/${machineId}`, {
+    const url = `${VISION_ENGINE_URL}/analyze/${machineId}`;
+    const fetchOpts = {
       method: 'POST',
       headers: {
         ...(apiKey ? { 'X-Pili-Key': apiKey } : {}),
       },
       body: formData,
-    });
+      signal: AbortSignal.timeout(30000),
+    };
+
+    let response: Response;
+    try {
+      response = await fetch(url, fetchOpts);
+    } catch {
+      // Retry once on timeout
+      const retryForm = new FormData();
+      retryForm.append('file', new Blob([new Uint8Array(imageBuffer)], { type: 'image/jpeg' }), 'snapshot.jpg');
+      retryForm.append('rotation', String(cameraRotation));
+      response = await fetch(url, { ...fetchOpts, body: retryForm, signal: AbortSignal.timeout(30000) });
+    }
 
     if (response.status === 429) {
       return lastResult.get(machineId) || null;
