@@ -69,6 +69,9 @@ interface MachineInfo {
   operator_shift: string;
 }
 
+interface ChartItem { label: string; value: number }
+interface ProdOperador { nome: string; horas: number; pecas: number; refugo: number }
+
 interface SinprodData {
   stats: {
     total: number;
@@ -81,7 +84,13 @@ interface SinprodData {
     apontamentos_abertos: number;
     recursos: number;
   };
-  chart_data: Array<{ status: string; total: number }>;
+  charts: {
+    opds_por_status: ChartItem[];
+    por_operador: ChartItem[];
+    por_recurso: ChartItem[];
+    por_estagio: ChartItem[];
+    producao_operadores: ProdOperador[];
+  };
   opds_em_producao: Array<{
     CODIGO: string;
     NUMOPD: string;
@@ -503,40 +512,132 @@ export default function MaquinasDashboard() {
                   ))}
                 </div>
 
-                {/* Chart: OPDs por status */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">OPDs por Status</h3>
-                  <div className="space-y-2">
-                    {sinprodData.chart_data.map((item) => {
-                      const maxVal = Math.max(...sinprodData.chart_data.map(d => d.total));
-                      const pct = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
-                      const colorMap: Record<string, string> = {
-                        'Em Produção': 'bg-blue-500',
-                        'Paralisada': 'bg-amber-500',
-                        'Concluída': 'bg-green-500',
-                        'Faturada': 'bg-purple-500',
-                        'Entregue': 'bg-gray-500',
-                        'Cancelada': 'bg-red-400',
-                      };
-                      return (
-                        <div key={item.status} className="flex items-center gap-3">
-                          <span className="text-xs text-gray-600 w-28 text-right shrink-0">{item.status}</span>
-                          <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-700 ${colorMap[item.status] || 'bg-gray-400'}`}
-                              style={{ width: `${pct}%` }}
-                            />
+                {/* Charts grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                  {/* OPDs por status */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">OPDs por Status</h3>
+                    <div className="space-y-2">
+                      {sinprodData.charts.opds_por_status.map((item) => {
+                        const maxVal = Math.max(...sinprodData.charts.opds_por_status.map(d => d.value));
+                        const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                        const colors: Record<string, string> = { 'Em Produção': 'bg-blue-500', 'Paralisada': 'bg-amber-500', 'Concluída': 'bg-green-500', 'Faturada': 'bg-purple-500', 'Entregue': 'bg-gray-500', 'Cancelada': 'bg-red-400' };
+                        return (
+                          <div key={item.label} className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-600 w-24 text-right shrink-0">{item.label}</span>
+                            <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                              <div className={`h-full rounded transition-all duration-700 ${colors[item.label] || 'bg-gray-400'}`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
                           </div>
-                          <span className="text-sm font-bold text-gray-900 w-10">{item.total}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-100 text-right">
-                    <span className="text-xs text-gray-500">Total: </span>
-                    <span className="text-sm font-bold text-gray-900">{sinprodData.stats.total} OPDs</span>
+
+                  {/* Apontamentos por operador */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Apontamentos Abertos por Operador</h3>
+                    <div className="space-y-2">
+                      {sinprodData.charts.por_operador.slice(0, 8).map((item) => {
+                        const maxVal = Math.max(...sinprodData.charts.por_operador.map(d => d.value));
+                        const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                        return (
+                          <div key={item.label} className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate">{item.label}</span>
+                            <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                              <div className="h-full rounded bg-blue-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Por estágio/processo */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Apontamentos por Processo</h3>
+                    <div className="space-y-2">
+                      {sinprodData.charts.por_estagio.map((item) => {
+                        const maxVal = Math.max(...sinprodData.charts.por_estagio.map(d => d.value));
+                        const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                        return (
+                          <div key={item.label} className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-600 w-24 text-right shrink-0">{item.label}</span>
+                            <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                              <div className="h-full rounded bg-emerald-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Por recurso/máquina */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Recursos Mais Utilizados</h3>
+                    {sinprodData.charts.por_recurso.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-4">Sem dados de recurso</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {sinprodData.charts.por_recurso.slice(0, 8).map((item) => {
+                          const maxVal = Math.max(...sinprodData.charts.por_recurso.map(d => d.value));
+                          const pct = maxVal > 0 ? (item.value / maxVal) * 100 : 0;
+                          return (
+                            <div key={item.label} className="flex items-center gap-2">
+                              <span className="text-[11px] text-gray-600 w-32 text-right shrink-0 truncate">{item.label}</span>
+                              <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                                <div className="h-full rounded bg-orange-500 transition-all duration-700" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-xs font-bold text-gray-900 w-8 text-right">{item.value}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Top operadores produção (últimos 30 dias) */}
+                {sinprodData.charts.producao_operadores.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Top Operadores — Últimos 30 dias</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-[10px] text-gray-500 uppercase border-b border-gray-100">
+                            <th className="text-left py-2 pr-4">Operador</th>
+                            <th className="text-right py-2 px-3">Horas</th>
+                            <th className="text-right py-2 px-3">Peças</th>
+                            <th className="text-right py-2 px-3">Refugo</th>
+                            <th className="text-left py-2 pl-3 w-40">Proporção</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {sinprodData.charts.producao_operadores.map((op, i) => {
+                            const maxH = Math.max(...sinprodData.charts.producao_operadores.map(o => o.horas));
+                            const pct = maxH > 0 ? (op.horas / maxH) * 100 : 0;
+                            return (
+                              <tr key={i} className="hover:bg-gray-50">
+                                <td className="py-2 pr-4 font-medium text-gray-900">{op.nome}</td>
+                                <td className="py-2 px-3 text-right text-gray-700">{op.horas.toLocaleString('pt-BR')}</td>
+                                <td className="py-2 px-3 text-right text-green-600 font-medium">{op.pecas}</td>
+                                <td className="py-2 px-3 text-right text-red-500">{op.refugo}</td>
+                                <td className="py-2 pl-3">
+                                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                   {/* OPDs em produção */}

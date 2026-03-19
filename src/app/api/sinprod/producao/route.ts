@@ -34,13 +34,13 @@ export async function GET(request: Request) {
       opdsEmProducao,
       apontamentosAbertos,
       recursos,
+      apontPorOperador,
+      apontPorRecurso,
+      apontPorEstagio,
+      producaoRecente,
     ] = await Promise.all([
-      // Contagem de OPDs por status
-      sinprodQuery(`
-        SELECT COUNT(*) as TOTAL, STATUS FROM CADOPD GROUP BY STATUS
-      `).catch(() => []),
+      sinprodQuery(`SELECT COUNT(*) as TOTAL, STATUS FROM CADOPD GROUP BY STATUS`).catch(() => []),
 
-      // OPDs em produção com cliente
       sinprodQuery(`
         SELECT FIRST 50 o.CODIGO, o.NUMOPD, o.STATUS, o.COD_CLIENTE,
           o.DATA_PEDIDO, o.DATA_FINAL_PREV, o.DATA_INICIO, o.PRIORIDADE,
@@ -51,7 +51,6 @@ export async function GET(request: Request) {
         ORDER BY o.PRIORIDADE DESC, o.DATA_FINAL_PREV ASC
       `).catch(() => []),
 
-      // Apontamentos abertos com nome do funcionário
       sinprodQuery(`
         SELECT v.DATA_HORA_INICIO, v.ORDEM_FABRICACAO, v.RECURSO,
           v.ESTAGIO_INICIO, v.FUNCIONARIO_INICIO,
@@ -61,12 +60,48 @@ export async function GET(request: Request) {
         ORDER BY v.DATA_HORA_INICIO DESC
       `).catch(() => []),
 
-      // Recursos/máquinas
       sinprodQuery(`
         SELECT r.CODIGO, r.DESCRICAO, r.TIPO, cp.DESCRICAO as CENTRO
         FROM CENTROS_PRODUCAO_RECURSOS r
         LEFT JOIN CENTROS_PRODUCAO cp ON r.COD_CENTRO = cp.CODIGO
         ORDER BY r.DESCRICAO
+      `).catch(() => []),
+
+      // Apontamentos abertos por operador (quem mais tem abertos)
+      sinprodQuery(`
+        SELECT f.NOME_FUN as OPERADOR, COUNT(*) as TOTAL
+        FROM vw_pili_maq_apontamentos v
+        LEFT JOIN FUNCI f ON v.FUNCIONARIO_INICIO = f.CODIGO_FUN
+        GROUP BY f.NOME_FUN
+        ORDER BY COUNT(*) DESC
+      `).catch(() => []),
+
+      // Apontamentos por recurso (máquina mais utilizada)
+      sinprodQuery(`
+        SELECT v.RECURSO, COUNT(*) as TOTAL
+        FROM vw_pili_maq_apontamentos v
+        WHERE v.RECURSO IS NOT NULL
+        GROUP BY v.RECURSO
+        ORDER BY COUNT(*) DESC
+      `).catch(() => []),
+
+      // Apontamentos por estágio/processo
+      sinprodQuery(`
+        SELECT v.ESTAGIO_INICIO as ESTAGIO, COUNT(*) as TOTAL
+        FROM vw_pili_maq_apontamentos v
+        GROUP BY v.ESTAGIO_INICIO
+        ORDER BY COUNT(*) DESC
+      `).catch(() => []),
+
+      // Produção recente (últimos 30 dias - apontamentos fechados)
+      sinprodQuery(`
+        SELECT FIRST 200 t.CD_FUNCIONARIO, f.NOME_FUN, t.CD_RECURSO,
+          t.CD_PROCESSO, t.CD_SETOR, t.HORAS_COMPUTADAS,
+          t.QTDE_PRODUZIDA, t.QTDE_REFUGADA, t.DATA_INICIO
+        FROM TEMPOS_PRODUCAO_LEITORES t
+        LEFT JOIN FUNCI f ON t.CD_FUNCIONARIO = f.CODIGO_FUN
+        WHERE t.DATA_INICIO >= DATEADD(-30 DAY TO CURRENT_DATE)
+        ORDER BY t.CODIGO DESC
       `).catch(() => []),
     ]);
 
@@ -84,6 +119,21 @@ export async function GET(request: Request) {
     const canceladas = statusMap['Cancelada'] || 0;
     const totalOpds = Object.values(statusMap).reduce((a, b) => a + b, 0);
 
+    // Agregar produção recente por operador
+    const prodPorOperador: Record<string, { horas: number; pecas: number; refugo: number }> = {};
+    for (const r of producaoRecente) {
+      const nome = r.NOME_FUN || r.CD_FUNCIONARIO || 'Desconhecido';
+      if (!prodPorOperador[nome]) prodPorOperador[nome] = { horas: 0, pecas: 0, refugo: 0 };
+      prodPorOperador[nome].horas += Number(r.HORAS_COMPUTADAS) || 0;
+      prodPorOperador[nome].pecas += Number(r.QTDE_PRODUZIDA) || 0;
+      prodPorOperador[nome].refugo += Number(r.QTDE_REFUGADA) || 0;
+    }
+
+    const topOperadores = Object.entries(prodPorOperador)
+      .map(([nome, data]) => ({ nome, ...data }))
+      .sort((a, b) => b.horas - a.horas)
+      .slice(0, 10);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -98,10 +148,25 @@ export async function GET(request: Request) {
           apontamentos_abertos: apontamentosAbertos.length,
           recursos: recursos.length,
         },
-        chart_data: opdsPorStatus.map((r: Record<string, unknown>) => ({
-          status: r.STATUS,
-          total: r.TOTAL,
-        })),
+        charts: {
+          opds_por_status: opdsPorStatus.map((r: Record<string, unknown>) => ({
+            label: r.STATUS as string,
+            value: r.TOTAL as number,
+          })),
+          por_operador: apontPorOperador.map((r: Record<string, unknown>) => ({
+            label: (r.OPERADOR as string) || 'Sem nome',
+            value: r.TOTAL as number,
+          })),
+          por_recurso: apontPorRecurso.map((r: Record<string, unknown>) => ({
+            label: r.RECURSO as string,
+            value: r.TOTAL as number,
+          })),
+          por_estagio: apontPorEstagio.map((r: Record<string, unknown>) => ({
+            label: `Estágio ${r.ESTAGIO}`,
+            value: r.TOTAL as number,
+          })),
+          producao_operadores: topOperadores,
+        },
         opds_em_producao: opdsEmProducao,
         apontamentos_abertos: apontamentosAbertos,
         recursos,
