@@ -21,6 +21,7 @@
 #include "esp_http_server.h"
 #include "WiFi.h"
 #include "HTTPClient.h"
+#include "WiFiClientSecure.h"
 #include "ArduinoJson.h"
 #include <EEPROM.h>
 
@@ -354,10 +355,13 @@ bool sendEvent(const char* eventType, float intensity, const char* zone,
                int piecesCount = 0, int cycleTime = 0) {
   if (!wifi_connected || WiFi.status() != WL_CONNECTED) return false;
 
+  WiFiClientSecure client;
+  client.setInsecure();  // Skip certificate verification (Railway uses LE certs)
+
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/machines/" + MACHINE_ID + "/motion-events";
 
-  http.begin(url);
+  http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-Pili-Key", API_KEY);
   http.setTimeout(5000);
