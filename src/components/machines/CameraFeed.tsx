@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface CameraFeedProps {
   machineId: string;
@@ -14,20 +14,40 @@ interface CameraFeedProps {
 
 export default function CameraFeed({
   machineId,
+  refreshInterval = 3000,
   showOverlay = true,
   status = 'offline',
   lastSeen,
   rotation = 0,
   onRotate,
 }: CameraFeedProps) {
-  const [streamLoaded, setStreamLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  // MJPEG stream URL
-  const streamUrl = `/api/machines/${machineId}/video`;
+  const [imgSrc, setImgSrc] = useState('');
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
 
   const isOnline = status === 'online' || status === 'idle';
+
+  const fetchSnapshot = useCallback(() => {
+    // Add cache-busting timestamp
+    setImgSrc(`/api/machines/${machineId}/snapshot?t=${Date.now()}`);
+  }, [machineId]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchSnapshot();
+
+    timerRef.current = setInterval(() => {
+      if (mountedRef.current) fetchSnapshot();
+    }, refreshInterval);
+
+    return () => {
+      mountedRef.current = false;
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [fetchSnapshot, refreshInterval]);
+
   const lastSeenStr = lastSeen
     ? new Date(lastSeen).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : '--:--:--';
@@ -36,7 +56,7 @@ export default function CameraFeed({
 
   return (
     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
-      {!streamLoaded && !error && (
+      {!imageLoaded && !error && (
         <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center z-0">
           <svg className="w-12 h-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -45,15 +65,14 @@ export default function CameraFeed({
         </div>
       )}
 
-      {!error && (
+      {imgSrc && !error && (
         <img
-          ref={imgRef}
-          src={streamUrl}
+          src={imgSrc}
           alt="Camera feed"
           className="w-full h-full object-cover transition-transform duration-300"
           style={rotationStyle}
-          onLoad={() => setStreamLoaded(true)}
-          onError={() => { setError(true); setStreamLoaded(false); }}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => { setError(true); setImageLoaded(false); }}
         />
       )}
 
@@ -65,7 +84,7 @@ export default function CameraFeed({
           </svg>
           <span className="text-sm">Camera offline</span>
           <button
-            onClick={() => { setError(false); setStreamLoaded(false); }}
+            onClick={() => { setError(false); setImageLoaded(false); fetchSnapshot(); }}
             className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
           >
             Tentar novamente
@@ -77,10 +96,10 @@ export default function CameraFeed({
         <>
           <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-              streamLoaded ? 'bg-green-600 text-white' : isOnline ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-400'
+              imageLoaded ? 'bg-green-600 text-white' : isOnline ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-400'
             }`}>
-              <span className={`w-2 h-2 rounded-full ${streamLoaded ? 'bg-white animate-pulse' : 'bg-gray-500'}`} />
-              {streamLoaded ? 'AO VIVO' : isOnline ? 'CONECTANDO' : 'OFFLINE'}
+              <span className={`w-2 h-2 rounded-full ${imageLoaded ? 'bg-white animate-pulse' : 'bg-gray-500'}`} />
+              {imageLoaded ? 'AO VIVO' : isOnline ? 'CONECTANDO' : 'OFFLINE'}
             </span>
             <span className="text-xs text-gray-300 bg-black/60 px-2 py-0.5 rounded">
               {lastSeenStr}
@@ -113,7 +132,7 @@ export default function CameraFeed({
                 </button>
               )}
               <span className={`w-2.5 h-2.5 rounded-full ${
-                streamLoaded ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+                imageLoaded ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
               }`} />
             </div>
           </div>
