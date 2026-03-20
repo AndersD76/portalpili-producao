@@ -409,13 +409,16 @@ bool uploadSnapshot() {
     return false;
   }
 
+  WiFiClientSecure client;
+  client.setInsecure();
+
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/machines/" + MACHINE_ID + "/snapshot";
 
-  http.begin(url);
+  http.begin(client, url);
   http.addHeader("Content-Type", "image/jpeg");
   http.addHeader("X-Pili-Key", API_KEY);
-  http.setTimeout(5000);
+  http.setTimeout(10000);
 
   int httpCode = http.POST(fb->buf, fb->len);
   bool success = (httpCode == 200);
