@@ -128,12 +128,12 @@ export async function PUT(request: Request) {
 
     // Calcula totais
     const totalBase = resultBase?.rows?.reduce(
-      (acc, r) => ({ atual: acc.atual + parseFloat(r.preco_atual), novo: acc.novo + parseFloat(r.preco_novo) }),
+      (acc: { atual: number; novo: number }, r: { preco_atual: string; preco_novo: string }) => ({ atual: acc.atual + parseFloat(r.preco_atual), novo: acc.novo + parseFloat(r.preco_novo) }),
       { atual: 0, novo: 0 }
     ) || { atual: 0, novo: 0 };
 
     const totalOpcoes = resultOpcoes?.rows?.reduce(
-      (acc, r) => ({ atual: acc.atual + parseFloat(r.valor_atual), novo: acc.novo + parseFloat(r.valor_novo) }),
+      (acc: { atual: number; novo: number }, r: { valor_atual: string; valor_novo: string }) => ({ atual: acc.atual + parseFloat(r.valor_atual), novo: acc.novo + parseFloat(r.valor_novo) }),
       { atual: 0, novo: 0 }
     ) || { atual: 0, novo: 0 };
 
