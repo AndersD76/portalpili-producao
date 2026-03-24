@@ -129,7 +129,7 @@ async function syncOPDs() {
           await client.query(`
             UPDATE opds SET
               cliente = COALESCE($1, cliente),
-              data_termino = COALESCE($2, data_termino),
+              data_entrega = COALESCE($2, data_entrega),
               sinprod_status = $3,
               sinprod_sync = NOW(),
               updated = NOW()
@@ -144,9 +144,9 @@ async function syncOPDs() {
         } else {
           await client.query(`
             INSERT INTO opds (
-              numero, cliente, data_inicio, data_termino, status,
+              numero, cliente, data_pedido, data_entrega,
               sinprod_status, sinprod_sync, created, updated
-            ) VALUES ($1, $2, $3, $4, 'PENDENTE', $5, NOW(), NOW(), NOW())
+            ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
           `, [
             String(opd.NUMERO),
             opd.CLIENTE || null,
