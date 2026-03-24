@@ -88,23 +88,25 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const atividadeId = searchParams.get('atividade_id');
 
-    let query = `
-      SELECT * FROM formularios_preenchidos
-      WHERE tipo_formulario = 'REUNIAO_START'
-    `;
-    const queryParams: any[] = [];
+    let result;
 
+    // Try by atividade_id first
     if (atividadeId) {
-      query += ` AND atividade_id = $1`;
-      queryParams.push(parseInt(atividadeId));
-    } else {
-      query += ` AND numero_opd = $1`;
-      queryParams.push(numero);
+      result = await pool.query(`
+        SELECT * FROM formularios_preenchidos
+        WHERE tipo_formulario = 'REUNIAO_START' AND atividade_id = $1
+        ORDER BY created DESC LIMIT 1
+      `, [parseInt(atividadeId)]);
     }
 
-    query += ` ORDER BY created DESC LIMIT 1`;
-
-    const result = await pool.query(query, queryParams);
+    // Fallback: search by numero_opd if not found by atividade_id
+    if (!result || result.rows.length === 0) {
+      result = await pool.query(`
+        SELECT * FROM formularios_preenchidos
+        WHERE tipo_formulario = 'REUNIAO_START' AND numero_opd = $1
+        ORDER BY created DESC LIMIT 1
+      `, [numero]);
+    }
 
     if (result.rows.length === 0) {
       return NextResponse.json({
