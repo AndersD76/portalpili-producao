@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verificarPermissao } from '@/lib/auth';
+import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,23 @@ async function sinprodQuery(sql: string) {
   const json = await res.json();
   if (!json.success) throw new Error(json.error);
   return json.data;
+}
+
+// Fallback: ler último snapshot salvo pelo sinprod-sync
+async function getSnapshotFallback() {
+  try {
+    const result = await pool.query(`
+      SELECT data, created_at FROM sinprod_snapshots
+      ORDER BY created_at DESC LIMIT 1
+    `);
+    if (result.rows.length > 0) {
+      const snapshot = result.rows[0].data;
+      const age = Date.now() - new Date(result.rows[0].created_at).getTime();
+      const ageMin = Math.round(age / 60000);
+      return { snapshot, ageMin };
+    }
+  } catch { /* table may not exist */ }
+  return null;
 }
 
 export async function GET(request: Request) {
@@ -155,10 +173,42 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('[SINPROD] Erro:', error);
+    console.error('[SINPROD] API indisponível, tentando snapshot local:', error instanceof Error ? error.message : error);
+
+    // Fallback: usar último snapshot do sinprod-sync
+    const fallback = await getSnapshotFallback();
+    if (fallback) {
+      const { snapshot, ageMin } = fallback;
+      return NextResponse.json({
+        success: true,
+        source: 'snapshot',
+        age_minutes: ageMin,
+        data: {
+          stats: snapshot.stats || {},
+          charts: {
+            opds_por_status: (snapshot.opds_por_status || []).map((r: Record<string, unknown>) => ({
+              label: r.STATUS as string, value: r.TOTAL as number,
+            })),
+            operadores_30d: snapshot.operadores_30d || [],
+            recursos_30d: snapshot.recursos_30d || [],
+            processos_30d: snapshot.processos_30d || [],
+          },
+          trabalhando_agora: (snapshot.apontamentos_abertos || []).map((a: Record<string, unknown>) => ({
+            nome: a.NOME_FUNCIONARIO || `Func. ${a.FUNCIONARIO_INICIO}`,
+            recurso: a.RECURSO || null,
+            of: a.ORDEM_FABRICACAO || null,
+            estagio: a.ESTAGIO_INICIO,
+            inicio: a.DATA_HORA_INICIO,
+          })),
+          opds_em_producao: snapshot.opds_em_producao || [],
+          tempo_recente: [],
+        },
+      });
+    }
+
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erro ao consultar SINPROD',
-    }, { status: 500 });
+      error: 'SINPROD indisponível e sem snapshot local. Execute sinprod-sync no servidor.',
+    }, { status: 503 });
   }
 }

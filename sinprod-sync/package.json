@@ -1,0 +1,17 @@
+{
+  "name": "sinprod-sync",
+  "version": "1.0.0",
+  "description": "Sync direto SinProd Firebird → NeonDB PostgreSQL",
+  "main": "sync.js",
+  "scripts": {
+    "start": "node sync.js --loop 5",
+    "sync": "node sync.js",
+    "sync:opds": "node sync.js --opds",
+    "sync:producao": "node sync.js --producao"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "node-firebird": "^1.1.8",
+    "pg": "^8.12.0"
+  }
+}
