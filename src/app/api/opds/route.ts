@@ -47,6 +47,7 @@ export async function GET() {
       GROUP BY o.id, o.opd, o.numero, o.cliente, o.data_pedido, o.previsao_inicio, o.previsao_termino,
                o.data_prevista_entrega, o.inicio_producao, o.tipo_opd, o.tipo_produto, o.responsavel_opd, o.atividades_opd,
                o.anexo_pedido, o.registros_atividade, o.mensagens, o.sinprod_status, o.sinprod_sync, o.created, o.updated
+      HAVING COUNT(ra.id) > 0
       ORDER BY o.numero DESC
     `);
 
