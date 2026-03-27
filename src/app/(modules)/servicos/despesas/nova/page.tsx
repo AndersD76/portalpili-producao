@@ -165,22 +165,16 @@ export default function NovaDespesaPage() {
     }, 500);
   }, [authCode]);
 
-  const compressImage = (file: File, maxSizeMB = 4): Promise<string> => {
+  const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = reject;
       reader.onload = () => {
         const dataUrl = reader.result as string;
-        // If already small enough, return as-is
-        const sizeBytes = Math.ceil((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
-        if (sizeBytes <= maxSizeMB * 1024 * 1024) {
-          resolve(dataUrl);
-          return;
-        }
-        // Compress via canvas
+        // Always compress through canvas to ensure < 5MB
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1600;
+          const maxDim = 1200;
           let w = img.width;
           let h = img.height;
           if (w > maxDim || h > maxDim) {
@@ -194,7 +188,7 @@ export default function NovaDespesaPage() {
           const ctx = canvas.getContext('2d');
           if (!ctx) { resolve(dataUrl); return; }
           ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.onerror = () => resolve(dataUrl);
         img.src = dataUrl;
