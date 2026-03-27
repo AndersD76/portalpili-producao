@@ -83,7 +83,9 @@ export default function AdminPrecosPage() {
     comprimento: '',
     descricao: '',
     preco: '',
+    imagem_url: '' as string,
   });
+  const [uploadingImageBase, setUploadingImageBase] = useState(false);
 
   // Modal de novo/editar opcional
   const [showModalOpcional, setShowModalOpcional] = useState(false);
@@ -198,6 +200,7 @@ export default function AdminPrecosPage() {
       comprimento: '',
       descricao: '',
       preco: '',
+      imagem_url: '',
     });
     setShowModal(true);
   };
@@ -210,6 +213,7 @@ export default function AdminPrecosPage() {
       comprimento: item.comprimento ? String(item.comprimento) : '',
       descricao: item.descricao || '',
       preco: String(item.preco),
+      imagem_url: item.imagem_url || '',
     });
     setShowModal(true);
   };
@@ -233,6 +237,7 @@ export default function AdminPrecosPage() {
               tamanho: formBase.comprimento ? parseInt(formBase.comprimento) : 0,
               descricao: formBase.descricao,
               preco: parseFloat(formBase.preco),
+              imagem_url: formBase.imagem_url || null,
             }
           }),
         });
@@ -257,6 +262,7 @@ export default function AdminPrecosPage() {
               tamanho: formBase.comprimento ? parseInt(formBase.comprimento) : 0,
               descricao: formBase.descricao,
               preco: parseFloat(formBase.preco),
+              imagem_url: formBase.imagem_url || null,
             }
           }),
         });
@@ -859,6 +865,54 @@ export default function AdminPrecosPage() {
                   placeholder="Ex: Tombador 18m FIXO"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                 />
+              </div>
+              {/* Imagem do preco base */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Imagem</label>
+                <div className="flex items-center gap-3">
+                  {formBase.imagem_url && (
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                      <img src={formBase.imagem_url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFormBase({...formBase, imagem_url: ''})}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-bl text-xs w-5 h-5 flex items-center justify-center"
+                      >&times;</button>
+                    </div>
+                  )}
+                  <label className={`flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 ${uploadingImageBase ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {uploadingImageBase ? 'Enviando...' : formBase.imagem_url ? 'Trocar' : 'Anexar imagem'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingImageBase(true);
+                        try {
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                          const data = await res.json();
+                          if (data.success) {
+                            setFormBase(prev => ({...prev, imagem_url: data.url}));
+                          } else {
+                            setMensagem({ tipo: 'erro', texto: data.error || 'Erro no upload' });
+                          }
+                        } catch {
+                          setMensagem({ tipo: 'erro', texto: 'Erro ao enviar imagem' });
+                        } finally {
+                          setUploadingImageBase(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
             <div className="p-5 border-t flex items-center justify-end gap-3">

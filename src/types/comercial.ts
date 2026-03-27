@@ -237,6 +237,7 @@ export interface PrecoBase {
   modelo: string;
   comprimento?: number;
   descricao?: string;
+  imagem_url?: string | null;
   preco: number;
   capacidade?: string;
   aplicacao?: string;

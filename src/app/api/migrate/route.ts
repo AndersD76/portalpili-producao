@@ -274,13 +274,14 @@ export async function POST() {
       }
     }
 
-    // 13. Adicionar coluna imagem_url na tabela de opcionais
+    // 13. Adicionar coluna imagem_url nas tabelas de precos
     try {
       await pool.query(`ALTER TABLE crm_precos_opcoes ADD COLUMN IF NOT EXISTS imagem_url TEXT`);
-      results.push('✅ Coluna imagem_url adicionada em crm_precos_opcoes');
+      await pool.query(`ALTER TABLE crm_precos_base ADD COLUMN IF NOT EXISTS imagem_url TEXT`);
+      results.push('✅ Coluna imagem_url adicionada em crm_precos_opcoes e crm_precos_base');
     } catch (e: any) {
       if (!e.message.includes('already exists')) {
-        errors.push(`❌ Erro imagem_url opcoes: ${e.message}`);
+        errors.push(`❌ Erro imagem_url: ${e.message}`);
       }
     }
 
