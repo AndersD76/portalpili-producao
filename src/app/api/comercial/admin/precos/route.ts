@@ -31,7 +31,7 @@ export async function GET(request: Request) {
                  descricao,
                  preco,
                  ativo,
-                 qt_cilindros, qt_motores, qt_oleo,
+                 imagem_url, qt_cilindros, qt_motores, qt_oleo,
                  angulo_inclinacao, ordem_exibicao, created_at, updated_at
           FROM crm_precos_base
           WHERE 1=1
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
           SELECT po.id, po.categoria_id, po.codigo, po.nome, po.descricao,
                  po.preco_tipo as tipo_valor,
                  COALESCE(po.preco, 0) as valor,
-                 po.ativo,
+                 po.ativo, po.imagem_url,
                  po.produto, po.tamanhos_aplicaveis, po.ordem_exibicao, pc.nome as categoria_nome
           FROM crm_precos_opcoes po
           LEFT JOIN crm_precos_categorias pc ON po.categoria_id = pc.id
