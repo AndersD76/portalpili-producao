@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import pool from '@/lib/db';
 import { ATIVIDADES_PADRAO, SUBTAREFAS_PRODUCAO_TOMBADOR, SUBTAREFAS_PRODUCAO_COLETOR } from '@/lib/atividadesPadrao';
 import { verificarPermissao } from '@/lib/auth';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false,
-  } : false,
-});
 
 // Criar mapa de ordem para todas as atividades
 function getOrdemAtividade(atividade: string): number {
