@@ -165,11 +165,40 @@ export default function NovaDespesaPage() {
     }, 500);
   }, [authCode]);
 
-  const fileToBase64 = (file: File): Promise<string> => {
+  const compressImage = (file: File, maxSizeMB = 4): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        // If already small enough, return as-is
+        const sizeBytes = Math.ceil((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
+        if (sizeBytes <= maxSizeMB * 1024 * 1024) {
+          resolve(dataUrl);
+          return;
+        }
+        // Compress via canvas
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1600;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            const scale = maxDim / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { resolve(dataUrl); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      };
       reader.readAsDataURL(file);
     });
   };
@@ -183,7 +212,7 @@ export default function NovaDespesaPage() {
 
     let base64: string;
     try {
-      base64 = await fileToBase64(file);
+      base64 = await compressImage(file);
       setImageBase64(base64);
     } catch {
       // Failed to read the file — go straight to manual entry
@@ -196,7 +225,7 @@ export default function NovaDespesaPage() {
       const res = await fetch('/api/servicos/despesas/analisar-comprovante', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imagem_base64: base64, mime_type: file.type || 'image/jpeg' }),
+        body: JSON.stringify({ imagem_base64: base64, mime_type: base64.startsWith('data:image/png') ? 'image/png' : 'image/jpeg' }),
       });
 
       let result;

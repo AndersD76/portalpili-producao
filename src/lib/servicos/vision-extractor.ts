@@ -67,8 +67,7 @@ export async function extractReceiptData(
     normalizedMime = 'image/jpeg';
   }
 
-  // Use Haiku for fast, cheap receipt extraction
-  const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
