@@ -19,6 +19,7 @@ interface PrecoBase {
   qt_motores?: number;
   qt_oleo?: number;
   angulo_inclinacao?: string;
+  imagem_url?: string | null;
 }
 
 interface PrecoOpcional {
@@ -32,6 +33,7 @@ interface PrecoOpcional {
   ativo: boolean;
   produto: string;
   tamanhos_aplicaveis?: number[];
+  imagem_url?: string | null;
 }
 
 interface PrecoCategoria {

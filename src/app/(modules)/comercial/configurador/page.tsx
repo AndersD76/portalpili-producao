@@ -33,6 +33,7 @@ interface PrecoOpcional {
   ativo: boolean;
   produto: string;
   tamanhos_aplicaveis?: number[];
+  imagem_url?: string | null;
 }
 
 export default function ConfiguradorPage() {
