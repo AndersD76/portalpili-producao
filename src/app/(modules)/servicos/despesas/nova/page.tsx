@@ -56,6 +56,7 @@ export default function NovaDespesaPage() {
   const [aiRaw, setAiRaw] = useState<unknown>(null);
   const [createdId, setCreatedId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   // Form data
   const [clientName, setClientName] = useState('');
@@ -273,17 +274,17 @@ export default function NovaDespesaPage() {
 
   const handleSubmit = async () => {
     setError(null);
+    setWarning(null);
 
     // Validate required fields
     if (!category) { setError('Selecione a categoria'); return; }
     if (!amount || parseFloat(amount) <= 0) { setError('Informe o valor'); return; }
     if (!expenseDate) { setError('Informe a data'); return; }
 
-    // Check expense limits
+    // Check expense limits (warning only, does not block)
     const limite = EXPENSE_LIMITS[category];
     if (limite && parseFloat(amount) > limite) {
-      setError(`Valor R$${amount} excede o limite de R$${limite} para ${category}`);
-      return;
+      setWarning(`Valor R$${amount} excede o limite de R$${limite} para ${category}`);
     }
 
     // OSV obrigatório apenas para Assistência e Montagem
@@ -387,6 +388,7 @@ export default function NovaDespesaPage() {
     setAiRaw(null);
     setCreatedId(null);
     setError(null);
+    setWarning(null);
     setClientName('');
     setAmount('');
     setCategory('');
@@ -600,6 +602,18 @@ export default function NovaDespesaPage() {
                   {aiFilledCount} campos preenchidos pela IA
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Warning — limit exceeded (does not block) */}
+        {warning && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 text-yellow-800 text-sm">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p className="font-medium">{warning}</p>
             </div>
           </div>
         )}
