@@ -44,9 +44,6 @@ Se a forma de pagamento não for visível, retorne null.
 Se o número da NF não for visível, retorne null.
 Para campos que não consegue extrair, retorne null (nunca invente dados).`;
 
-// Valid mime types for Claude Vision API
-const VALID_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
 export async function extractReceiptData(
   imageBase64: string,
   mimeType: string
@@ -61,14 +58,6 @@ export async function extractReceiptData(
     ? imageBase64.split(',')[1]
     : imageBase64;
 
-  // Normalize mime type - default to image/jpeg if invalid
-  let normalizedMime = mimeType.toLowerCase().split(';')[0].trim();
-  if (!VALID_MIME_TYPES.includes(normalizedMime)) {
-    normalizedMime = 'image/jpeg';
-  }
-
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
-
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -78,7 +67,7 @@ export async function extractReceiptData(
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model,
+        model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
         max_tokens: 1200,
         messages: [
           {
@@ -88,7 +77,7 @@ export async function extractReceiptData(
                 type: 'image',
                 source: {
                   type: 'base64',
-                  media_type: normalizedMime,
+                  media_type: mimeType,
                   data: base64Data,
                 },
               },
@@ -104,8 +93,8 @@ export async function extractReceiptData(
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error(`[Vision] API error ${response.status} (model=${model}, mime=${normalizedMime}):`, errText);
-      return { success: false, error: `Erro na API de visão: ${response.status} - ${errText.substring(0, 200)}` };
+      console.error('Claude Vision API error:', response.status, errText);
+      return { success: false, error: `Erro na API de visão: ${response.status}` };
     }
 
     const result = await response.json();
@@ -114,7 +103,6 @@ export async function extractReceiptData(
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('[Vision] No JSON in response:', text.substring(0, 300));
       return { success: false, error: 'Não foi possível extrair dados do comprovante' };
     }
 
@@ -126,7 +114,7 @@ export async function extractReceiptData(
       raw: result,
     };
   } catch (err) {
-    console.error('[Vision] Erro ao analisar comprovante:', err);
+    console.error('Erro ao analisar comprovante:', err);
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Erro ao analisar comprovante',
