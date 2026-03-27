@@ -263,6 +263,7 @@ export interface PrecoOpcao {
   codigo: string;
   nome: string;
   descricao?: string;
+  imagem_url?: string | null;
   preco?: number;
   preco_tipo?: PrecoTipo;
   valor: number;

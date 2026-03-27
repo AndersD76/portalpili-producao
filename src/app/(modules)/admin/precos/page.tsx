@@ -98,7 +98,9 @@ export default function AdminPrecosPage() {
     preco: '',
     produto: '',
     tamanhos_selecionados: [] as number[],
+    imagem_url: '' as string,
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const router = useRouter();
   const { authenticated, loading: authLoading, isAdmin } = useAuth();
@@ -275,7 +277,7 @@ export default function AdminPrecosPage() {
   // === CRUD Opcional ===
   const openNewOpcional = () => {
     setEditingOpcional(null);
-    setFormOpcional({ codigo: '', nome: '', descricao: '', categoria_id: '', nova_categoria: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_selecionados: [] });
+    setFormOpcional({ codigo: '', nome: '', descricao: '', categoria_id: '', nova_categoria: '', preco_tipo: 'FIXO', preco: '', produto: '', tamanhos_selecionados: [], imagem_url: '' });
     setShowModalOpcional(true);
   };
 
@@ -291,6 +293,7 @@ export default function AdminPrecosPage() {
       preco: String(item.valor),
       produto: item.produto || '',
       tamanhos_selecionados: item.tamanhos_aplicaveis || [],
+      imagem_url: item.imagem_url || '',
     });
     setShowModalOpcional(true);
   };
@@ -343,6 +346,7 @@ export default function AdminPrecosPage() {
               preco: parseFloat(formOpcional.preco || '0'),
               produto: formOpcional.produto || null,
               tamanhos_aplicaveis: tamArr && tamArr.length > 0 ? `{${tamArr.join(',')}}` : null,
+              imagem_url: formOpcional.imagem_url || null,
             }
           }),
         });
@@ -369,6 +373,7 @@ export default function AdminPrecosPage() {
               preco: parseFloat(formOpcional.preco || '0'),
               produto: formOpcional.produto || null,
               tamanhos_aplicaveis: tamArr && tamArr.length > 0 ? `{${tamArr.join(',')}}` : null,
+              imagem_url: formOpcional.imagem_url || null,
             }
           }),
         });
@@ -999,6 +1004,54 @@ export default function AdminPrecosPage() {
                   placeholder="Detalhes adicionais..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500"
                 />
+              </div>
+              {/* Imagem do opcional */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Imagem</label>
+                <div className="flex items-center gap-3">
+                  {formOpcional.imagem_url && (
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                      <img src={formOpcional.imagem_url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFormOpcional({...formOpcional, imagem_url: ''})}
+                        className="absolute top-0 right-0 bg-red-500 text-white rounded-bl text-xs w-5 h-5 flex items-center justify-center"
+                      >&times;</button>
+                    </div>
+                  )}
+                  <label className={`flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 ${uploadingImage ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {uploadingImage ? 'Enviando...' : formOpcional.imagem_url ? 'Trocar' : 'Anexar imagem'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingImage(true);
+                        try {
+                          const fd = new FormData();
+                          fd.append('file', file);
+                          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                          const data = await res.json();
+                          if (data.success) {
+                            setFormOpcional(prev => ({...prev, imagem_url: data.url}));
+                          } else {
+                            setMensagem({ tipo: 'erro', texto: data.error || 'Erro no upload' });
+                          }
+                        } catch {
+                          setMensagem({ tipo: 'erro', texto: 'Erro ao enviar imagem' });
+                        } finally {
+                          setUploadingImage(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

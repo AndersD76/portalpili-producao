@@ -274,6 +274,16 @@ export async function POST() {
       }
     }
 
+    // 13. Adicionar coluna imagem_url na tabela de opcionais
+    try {
+      await pool.query(`ALTER TABLE crm_precos_opcoes ADD COLUMN IF NOT EXISTS imagem_url TEXT`);
+      results.push('✅ Coluna imagem_url adicionada em crm_precos_opcoes');
+    } catch (e: any) {
+      if (!e.message.includes('already exists')) {
+        errors.push(`❌ Erro imagem_url opcoes: ${e.message}`);
+      }
+    }
+
     // 14. Reprocessar NCs dos formulários existentes
     try {
       // Buscar formulários com "não conforme" e atualizar atividades

@@ -700,6 +700,13 @@ export default function ConfiguradorPage() {
                                     onChange={() => toggleOpcional(opc.id)}
                                     className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                                   />
+                                  {opc.imagem_url && (
+                                    <img
+                                      src={opc.imagem_url}
+                                      alt={opc.nome}
+                                      className="w-10 h-10 rounded object-cover border border-gray-200 flex-shrink-0"
+                                    />
+                                  )}
                                   <div>
                                     <span className="text-sm font-medium text-gray-900">{opc.nome}</span>
                                     <span className="text-xs text-gray-400 ml-2">
