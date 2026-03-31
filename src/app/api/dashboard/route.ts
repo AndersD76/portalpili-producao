@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     const atividadeStatsResult = await pool.query(atividadeStatsQuery, params);
     const atividadeStats = atividadeStatsResult.rows
-      .map((stat) => ({
+      .map((stat: any) => ({
         atividade: stat.atividade,
         total: parseInt(stat.total),
         concluidas: parseInt(stat.concluidas),
