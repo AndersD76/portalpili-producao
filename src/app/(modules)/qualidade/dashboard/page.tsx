@@ -498,6 +498,26 @@ export default function QualidadeDashboardPage() {
         {/* Conteúdo - Não Conformidades */}
         {viewMode === 'ncs' && (
           <div className="space-y-6">
+            {/* Cards de Resumo */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow-md p-4 text-center">
+                <div className="text-3xl font-bold text-gray-900">{Number(ncStats.total).toLocaleString('pt-BR')}</div>
+                <div className="text-xs text-gray-500 uppercase mt-1">Total NCs</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-4 text-center">
+                <div className="text-3xl font-bold text-red-600">{Number(ncStats.total_itens || 0).toLocaleString('pt-BR')}</div>
+                <div className="text-xs text-gray-500 uppercase mt-1">Peças Afetadas</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-4 text-center">
+                <div className="text-3xl font-bold text-amber-500">{Number(ncStats.abertas) + Number(ncStats.em_analise)}</div>
+                <div className="text-xs text-gray-500 uppercase mt-1">Em Aberto</div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-4 text-center">
+                <div className="text-3xl font-bold text-green-600">{Number(ncStats.fechadas).toLocaleString('pt-BR')}</div>
+                <div className="text-xs text-gray-500 uppercase mt-1">Fechadas</div>
+              </div>
+            </div>
+
             {/* Gráficos de Pizza */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-lg shadow-md p-4">
