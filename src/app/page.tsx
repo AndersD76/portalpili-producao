@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { TutorialButton } from '@/components/TutorialModal';
+import TutorialModal from '@/components/TutorialModal';
 import ChangelogBell from '@/components/ChangelogBell';
 
 interface Stats {
@@ -30,6 +30,7 @@ export default function Home() {
     propostas: 0
   });
   const [loading, setLoading] = useState(true);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const router = useRouter();
   const { user, isAdmin, authenticated, loading: authLoading, podeAcessarModulo, logout } = useAuth();
 
@@ -288,8 +289,21 @@ export default function Home() {
       <header className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
-            <div>
+            <div className="flex items-center gap-3">
               <h1 className="text-lg sm:text-xl font-bold text-gray-900">Portal Pili</h1>
+              <div className="flex items-center gap-1 ml-2">
+                <ChangelogBell />
+                <button
+                  onClick={() => setTutorialOpen(true)}
+                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition relative"
+                  title="Tutoriais"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {user?.nome && (
@@ -302,7 +316,6 @@ export default function Home() {
                   <span className="hidden sm:inline font-medium">{user.nome.split(' ')[0]}</span>
                 </div>
               )}
-              <ChangelogBell />
               <button
                 onClick={logout}
                 className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
@@ -404,8 +417,8 @@ export default function Home() {
         })()}
       </main>
 
-      {/* Tutorial Button */}
-      <TutorialButton />
+      {/* Tutorial Modal */}
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
 
       {/* Footer */}
       <footer className="bg-white border-t mt-auto">
