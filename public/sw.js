@@ -1,47 +1,34 @@
-// Service Worker para Push Notifications - SIG Portal Pili
-// Versão: 2.0 - Atualizado em 21/01/2026
-const CACHE_NAME = 'sig-cache-v2';
-
-// Arquivos para cachear (opcional para PWA básico)
-const urlsToCache = [
-  '/',
-  '/producao',
-  '/qualidade'
-];
+// Service Worker para Push Notifications - Portal Pili
+// Versão: 3.0 - Sem cache de páginas para evitar erro após deploys
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando Service Worker...');
+  console.log('[SW] Instalando Service Worker v3...');
+  // Limpa qualquer cache antigo que existia
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Cache aberto');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((error) => {
-        console.log('[SW] Erro ao cachear:', error);
-      })
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('[SW] Removendo cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    })
   );
-  // Força ativação imediata
   self.skipWaiting();
 });
 
 // Ativação do Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker ativado');
+  console.log('[SW] Service Worker v3 ativado');
+  // Remove todos os caches restantes
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Removendo cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames.map((cacheName) => caches.delete(cacheName))
       );
     })
   );
-  // Toma controle de todas as páginas imediatamente
   self.clients.claim();
 });
 
@@ -138,20 +125,5 @@ self.addEventListener('notificationclose', (event) => {
   console.log('[SW] Notificação fechada:', event);
 });
 
-// Fetch handler (para cache offline)
-self.addEventListener('fetch', (event) => {
-  // Ignora requisições de API
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
-});
+// Sem fetch handler - todas as requisições vão direto para o servidor
+// Isso evita servir páginas antigas do cache após novos deploys
