@@ -17,7 +17,7 @@ const TUTORIALS: Tutorial[] = [
     title: 'Acesso e Login',
     description: 'Como acessar o Portal Pili e fazer seu primeiro login',
     icon: '🔑',
-    slides: 6,
+    slides: 7,
     url: '/tutorials/acesso/index.html',
   },
   {
@@ -25,7 +25,7 @@ const TUTORIALS: Tutorial[] = [
     title: 'Módulo Produção',
     description: 'Gestão de OPDs, atividades, formulários e relatórios',
     icon: '🏭',
-    slides: 13,
+    slides: 16,
     url: '/tutorials/producao/index.html',
   },
 ];
