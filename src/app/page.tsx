@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { TutorialButton } from '@/components/TutorialModal';
+import ChangelogBell from '@/components/ChangelogBell';
 
 interface Stats {
   opdsAtivas: number;
@@ -301,6 +302,7 @@ export default function Home() {
                   <span className="hidden sm:inline font-medium">{user.nome.split(' ')[0]}</span>
                 </div>
               )}
+              <ChangelogBell />
               <button
                 onClick={logout}
                 className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-lg transition"
