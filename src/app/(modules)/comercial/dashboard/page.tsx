@@ -243,8 +243,36 @@ export default function DashboardComercialPage() {
   }, [opsFiltradas]);
 
   const vendedorRanking = useMemo(() => {
-    if (!isAdmin || vendedores.length === 0) return [];
-    return vendedores
+    if (!isAdmin) return [];
+
+    // Build ranking from ALL vendedores that appear in oportunidades (not just crm_vendedores table)
+    const vendedorMap = new Map<string, {
+      id: number; nome: string; email: string;
+      total_oportunidades: number; oportunidades_ganhas: number;
+      valor_total_ganho: number; total_clientes: number;
+    }>();
+
+    // Start with registered vendedores
+    vendedores.forEach(v => vendedorMap.set(v.nome, v));
+
+    // Add vendedores that only appear in oportunidades
+    opsFiltradas.forEach(o => {
+      if (o.vendedor_nome && !vendedorMap.has(o.vendedor_nome)) {
+        vendedorMap.set(o.vendedor_nome, {
+          id: o.vendedor_id || 0,
+          nome: o.vendedor_nome,
+          email: '',
+          total_oportunidades: 0,
+          oportunidades_ganhas: 0,
+          valor_total_ganho: 0,
+          total_clientes: 0,
+        });
+      }
+    });
+
+    if (vendedorMap.size === 0) return [];
+
+    return Array.from(vendedorMap.values())
       .map(v => {
         const ops = opsFiltradas.filter(o => o.vendedor_nome === v.nome);
         const ativas = ops.filter(o => o.status === 'ABERTA');
@@ -252,19 +280,25 @@ export default function DashboardComercialPage() {
         const fechadas = ops.filter(o => o.estagio === 'FECHADA');
         const perdidas = ops.filter(o => o.estagio === 'PERDIDA');
         const totalDecididas = fechadas.length + perdidas.length;
+        const valorFechado = fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0);
+        const valorNegociacao = emNegociacao.reduce((s, o) => s + toNum(o.valor_estimado), 0);
         return {
           ...v,
           totalOps: ops.length,
           opsAtivas: ativas.length,
           valorAtivo: ativas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
           emNegociacao: emNegociacao.length,
-          valorNegociacao: emNegociacao.reduce((s, o) => s + toNum(o.valor_estimado), 0),
+          valorNegociacao,
           fechadas: fechadas.length,
-          valorFechado: fechadas.reduce((s, o) => s + toNum(o.valor_estimado), 0),
+          valorFechado,
+          valorTotal: valorFechado + valorNegociacao,
           indiceFechamento: totalDecididas > 0 ? (fechadas.length / totalDecididas) * 100 : 0,
         };
       })
-      .sort((a, b) => rankingSort === 'valor' ? b.valorFechado - a.valorFechado : b.fechadas - a.fechadas)
+      .filter(v => v.totalOps > 0)
+      .sort((a, b) => rankingSort === 'valor'
+        ? (b.valorFechado + b.valorNegociacao) - (a.valorFechado + a.valorNegociacao)
+        : (b.fechadas + b.emNegociacao) - (a.fechadas + a.emNegociacao))
       .slice(0, 10);
   }, [vendedores, opsFiltradas, isAdmin, rankingSort]);
 

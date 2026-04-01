@@ -89,7 +89,7 @@ interface SinprodData {
   };
   trabalhando_agora: Array<{ nome: string; recurso: string | null; of: string | null; estagio: string; inicio: string }>;
   opds_em_producao: Array<{ NUMOPD: string; STATUS: string; COD_CLIENTE: string; DATA_FINAL_PREV: string; DATA_INICIO: string; PRIORIDADE: number; CLIENTE_NOME: string }>;
-  tempo_recente: Array<{ DT_LEITURA_INI: string; DT_LEITURA_FIM: string | null; NOME_ABRIU: string; NOME_FECHOU: string | null; CD_RECURSO: string; ORDEM_FABRICACAO: string; CD_PROCESSO: string; HORAS_COMPUTADAS: string; QTDE_PRODUZIDA: number; QTDE_REFUGADA: number }>;
+  tempo_recente: Array<{ DT_LEITURA_INI: string; DT_LEITURA_FIM: string | null; NOME_ABRIU: string; NOME_FECHOU: string | null; CD_RECURSO: string; NOME_RECURSO: string | null; ORDEM_FABRICACAO: string; CD_PROCESSO: string; NOME_PROCESSO: string | null; HORAS_COMPUTADAS: string; QTDE_PRODUZIDA: number; QTDE_REFUGADA: number }>;
 }
 
 function agruparPorOperador(items: SinprodData['trabalhando_agora']) {
@@ -686,7 +686,7 @@ export default function MaquinasDashboard() {
                             <th className="text-left py-2">Fechou</th>
                             <th className="text-left py-2">OF</th>
                             <th className="text-left py-2">Recurso</th>
-                            <th className="text-left py-2">Proc</th>
+                            <th className="text-left py-2">Processo</th>
                             <th className="text-right py-2">Status</th>
                           </tr>
                         </thead>
@@ -698,8 +698,8 @@ export default function MaquinasDashboard() {
                               <td className="py-1.5 font-medium text-gray-900">{t.NOME_ABRIU || '-'}</td>
                               <td className="py-1.5 text-gray-700">{t.NOME_FECHOU || '-'}</td>
                               <td className="py-1.5 text-gray-600">{t.ORDEM_FABRICACAO || '-'}</td>
-                              <td className="py-1.5 text-gray-600">{t.CD_RECURSO || '-'}</td>
-                              <td className="py-1.5 text-gray-600">{t.CD_PROCESSO || '-'}</td>
+                              <td className="py-1.5 text-gray-600" title={t.CD_RECURSO}>{t.NOME_RECURSO || t.CD_RECURSO || '-'}</td>
+                              <td className="py-1.5 text-gray-600" title={t.CD_PROCESSO}>{t.NOME_PROCESSO || t.CD_PROCESSO || '-'}</td>
                               <td className="py-1.5 text-right">
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${t.DT_LEITURA_FIM ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                                   {t.DT_LEITURA_FIM ? 'Fechado' : 'Aberto'}
