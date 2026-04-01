@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Pili - Modulo Producao</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #fff; overflow: hidden; height: 100vh; }
+  .slide-container { width: 100vw; height: 100vh; display: flex; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  .slide { min-width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 60px; position: relative; }
+  .slide-1 { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1a1a2e 100%); }
+  .slide-2 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-3 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-4 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-5 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-6 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-7 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-8 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-9 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-10 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-11 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-12 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-13 { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1a1a2e 100%); }
+  .slide-content { max-width: 1100px; width: 100%; display: flex; gap: 40px; align-items: center; }
+  .slide-content.centered { flex-direction: column; text-align: center; gap: 30px; }
+  .slide-text { flex: 1; }
+  .slide-image { flex: 1.2; }
+  .slide-image img { width: 100%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1); }
+  .slide-image.dual { display: flex; gap: 12px; }
+  .slide-image.dual img { width: 48%; }
+  .step-number { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #dc2626; border-radius: 50%; font-size: 20px; font-weight: 800; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(220,38,38,0.4); }
+  h1 { font-size: 48px; font-weight: 800; line-height: 1.1; margin-bottom: 10px; }
+  h2 { font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 14px; }
+  .subtitle { font-size: 17px; color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.5; }
+  .narration-box { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 18px 22px; margin-top: 20px; position: relative; }
+  .narration-box::before { content: '🎙 Narracao'; position: absolute; top: -10px; left: 16px; background: #dc2626; color: white; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .narration-box p { font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.7; font-style: italic; }
+  .highlight-list { list-style: none; margin-top: 14px; }
+  .highlight-list li { padding: 6px 0; padding-left: 24px; position: relative; font-size: 15px; color: rgba(255,255,255,0.85); }
+  .highlight-list li::before { content: ''; position: absolute; left: 0; top: 13px; width: 10px; height: 10px; background: #dc2626; border-radius: 3px; }
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px 40px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 100; border-top: 1px solid rgba(255,255,255,0.1); }
+  .nav-btn { padding: 10px 28px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .nav-btn.prev { background: rgba(255,255,255,0.1); color: white; }
+  .nav-btn.prev:hover { background: rgba(255,255,255,0.2); }
+  .nav-btn.next { background: #dc2626; color: white; }
+  .nav-btn.next:hover { background: #b91c1c; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .progress-dots { display: flex; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: all 0.3s; cursor: pointer; }
+  .dot.active { background: #dc2626; transform: scale(1.3); }
+  .slide-counter { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .fade-in { opacity: 0; transform: translateY(20px); animation: fadeUp 0.6s ease forwards; }
+  .fade-in.d1 { animation-delay: 0.1s; } .fade-in.d2 { animation-delay: 0.3s; } .fade-in.d3 { animation-delay: 0.5s; } .fade-in.d4 { animation-delay: 0.7s; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  .kbd-hint { position: fixed; top: 14px; right: 20px; font-size: 11px; color: rgba(255,255,255,0.3); z-index: 100; }
+  .kbd-hint kbd { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+  .badge-red { background: #dc2626; color: white; }
+  .badge-green { background: #16a34a; color: white; }
+  .badge-yellow { background: #d97706; color: white; }
+  .badge-blue { background: #2563eb; color: white; }
+</style>
+</head>
+<body>
+<div class="kbd-hint">Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> para navegar</div>
+<div class="slide-container" id="slideContainer">
+
+  <!-- SLIDE 1: Capa -->
+  <div class="slide slide-1">
+    <div class="slide-content centered">
+      <div class="fade-in">
+        <div style="font-size: 72px; font-weight: 900; letter-spacing: -3px;">Modulo <span style="color: #fecaca;">Producao</span></div>
+        <p style="font-size: 22px; color: rgba(255,255,255,0.8); margin-top: 12px;">Controle e acompanhamento de OPDs em tempo real</p>
+        <div style="margin-top: 36px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">OPDs</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">ORDENS DE PRODUCAO</div></div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">22</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">ETAPAS POR OPD</div></div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">CQ</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">FORMULARIOS INTEGRADOS</div></div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">CHAT</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">COMUNICACAO POR OPD</div></div>
+        </div>
+      </div>
+      <div class="narration-box fade-in d2" style="max-width: 700px;">
+        <p>Nesta apresentacao, vamos conhecer o Modulo de Producao do Portal Pili. Aqui voce vai aprender a gerenciar Ordens de Producao, acompanhar atividades, preencher formularios de controle de qualidade, usar o chat da OPD, gerar relatorios e muito mais.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Tela Inicial -->
+  <div class="slide slide-2">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">1</div>
+        <h2 class="fade-in d1">Acessando o Modulo</h2>
+        <p class="subtitle fade-in d2">Clique no card "Producao" na pagina inicial</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Na home, clique no card <strong>"Producao"</strong></li>
+          <li>Mostra resumo: <strong>OPDs Ativas</strong> e <strong>Em Andamento</strong></li>
+          <li>Acesso rapido aos indicadores principais</li>
+          <li>Cada modulo tem um card proprio com preview de dados</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Para acessar o modulo de producao, clique no card vermelho "Producao" na pagina inicial. Ele ja mostra um resumo com o numero de OPDs ativas e quantas estao em andamento. Esse e o ponto de entrada para toda a gestao de producao da Pili.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 154938.png" alt="Home com card Producao">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Lista de OPDs -->
+  <div class="slide slide-3">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">2</div>
+        <h2 class="fade-in d1">Lista de OPDs</h2>
+        <p class="subtitle fade-in d2">Visao geral de todas as ordens de producao</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>Filtros:</strong> Todas, Atrasadas, Hoje, 3 dias, 7 dias, 30 dias</li>
+          <li>Cards com numero da OPD, tipo, responsavel e datas</li>
+          <li>Barra de progresso mostrando % de conclusao</li>
+          <li>Status visual: <span class="badge badge-red">Iniciada</span> <span class="badge badge-yellow">Quase Pronto</span></li>
+          <li>Botao <strong>"+ Nova OPD"</strong> no topo direito</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>A lista de OPDs mostra todas as ordens de producao em formato de cards. Cada card exibe o numero da OPD, tipo de produto, responsavel, datas importantes e uma barra de progresso. Use os filtros no topo para encontrar OPDs especificas. As cores indicam o status: vermelho para iniciadas, amarelo para quase prontas. Clique em "Ver Detalhes" para abrir uma OPD.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 155005.png" alt="Lista de OPDs">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Detalhe da OPD -->
+  <div class="slide slide-4">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">3</div>
+        <h2 class="fade-in d1">Detalhe da OPD</h2>
+        <p class="subtitle fade-in d2">Visao completa de uma ordem de producao</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Cabecalho com numero, tipo, datas e progresso</li>
+          <li><strong>4 indicadores:</strong> Total, Concluidas, Em Andamento, A Realizar</li>
+          <li>Botoes: <span class="badge badge-blue">Post-it</span> <span class="badge badge-green">Relatorio</span> Editar, Deletar</li>
+          <li>Filtros por status e prazo</li>
+          <li>Lista de <strong>22 atividades</strong> com status individual</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Ao abrir uma OPD, voce ve o cabecalho com todas as informacoes: numero, tipo de produto, datas de pedido, inicio de producao, previsao de inicio e termino. Os 4 cards coloridos mostram o resumo das atividades. Logo abaixo, a lista completa de atividades com status, responsavel, tempo acumulado e previsao de cada etapa.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 155031.png" alt="Detalhe da OPD">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Atividades e Chat -->
+  <div class="slide slide-5">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">4</div>
+        <h2 class="fade-in d1">Atividades e Chat</h2>
+        <p class="subtitle fade-in d2">Acompanhe cada etapa e comunique-se em tempo real</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Cada atividade mostra: responsavel, previsao, tempo e status</li>
+          <li>Status: <span class="badge badge-green">CONCLUIDA</span> <span class="badge badge-yellow">EM ANDAMENTO</span> <span class="badge badge-red">PAUSADA</span></li>
+          <li>Timer de tempo acumulado por atividade</li>
+          <li>Badge <span class="badge badge-blue">Formulario</span> quando tem CQ vinculado</li>
+          <li><strong>Chat da OPD:</strong> mensagens ficam permanentemente salvas</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Cada atividade possui um status visual, responsavel, previsao de inicio e um timer que conta o tempo acumulado de trabalho. O Chat da OPD fica ao lado direito, onde toda a equipe pode trocar mensagens sobre aquela ordem especifica. As mensagens ficam salvas permanentemente e servem como historico de comunicacao.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 155054.png" alt="Atividades e Chat">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Expandir atividade -->
+  <div class="slide slide-6">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">5</div>
+        <h2 class="fade-in d1">Detalhes da Atividade</h2>
+        <p class="subtitle fade-in d2">Expanda para ver datas, historico e acoes</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Clique na atividade para expandir</li>
+          <li>Mostra: Data Pedido, Data Inicio, Data Termino, Tempo Total</li>
+          <li>Historico de acoes (quem iniciou, concluiu, etc.)</li>
+          <li>Botoes: <span class="badge badge-blue">Formulario</span> e <strong>Editar</strong></li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Ao clicar em uma atividade, ela se expande mostrando todos os detalhes: datas de pedido, inicio e termino, tempo total acumulado e o historico completo de acoes. Voce pode acessar o formulario de controle de qualidade vinculado ou editar os dados da atividade diretamente.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 155110.png" alt="Atividade expandida">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Formulario CQ -->
+  <div class="slide slide-7">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">6</div>
+        <h2 class="fade-in d1">Formularios de CQ</h2>
+        <p class="subtitle fade-in d2">Controle de qualidade integrado em cada etapa</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Checklist da Liberacao Comercial com campos Sim/Nao</li>
+          <li>Formularios de producao (ex: Corte) com criterios tecnicos</li>
+          <li>Avaliacoes, criterios de aceitacao e condicoes</li>
+          <li>Opcoes: <span class="badge badge-green">Salvar Rascunho</span> ou <span class="badge badge-yellow">Finalizar Controle</span></li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Os formularios de controle de qualidade estao integrados diretamente nas atividades. Cada etapa pode ter um formulario especifico. Por exemplo, a Liberacao Comercial tem um checklist simples, enquanto o formulario de Corte tem criterios tecnicos detalhados como medidas, tolerancias e metodos de verificacao. Voce pode salvar como rascunho ou finalizar o controle.</p>
+        </div>
+      </div>
+      <div class="slide-image dual fade-in d2">
+        <img src="Captura de tela 2026-03-31 155437.png" alt="Formulario checklist">
+        <img src="Captura de tela 2026-03-31 155525.png" alt="Formulario CQ Corte">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Subtarefas de Producao -->
+  <div class="slide slide-8">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">7</div>
+        <h2 class="fade-in d1">Subtarefas de Producao</h2>
+        <p class="subtitle fade-in d2">Etapas detalhadas dentro da fase de producao</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>A - CORTE</strong> com timer e botao "Preencher"</li>
+          <li><strong>B - MONTAGEM SUPERIOR E ESQUADRO</strong></li>
+          <li><strong>C - CENTRAL HIDRAULICA</strong></li>
+          <li><strong>D/E - SOLDA LADO 01 e 02</strong></li>
+          <li><strong>F - MONTAGEM E SOLDA INFERIOR</strong></li>
+          <li>Cada subtarefa tem seu proprio status e formulario</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Dentro da atividade "Producao", existem diversas subtarefas que representam cada etapa do processo fabril. Cada uma pode ser iniciada, pausada e concluida individualmente, com timer proprio e formulario de controle de qualidade. O status visual por cores permite acompanhar rapidamente o progresso: verde para concluida, amarelo para em andamento e cinza para a realizar.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 155503.png" alt="Subtarefas de producao">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Post-its -->
+  <div class="slide slide-9">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">8</div>
+        <h2 class="fade-in d1">Post-its de Pendencias</h2>
+        <p class="subtitle fade-in d2">Registre pendencias e atribua responsaveis</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Clique no botao <span class="badge badge-yellow">Post-it</span> na OPD</li>
+          <li>Adicione descricao da pendencia</li>
+          <li>Defina <strong>responsavel</strong> e <strong>prazo</strong></li>
+          <li>Pendencias ficam vinculadas a OPD</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Os post-its de pendencias permitem registrar tarefas extras ou problemas que precisam ser resolvidos em uma OPD. Basta clicar no botao de Post-it, descrever a pendencia, atribuir um responsavel e definir um prazo. As pendencias ficam vinculadas a OPD e podem ser acompanhadas por toda a equipe.</p>
+        </div>
+      </div>
+      <div class="slide-image dual fade-in d2">
+        <img src="Captura de tela 2026-03-31 155636.png" alt="Post-its lista">
+        <img src="Captura de tela 2026-03-31 155649.png" alt="Novo Post-it">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Relatorio -->
+  <div class="slide slide-10">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">9</div>
+        <h2 class="fade-in d1">Relatorio da OPD</h2>
+        <p class="subtitle fade-in d2">Visualize e imprima o relatorio completo</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Relatorio completo com todas as atividades e tempos</li>
+          <li>Filtros: Timeline, Formularios, Chat, Post-its, NCs</li>
+          <li>Cabecalho com tipo, data pedido, entrega e responsavel</li>
+          <li>Exportar como <strong>PDF</strong> via impressao do navegador</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>O relatorio da OPD compila todas as informacoes em uma unica pagina: cabecalho com dados gerais, resumo de atividades por status, e a lista detalhada de cada atividade com datas, responsaveis e tempos. Voce pode filtrar por timeline, formularios, chat, post-its e nao conformidades. Para exportar como PDF, use a opcao de impressao do navegador.</p>
+        </div>
+      </div>
+      <div class="slide-image dual fade-in d2">
+        <img src="Captura de tela 2026-03-31 155719.png" alt="Relatorio OPD">
+        <img src="Captura de tela 2026-03-31 155736.png" alt="Impressao PDF">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Editar e Deletar -->
+  <div class="slide slide-11">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">10</div>
+        <h2 class="fade-in d1">Editar e Criar OPDs</h2>
+        <p class="subtitle fade-in d2">Gerencie os dados das ordens de producao</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>Editar:</strong> altere numero, tipo, responsavel, datas</li>
+          <li>Selecione tipo: <strong>TOMBADOR</strong> ou <strong>COLETOR</strong></li>
+          <li><strong>Nova OPD:</strong> crie com tipo de produto e dados basicos</li>
+          <li><strong>Deletar:</strong> confirmacao obrigatoria antes de excluir</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Para editar uma OPD, clique no botao "Editar" no cabecalho. Voce pode alterar o numero, tipo de produto (Tombador ou Coletor), responsavel, datas e outros dados. Para criar uma nova OPD, clique em "+ Nova OPD" na lista. Para excluir, clique em "Deletar" e confirme a exclusao no dialogo de confirmacao.</p>
+        </div>
+      </div>
+      <div class="slide-image dual fade-in d2">
+        <img src="Captura de tela 2026-03-31 155758.png" alt="Editar OPD">
+        <img src="Captura de tela 2026-03-31 155928.png" alt="Nova OPD">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Dashboard e Calendario -->
+  <div class="slide slide-12">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">11</div>
+        <h2 class="fade-in d1">Dashboard e Calendario</h2>
+        <p class="subtitle fade-in d2">Indicadores e visao de entregas</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>Dashboard:</strong> Total OPDs, Atividades, Em 7 dias, Atrasadas</li>
+          <li>Abas: Estatisticas, Todas as Tarefas, Linha do Tempo</li>
+          <li>OPDs em Andamento com % e distribuicao de status</li>
+          <li><strong>Calendario:</strong> entregas por data com % de conclusao</li>
+          <li>Navegacao mes a mes com datas destacadas</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>O Dashboard de Producao mostra indicadores gerais: total de OPDs, total de atividades, tarefas nos proximos 7 dias e atrasadas. A distribuicao de status mostra quantas atividades estao concluidas, em andamento e pendentes. O Calendario de Entregas apresenta as OPDs organizadas por data de entrega, com o percentual de conclusao de cada uma, facilitando o planejamento.</p>
+        </div>
+      </div>
+      <div class="slide-image dual fade-in d2">
+        <img src="Captura de tela 2026-03-31 155842.png" alt="Dashboard">
+        <img src="Captura de tela 2026-03-31 155909.png" alt="Calendario">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Encerramento -->
+  <div class="slide slide-13">
+    <div class="slide-content centered">
+      <div class="fade-in">
+        <div style="font-size: 56px; font-weight: 900; letter-spacing: -2px;">Modulo Producao</div>
+        <p style="font-size: 24px; color: rgba(255,255,255,0.8); margin-top: 8px;">Resumo das funcionalidades</p>
+      </div>
+      <div class="fade-in d2" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 16px;">
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📋</div>
+          <div style="font-size: 13px; font-weight: 700;">OPDs</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Criar, editar, acompanhar</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">⚙️</div>
+          <div style="font-size: 13px; font-weight: 700;">Atividades</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">22 etapas com timer</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">✅</div>
+          <div style="font-size: 13px; font-weight: 700;">CQ</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Formularios integrados</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">💬</div>
+          <div style="font-size: 13px; font-weight: 700;">Chat</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Comunicacao por OPD</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📊</div>
+          <div style="font-size: 13px; font-weight: 700;">Dashboard</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">KPIs e indicadores</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📅</div>
+          <div style="font-size: 13px; font-weight: 700;">Calendario</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Entregas e prazos</div>
+        </div>
+      </div>
+      <div class="narration-box fade-in d3" style="max-width: 700px;">
+        <p>O Modulo de Producao e o coracao do Portal Pili. Com ele, voce acompanha cada etapa da fabricacao, desde a liberacao comercial ate a entrega final. Use as atividades para controlar o progresso, os formularios para garantir a qualidade, o chat para comunicar problemas e o dashboard para ter visao geral da fabrica. Bom trabalho!</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav-bar">
+  <button class="nav-btn prev" id="prevBtn" onclick="changeSlide(-1)">&#8592; Anterior</button>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+    <div class="progress-dots" id="dots"></div>
+    <span class="slide-counter" id="counter">1 / 13</span>
+  </div>
+  <button class="nav-btn next" id="nextBtn" onclick="changeSlide(1)">Proximo &#8594;</button>
+</div>
+
+<script>
+  const totalSlides = 13;
+  let currentSlide = 0;
+  const container = document.getElementById('slideContainer');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const dotsContainer = document.getElementById('dots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+  function goToSlide(n) {
+    currentSlide = n;
+    container.style.transform = `translateX(-${currentSlide * 100}vw)`;
+    counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+    prevBtn.disabled = currentSlide === 0;
+    nextBtn.disabled = currentSlide === totalSlides - 1;
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+    const slide = document.querySelectorAll('.slide')[currentSlide];
+    slide.querySelectorAll('.fade-in').forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; });
+  }
+  function changeSlide(dir) { const next = currentSlide + dir; if (next >= 0 && next < totalSlides) goToSlide(next); }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+  });
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+  document.addEventListener('touchend', e => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+</script>
+</body>
+</html>

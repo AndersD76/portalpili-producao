@@ -18,8 +18,8 @@ const CHANGELOG: ChangelogEntry[] = [
     id: '2026-04-01-tutorials',
     date: '01/04/2026',
     type: 'feature',
-    title: 'Tutoriais interativos com narração',
-    description: 'Novos tutoriais com voz em português no botão de play da página inicial. Aprenda a usar o portal ouvindo as instruções.',
+    title: 'Tutoriais interativos com slides reais',
+    description: 'Botão de play na página inicial abre tutoriais com screenshots reais do portal, narração escrita e navegação por setas. Acesso e Login + Módulo Produção.',
   },
   {
     id: '2026-04-01-quality-cards',

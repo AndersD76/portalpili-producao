@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Pili - Como Acessar</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #fff; overflow: hidden; height: 100vh; }
+
+  .slide-container { width: 100vw; height: 100vh; display: flex; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  .slide { min-width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 60px; position: relative; }
+
+  /* Slide backgrounds */
+  .slide-1 { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1a1a2e 100%); }
+  .slide-2 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-3 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-4 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-5 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-6 { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1a1a2e 100%); }
+
+  .slide-content { max-width: 1100px; width: 100%; display: flex; gap: 50px; align-items: center; }
+  .slide-content.centered { flex-direction: column; text-align: center; gap: 30px; }
+
+  .slide-text { flex: 1; }
+  .slide-image { flex: 1.2; }
+  .slide-image img { width: 100%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1); }
+
+  .step-number { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #dc2626; border-radius: 50%; font-size: 22px; font-weight: 800; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(220,38,38,0.4); }
+
+  h1 { font-size: 52px; font-weight: 800; line-height: 1.1; margin-bottom: 12px; }
+  h1 span { color: #dc2626; }
+  h2 { font-size: 36px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
+  .subtitle { font-size: 20px; color: rgba(255,255,255,0.7); margin-bottom: 24px; line-height: 1.5; }
+
+  .narration-box { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 20px 24px; margin-top: 24px; position: relative; }
+  .narration-box::before { content: '🎙 Narração'; position: absolute; top: -10px; left: 16px; background: #dc2626; color: white; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .narration-box p { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.7; font-style: italic; }
+
+  .highlight-list { list-style: none; margin-top: 16px; }
+  .highlight-list li { padding: 8px 0; padding-left: 28px; position: relative; font-size: 17px; color: rgba(255,255,255,0.85); }
+  .highlight-list li::before { content: ''; position: absolute; left: 0; top: 16px; width: 12px; height: 12px; background: #dc2626; border-radius: 3px; }
+
+  .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+  .module-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 16px 20px; }
+  .module-card h4 { font-size: 16px; font-weight: 700; color: #dc2626; margin-bottom: 4px; }
+  .module-card p { font-size: 13px; color: rgba(255,255,255,0.6); }
+
+  /* Navigation */
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 16px 40px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); z-index: 100; border-top: 1px solid rgba(255,255,255,0.1); }
+  .nav-btn { padding: 10px 28px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .nav-btn.prev { background: rgba(255,255,255,0.1); color: white; }
+  .nav-btn.prev:hover { background: rgba(255,255,255,0.2); }
+  .nav-btn.next { background: #dc2626; color: white; }
+  .nav-btn.next:hover { background: #b91c1c; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .slide-counter { font-size: 14px; color: rgba(255,255,255,0.5); }
+  .progress-dots { display: flex; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: all 0.3s; cursor: pointer; }
+  .dot.active { background: #dc2626; transform: scale(1.3); }
+
+  /* Logo */
+  .pili-logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+  .pili-logo span { color: #dc2626; }
+
+  /* Animations */
+  .fade-in { opacity: 0; transform: translateY(20px); animation: fadeUp 0.6s ease forwards; }
+  .fade-in.d1 { animation-delay: 0.1s; }
+  .fade-in.d2 { animation-delay: 0.3s; }
+  .fade-in.d3 { animation-delay: 0.5s; }
+  .fade-in.d4 { animation-delay: 0.7s; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+  /* Keyboard hint */
+  .kbd-hint { position: fixed; top: 16px; right: 24px; font-size: 12px; color: rgba(255,255,255,0.3); z-index: 100; }
+  .kbd-hint kbd { background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); font-family: inherit; }
+</style>
+</head>
+<body>
+
+<div class="kbd-hint">Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> ou clique nos botoes</div>
+
+<div class="slide-container" id="slideContainer">
+
+  <!-- SLIDE 1: Capa -->
+  <div class="slide slide-1">
+    <div class="slide-content centered">
+      <div class="fade-in">
+        <div style="font-size: 80px; font-weight: 900; letter-spacing: -3px;">
+          <span style="color: white;">PORTAL</span> <span style="color: #fecaca;">PILI</span>
+        </div>
+        <p style="font-size: 24px; color: rgba(255,255,255,0.8); margin-top: 12px;">Guia de Acesso e Primeiro Login</p>
+        <div style="margin-top: 40px; display: flex; gap: 20px; justify-content: center;">
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800;">5</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.5);">MODULOS</div>
+          </div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800;">24/7</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.5);">ACESSO</div>
+          </div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800;">WEB</div>
+            <div style="font-size: 13px; color: rgba(255,255,255,0.5);">CELULAR E PC</div>
+          </div>
+        </div>
+      </div>
+      <div class="narration-box fade-in d2" style="max-width: 700px;">
+        <p>Bem-vindo ao Portal Pili! Nesta apresentacao, voce vai aprender como acessar o sistema, fazer login e navegar pelos modulos disponiveis. O Portal Pili e a ferramenta central da empresa para gestao de producao, qualidade, comercial e servicos.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Acessando o Portal -->
+  <div class="slide slide-2">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">1</div>
+        <h2 class="fade-in d1">Acessando o Portal</h2>
+        <p class="subtitle fade-in d2">Abra o navegador e acesse o endereco do Portal Pili</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Abra o <strong>Google Chrome</strong> no computador ou celular</li>
+          <li>Na barra de endereco, acesse a URL fornecida pela TI</li>
+          <li>Voce vera a tela de boas-vindas com o logo do Portal Pili</li>
+          <li>Clique no botao vermelho <strong>"ACESSAR"</strong></li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>O primeiro passo e abrir o navegador de sua preferencia e digitar o endereco do Portal Pili. Recomendamos o Google Chrome para melhor compatibilidade. Ao carregar a pagina, voce vera a tela inicial com o logo do Portal Pili e a versao atual do sistema. Clique no botao vermelho "ACESSAR" para ir para a tela de login.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 154515.png" alt="Tela inicial do Portal Pili">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Tela de Login -->
+  <div class="slide slide-3">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">2</div>
+        <h2 class="fade-in d1">Fazendo Login</h2>
+        <p class="subtitle fade-in d2">Insira suas credenciais para entrar no sistema</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>ID do Usuario:</strong> seu numero de identificacao (ex: 100)</li>
+          <li><strong>Senha:</strong> senha fornecida pelo administrador</li>
+          <li>Clique em <strong>"ENTRAR"</strong> para acessar</li>
+          <li>Em caso de duvidas, procure o setor de TI</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Na tela de login, preencha o campo "ID" com o seu numero de identificacao de funcionario. Em seguida, digite sua senha no campo correspondente. Caso seja seu primeiro acesso, a senha padrao sera informada pelo administrador do sistema. Apos preencher, clique no botao "ENTRAR". Se as credenciais estiverem corretas, voce sera direcionado para a pagina inicial do portal.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 154531.png" alt="Tela de login">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Nova Tela de Login -->
+  <div class="slide slide-4">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">3</div>
+        <h2 class="fade-in d1">Portal de Gestao<br><small style="font-size: 20px; color: rgba(255,255,255,0.6);">Nova versao do login</small></h2>
+        <p class="subtitle fade-in d2">O sistema foi atualizado com uma nova interface de login mais moderna</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Campo <strong>"ID do Usuario"</strong> - mesmo numero de antes</li>
+          <li>Campo <strong>"Senha"</strong> - mesma senha</li>
+          <li>Botao vermelho <strong>"Entrar"</strong></li>
+          <li>Versao atualizada: <strong>Portal Pili v1.0</strong></li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>O Portal Pili recebeu uma atualizacao visual na tela de login. O processo continua o mesmo: digite seu ID de usuario e senha, e clique em "Entrar". A nova interface e mais limpa e moderna, com o logo Pili no topo. Suas credenciais nao mudaram - use o mesmo ID e senha de sempre.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 154623.png" alt="Nova tela de login">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Tela Inicial / Modulos -->
+  <div class="slide slide-5">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">4</div>
+        <h2 class="fade-in d1">Pagina Inicial</h2>
+        <p class="subtitle fade-in d2">Navegue pelos modulos disponiveis</p>
+        <div class="module-grid fade-in d3">
+          <div class="module-card">
+            <h4>Producao</h4>
+            <p>Controle e acompanhamento de OPDs em tempo real</p>
+          </div>
+          <div class="module-card">
+            <h4>Qualidade</h4>
+            <p>Gestao de NCs, Reclamacoes e Acoes Corretivas</p>
+          </div>
+          <div class="module-card">
+            <h4>Comercial</h4>
+            <p>CRM, Pipeline de vendas e propostas</p>
+          </div>
+          <div class="module-card">
+            <h4>Servicos</h4>
+            <p>Despesas de campo e gestao de servicos</p>
+          </div>
+        </div>
+        <div class="narration-box fade-in d4">
+          <p>Apos o login, voce vera a pagina inicial do Portal Pili com os modulos disponiveis. Cada card vermelho representa um modulo do sistema. Clique no modulo desejado para acessar suas funcionalidades. Os modulos visiveis dependem das permissoes do seu usuario. Seu nome aparece no canto superior direito, confirmando que voce esta logado.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-03-31 154643.png" alt="Pagina inicial com modulos">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Encerramento -->
+  <div class="slide slide-6">
+    <div class="slide-content centered">
+      <div class="fade-in">
+        <div style="font-size: 64px; font-weight: 900; letter-spacing: -2px;">
+          Pronto para usar!
+        </div>
+        <p style="font-size: 22px; color: rgba(255,255,255,0.8); margin-top: 16px; max-width: 600px;">
+          Agora voce sabe como acessar e navegar pelo Portal Pili.
+        </p>
+      </div>
+      <div class="fade-in d2" style="display: flex; gap: 30px; margin-top: 20px;">
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px 32px; text-align: center;">
+          <div style="font-size: 28px; margin-bottom: 8px;">💡</div>
+          <div style="font-size: 14px; font-weight: 600;">Dica</div>
+          <div style="font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px;">Adicione o portal aos favoritos do navegador</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px 32px; text-align: center;">
+          <div style="font-size: 28px; margin-bottom: 8px;">📱</div>
+          <div style="font-size: 14px; font-weight: 600;">Celular</div>
+          <div style="font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px;">Instale como app pela opcao "Adicionar a tela inicial"</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px 32px; text-align: center;">
+          <div style="font-size: 28px; margin-bottom: 8px;">🔒</div>
+          <div style="font-size: 14px; font-weight: 600;">Seguranca</div>
+          <div style="font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px;">Nunca compartilhe sua senha com terceiros</div>
+        </div>
+      </div>
+      <div class="narration-box fade-in d3" style="max-width: 700px;">
+        <p>Parabens! Agora voce ja sabe como acessar o Portal Pili. Lembre-se de adicionar o endereco aos favoritos do navegador para facilitar o acesso. No celular, voce pode instalar o Portal como um aplicativo usando a opcao "Adicionar a tela inicial" do navegador. Em caso de problemas com login ou acesso, entre em contato com o setor de TI. Bom trabalho!</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav-bar">
+  <button class="nav-btn prev" id="prevBtn" onclick="changeSlide(-1)">&#8592; Anterior</button>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+    <div class="progress-dots" id="dots"></div>
+    <span class="slide-counter" id="counter">1 / 6</span>
+  </div>
+  <button class="nav-btn next" id="nextBtn" onclick="changeSlide(1)">Proximo &#8594;</button>
+</div>
+
+<script>
+  const totalSlides = 6;
+  let currentSlide = 0;
+  const container = document.getElementById('slideContainer');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const dotsContainer = document.getElementById('dots');
+
+  // Create dots
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+
+  function goToSlide(n) {
+    currentSlide = n;
+    container.style.transform = `translateX(-${currentSlide * 100}vw)`;
+    counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+    prevBtn.disabled = currentSlide === 0;
+    nextBtn.disabled = currentSlide === totalSlides - 1;
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+    // Re-trigger animations
+    const slide = document.querySelectorAll('.slide')[currentSlide];
+    slide.querySelectorAll('.fade-in').forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.style.animation = '';
+    });
+  }
+
+  function changeSlide(dir) {
+    const next = currentSlide + dir;
+    if (next >= 0 && next < totalSlides) goToSlide(next);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+  });
+
+  // Touch/swipe
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
