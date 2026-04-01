@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { TutorialButton } from '@/components/TutorialModal';
 
 interface Stats {
   opdsAtivas: number;
@@ -400,6 +401,9 @@ export default function Home() {
           );
         })()}
       </main>
+
+      {/* Tutorial Button */}
+      <TutorialButton />
 
       {/* Footer */}
       <footer className="bg-white border-t mt-auto">
