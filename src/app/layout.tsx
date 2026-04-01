@@ -42,6 +42,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          if('caches' in window){caches.keys().then(function(n){n.forEach(function(c){caches.delete(c)})});}
+          if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(sw){sw.update()})});}
+        `}} />
       </head>
       <body className="font-sans">
         <Providers>

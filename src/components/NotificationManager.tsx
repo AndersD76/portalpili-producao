@@ -22,12 +22,19 @@ export default function NotificationManager({ userId, userNome }: NotificationMa
     setIsMounted(true);
   }, []);
 
-  // Registrar Service Worker
+  // Registrar Service Worker e limpar caches antigos
   useEffect(() => {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.register('/sw.js')
+      // Limpar caches antigos que causam "client-side exception" após deploys
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then((reg) => {
           console.log('Service Worker registrado:', reg);
+          reg.update(); // Forçar busca da versão mais recente
           setRegistration(reg);
           checkSubscription(reg);
         })
