@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
         tempo_medio_minutos: stat.tempo_medio_minutos ? parseFloat(stat.tempo_medio_minutos) : null,
         ordem: getOrdemAtividade(stat.atividade),
       }))
-      .sort((a, b) => a.ordem - b.ordem);
+      .sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
 
     // Buscar lista de OPDs para filtro
     const opdsQuery = `SELECT DISTINCT numero FROM opds ORDER BY numero DESC LIMIT 100`;
