@@ -36,6 +36,7 @@ export default function QualidadePage() {
   const [recentNCs, setRecentNCs] = useState<NaoConformidade[]>([]);
   const [recentReclamacoes, setRecentReclamacoes] = useState<ReclamacaoCliente[]>([]);
   const [recentAcoes, setRecentAcoes] = useState<AcaoCorretiva[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { user, authenticated, loading: authLoading, podeExecutarAcao } = useAuth();
 
@@ -56,52 +57,80 @@ export default function QualidadePage() {
         fetch('/api/qualidade/acao-corretiva').catch(() => null)
       ]);
 
+      const errors: string[] = [];
+
       // Processar NCs
       if (ncResponse) {
-        const ncData = await ncResponse.json().catch(() => ({ data: [] }));
-        const ncs = ncData.data || [];
-        setRecentNCs(ncs.slice(0, 5));
-        setStats(prev => ({
-          ...prev,
-          naoConformidades: {
-            total: ncs.length,
-            abertas: ncs.filter((nc: NaoConformidade) => nc.status === 'ABERTA').length,
-            emAnalise: ncs.filter((nc: NaoConformidade) => nc.status === 'EM_ANALISE').length
-          }
-        }));
+        if (!ncResponse.ok) {
+          const errData = await ncResponse.json().catch(() => ({}));
+          errors.push(`NCs: ${errData.error || `Erro ${ncResponse.status}`}`);
+        } else {
+          const ncData = await ncResponse.json().catch(() => ({ data: [] }));
+          const ncs = ncData.data || [];
+          setRecentNCs(ncs.slice(0, 5));
+          setStats(prev => ({
+            ...prev,
+            naoConformidades: {
+              total: ncs.length,
+              abertas: ncs.filter((nc: NaoConformidade) => nc.status === 'ABERTA').length,
+              emAnalise: ncs.filter((nc: NaoConformidade) => nc.status === 'EM_ANALISE').length
+            }
+          }));
+        }
+      } else {
+        errors.push('NCs: Falha na conexão');
       }
 
       // Processar Reclamações
       if (recResponse) {
-        const recData = await recResponse.json().catch(() => ({ data: [] }));
-        const recs = recData.data || [];
-        setRecentReclamacoes(recs.slice(0, 5));
-        setStats(prev => ({
-          ...prev,
-          reclamacoes: {
-            total: recs.length,
-            abertas: recs.filter((rec: ReclamacaoCliente) => rec.status === 'ABERTA').length,
-            emAnalise: recs.filter((rec: ReclamacaoCliente) => rec.status === 'EM_ANALISE').length
-          }
-        }));
+        if (!recResponse.ok) {
+          const errData = await recResponse.json().catch(() => ({}));
+          errors.push(`Reclamações: ${errData.error || `Erro ${recResponse.status}`}`);
+        } else {
+          const recData = await recResponse.json().catch(() => ({ data: [] }));
+          const recs = recData.data || [];
+          setRecentReclamacoes(recs.slice(0, 5));
+          setStats(prev => ({
+            ...prev,
+            reclamacoes: {
+              total: recs.length,
+              abertas: recs.filter((rec: ReclamacaoCliente) => rec.status === 'ABERTA').length,
+              emAnalise: recs.filter((rec: ReclamacaoCliente) => rec.status === 'EM_ANALISE').length
+            }
+          }));
+        }
+      } else {
+        errors.push('Reclamações: Falha na conexão');
       }
 
       // Processar Ações Corretivas
       if (acResponse) {
-        const acData = await acResponse.json().catch(() => ({ data: [] }));
-        const acs = acData.data || [];
-        setRecentAcoes(acs.slice(0, 5));
-        setStats(prev => ({
-          ...prev,
-          acoesCorretivas: {
-            total: acs.length,
-            abertas: acs.filter((ac: AcaoCorretiva) => ac.status === 'ABERTA').length,
-            emAndamento: acs.filter((ac: AcaoCorretiva) => ac.status === 'EM_ANDAMENTO').length
-          }
-        }));
+        if (!acResponse.ok) {
+          const errData = await acResponse.json().catch(() => ({}));
+          errors.push(`Ações: ${errData.error || `Erro ${acResponse.status}`}`);
+        } else {
+          const acData = await acResponse.json().catch(() => ({ data: [] }));
+          const acs = acData.data || [];
+          setRecentAcoes(acs.slice(0, 5));
+          setStats(prev => ({
+            ...prev,
+            acoesCorretivas: {
+              total: acs.length,
+              abertas: acs.filter((ac: AcaoCorretiva) => ac.status === 'ABERTA').length,
+              emAndamento: acs.filter((ac: AcaoCorretiva) => ac.status === 'EM_ANDAMENTO').length
+            }
+          }));
+        }
+      } else {
+        errors.push('Ações: Falha na conexão');
+      }
+
+      if (errors.length > 0) {
+        setError(errors.join(' | '));
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
+      setError('Erro ao conectar com o servidor');
     } finally {
       setLoading(false);
     }
@@ -155,6 +184,20 @@ export default function QualidadePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-red-800 font-medium text-sm">Erro ao carregar dados</p>
+              <p className="text-red-600 text-xs mt-1">{error}</p>
+            </div>
+            <button onClick={() => { setError(null); setLoading(true); fetchData(); }} className="ml-auto px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+              Tentar novamente
+            </button>
+          </div>
+        )}
         {/* Cards de Acesso Rápido */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {/* Não Conformidades */}
