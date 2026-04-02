@@ -28,6 +28,14 @@ const TUTORIALS: Tutorial[] = [
     slides: 16,
     url: '/tutorials/producao/index.html',
   },
+  {
+    id: 'comercial',
+    title: 'Módulo Comercial',
+    description: 'Pipeline, orçamentos, clientes, preços e propostas PDF',
+    icon: '💼',
+    slides: 18,
+    url: '/tutorials/comercial/index.html',
+  },
 ];
 
 // ============================================

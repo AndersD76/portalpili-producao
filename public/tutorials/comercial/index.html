@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Pili - Módulo Comercial</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #fff; overflow: hidden; height: 100vh; }
+  .slide-container { width: 100vw; height: 100vh; display: flex; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  .slide { min-width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 60px; position: relative; }
+  .slide-1 { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1a1a2e 100%); }
+  .slide-2 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-3 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-4 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-5 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-6 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-7 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-8 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-9 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-10 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-11 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-12 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-13 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-14 { background: linear-gradient(135deg, #1a1a2e 0%, #2d1b3d 100%); }
+  .slide-15 { background: linear-gradient(135deg, #1a1a2e 0%, #1e3a5f 100%); }
+  .slide-16 { background: linear-gradient(135deg, #1a1a2e 0%, #1b3d2d 100%); }
+  .slide-17 { background: linear-gradient(135deg, #1a1a2e 0%, #3d2d1b 100%); }
+  .slide-18 { background: linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #1a1a2e 100%); }
+  .slide-content { max-width: 1100px; width: 100%; display: flex; gap: 40px; align-items: center; }
+  .slide-content.centered { flex-direction: column; text-align: center; gap: 30px; }
+  .slide-text { flex: 1; }
+  .slide-image { flex: 1.2; }
+  .slide-image img { width: 100%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1); }
+  .slide-image.dual { display: flex; gap: 12px; }
+  .slide-image.dual img { width: 48%; }
+  .step-number { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #dc2626; border-radius: 50%; font-size: 20px; font-weight: 800; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(220,38,38,0.4); }
+  h1 { font-size: 48px; font-weight: 800; line-height: 1.1; margin-bottom: 10px; }
+  h2 { font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 14px; }
+  .subtitle { font-size: 17px; color: rgba(255,255,255,0.7); margin-bottom: 20px; line-height: 1.5; }
+  .narration-box { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 18px 22px; margin-top: 20px; position: relative; }
+  .narration-box::before { content: '🎙 Narração'; position: absolute; top: -10px; left: 16px; background: #dc2626; color: white; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .narration-box p { font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.7; font-style: italic; }
+  .highlight-list { list-style: none; margin-top: 14px; }
+  .highlight-list li { padding: 6px 0; padding-left: 24px; position: relative; font-size: 15px; color: rgba(255,255,255,0.85); }
+  .highlight-list li::before { content: ''; position: absolute; left: 0; top: 13px; width: 10px; height: 10px; background: #dc2626; border-radius: 3px; }
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px 40px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); z-index: 100; border-top: 1px solid rgba(255,255,255,0.1); }
+  .nav-btn { padding: 10px 28px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .nav-btn.prev { background: rgba(255,255,255,0.1); color: white; }
+  .nav-btn.prev:hover { background: rgba(255,255,255,0.2); }
+  .nav-btn.next { background: #dc2626; color: white; }
+  .nav-btn.next:hover { background: #b91c1c; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .progress-dots { display: flex; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: all 0.3s; cursor: pointer; }
+  .dot.active { background: #dc2626; transform: scale(1.3); }
+  .slide-counter { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .fade-in { opacity: 0; transform: translateY(20px); animation: fadeUp 0.6s ease forwards; }
+  .fade-in.d1 { animation-delay: 0.1s; } .fade-in.d2 { animation-delay: 0.3s; } .fade-in.d3 { animation-delay: 0.5s; } .fade-in.d4 { animation-delay: 0.7s; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  .kbd-hint { position: fixed; top: 14px; right: 20px; font-size: 11px; color: rgba(255,255,255,0.3); z-index: 100; }
+  .kbd-hint kbd { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); }
+
+  /* Voice button */
+  .voice-btn { position: fixed; top: 14px; left: 16px; z-index: 100; display: flex; align-items: center; gap: 8px; padding: 7px 14px; background: rgba(220,38,38,0.9); border: none; border-radius: 20px; color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; backdrop-filter: blur(10px); }
+  .voice-btn:hover { background: rgba(220,38,38,1); transform: scale(1.05); }
+  .voice-btn.speaking { background: rgba(34,197,94,0.9); }
+  .voice-btn.speaking:hover { background: rgba(34,197,94,1); }
+  .voice-pulse { width: 10px; height: 10px; border-radius: 50%; background: white; }
+  .voice-btn.speaking .voice-pulse { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+  .badge-red { background: #dc2626; color: white; }
+  .badge-green { background: #16a34a; color: white; }
+  .badge-yellow { background: #d97706; color: white; }
+  .badge-blue { background: #2563eb; color: white; }
+  .badge-orange { background: #ea580c; color: white; }
+  .badge-purple { background: #7c3aed; color: white; }
+  .badge-cyan { background: #0891b2; color: white; }
+</style>
+</head>
+<body>
+<div class="kbd-hint">Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> para navegar</div>
+<button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">
+  <div class="voice-pulse"></div>
+  <span id="voiceLabel">🔊 Narrar</span>
+</button>
+<div class="slide-container" id="slideContainer">
+
+  <!-- SLIDE 1: Capa -->
+  <div class="slide slide-1">
+    <div class="slide-content centered">
+      <div class="fade-in">
+        <div style="font-size: 72px; font-weight: 900; letter-spacing: -3px;">Módulo <span style="color: #fecaca;">Comercial</span></div>
+        <p style="font-size: 22px; color: rgba(255,255,255,0.8); margin-top: 12px;">Gestão de oportunidades, orçamentos e vendas</p>
+        <div style="margin-top: 36px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">Pipeline</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">OPORTUNIDADES</div></div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">Kanban</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">VISÃO POR ESTÁGIO</div></div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">CRM</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">CLIENTES E PREÇOS</div></div>
+          <div style="width: 1px; background: rgba(255,255,255,0.2);"></div>
+          <div style="text-align: center;"><div style="font-size: 28px; font-weight: 800;">PDF</div><div style="font-size: 12px; color: rgba(255,255,255,0.5);">PROPOSTAS AUTOMÁTICAS</div></div>
+        </div>
+      </div>
+      <div class="narration-box fade-in d2" style="max-width: 700px;">
+        <p>Olá! Neste tutorial vamos conhecer o Módulo Comercial do Portal Pili. Você vai aprender a gerenciar o pipeline de vendas, visualizar oportunidades no kanban, cadastrar clientes, consultar preços, configurar orçamentos e gerar propostas comerciais em PDF. Vamos começar!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Pipeline Lista (100112) -->
+  <div class="slide slide-2">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">1</div>
+        <h2 class="fade-in d1">Pipeline de Vendas</h2>
+        <p class="subtitle fade-in d2">Visão completa de todas as oportunidades comerciais</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Lista com <strong>todos os clientes</strong> e valores das propostas</li>
+          <li>Colunas: Cliente, Valor, Prod., Estágio, Status, Corretor, Data</li>
+          <li>Filtros por <strong>vendedor</strong> na barra lateral esquerda</li>
+          <li>Botões: <strong>Buscar Dados</strong> e <strong>Gerar Lista PDF</strong></li>
+          <li>Filtros rápidos: Estágio, Status, Produto, Vendedor</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Aqui está o Pipeline de Vendas, a tela principal do módulo comercial. Você vê todas as oportunidades em formato de tabela, com o nome do cliente, o valor da proposta, o produto, o estágio atual e o vendedor responsável. Na lateral esquerda, pode filtrar por vendedor. Use os botões "Buscar Dados" e "Gerar Lista PDF" ali em cima para consultas e relatórios.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100112.png" alt="Pipeline de Vendas">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Pipeline - Consultar Receita (100136) -->
+  <div class="slide slide-3">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">2</div>
+        <h2 class="fade-in d1">Consultar Receita Federal</h2>
+        <p class="subtitle fade-in d2">Busque dados atualizados direto da Receita Federal</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Selecione as propostas desejadas com o <strong>checkbox</strong></li>
+          <li>O rodapé mostra quantas propostas estão selecionadas</li>
+          <li>Clique em <strong>"Consultar Receita Federal"</strong></li>
+          <li>Os dados do CNPJ são atualizados automaticamente</li>
+          <li>Útil para validar informações de clientes novos</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Uma funcionalidade muito útil: selecione as propostas que quiser usando os checkboxes à esquerda. No rodapé aparece o total de selecionadas e o botão "Consultar Receita Federal". Com um clique, o sistema busca os dados atualizados do CNPJ direto na Receita e atualiza o cadastro automaticamente.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100136.png" alt="Consultar Receita Federal">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Pipeline - Gerar PDF (100204) -->
+  <div class="slide slide-4">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">3</div>
+        <h2 class="fade-in d1">Gerar Lista em PDF</h2>
+        <p class="subtitle fade-in d2">Exporte as propostas selecionadas para PDF</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Selecione propostas específicas ou filtre por vendedor</li>
+          <li>Botão <strong>"Gerar PDF"</strong> aparece no rodapé</li>
+          <li>Gera relatório formatado com todos os dados</li>
+          <li>Ideal para reuniões e apresentações comerciais</li>
+          <li>Também permite <strong>cancelar</strong> a seleção</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Você também pode gerar um PDF com as propostas selecionadas. Basta marcar as que deseja, e o botão "Gerar PDF" aparece no rodapé junto com a opção de cancelar. O relatório sai formatado e pronto para usar em reuniões ou enviar para a diretoria.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100204.png" alt="Gerar Lista PDF">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Dashboard Top (100246) -->
+  <div class="slide slide-5">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">4</div>
+        <h2 class="fade-in d1">Dashboard Comercial</h2>
+        <p class="subtitle fade-in d2">Indicadores e KPIs de desempenho</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>KPIs:</strong> Receita, Ticket Médio, Conversão, Forecast, Total de Propostas</li>
+          <li><strong>Pipeline por Estágio:</strong> barras coloridas com valores</li>
+          <li><strong>Por Produto:</strong> distribuição entre Tombador e Coletor</li>
+          <li><strong>Ranking Vendedores:</strong> com valores de cada vendedor</li>
+          <li>Filtros por período e tipo de ordenação</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>O Dashboard Comercial traz todos os indicadores importantes num só lugar. No topo, os KPIs mostram a receita total, o ticket médio, a taxa de conversão, o forecast e o número de propostas. Logo abaixo, veja o pipeline distribuído por estágio e por produto, e o ranking dos vendedores com os valores individuais.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100246.png" alt="Dashboard Comercial - KPIs">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Dashboard Bottom (100302) -->
+  <div class="slide slide-6">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">5</div>
+        <h2 class="fade-in d1">Distribuição e Oportunidades</h2>
+        <p class="subtitle fade-in d2">Análise detalhada do funil de vendas</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>Distribuição por Estágio:</strong> gráfico de barras colorido</li>
+          <li>Estágios: <span class="badge badge-blue">Análise</span> <span class="badge badge-orange">Negociação</span> <span class="badge badge-green">Fechada</span> <span class="badge badge-red">Perdida</span></li>
+          <li><strong>Últimas Oportunidades:</strong> tabela com dados recentes</li>
+          <li>Mostra cliente, estágio, valor e vendedor responsável</li>
+          <li>Atualizado em tempo real conforme o pipeline evolui</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Rolando a página do dashboard, você encontra a distribuição por estágio num gráfico de barras bem visual. Cada cor representa um estágio: azul para análise, laranja para negociação, verde para fechadas e vermelho para perdidas. Logo abaixo, a tabela de últimas oportunidades mostra as movimentações mais recentes do pipeline.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100302.png" alt="Dashboard - Distribuição e Últimas Oportunidades">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Kanban (100322) -->
+  <div class="slide slide-7">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">6</div>
+        <h2 class="fade-in d1">Visão Kanban</h2>
+        <p class="subtitle fade-in d2">Arraste e acompanhe cada oportunidade por estágio</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Colunas por estágio: <span class="badge badge-blue">Em Análise</span> <span class="badge badge-orange">Negociação</span> <span class="badge badge-purple">Pré-Negociação</span></li>
+          <li><span class="badge badge-green">Fechada</span> <span class="badge badge-red">Perdida</span> <span class="badge badge-cyan">Troca</span></li>
+          <li>Cards com <strong>cliente, valor e vendedor</strong></li>
+          <li>Filtros: <strong>Todos Vendedores</strong> e <strong>Todos Produtos</strong></li>
+          <li>Total de valor por coluna no cabeçalho</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>A visão Kanban organiza as oportunidades em colunas por estágio. Cada card mostra o cliente, o valor e o vendedor. No topo de cada coluna aparece o total de propostas e o valor somado. Você pode filtrar por vendedor ou por produto, e arrastar os cards entre as colunas para atualizar o estágio.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100322.png" alt="Kanban">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Clientes (100343) -->
+  <div class="slide slide-8">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">7</div>
+        <h2 class="fade-in d1">Cadastro de Clientes</h2>
+        <p class="subtitle fade-in d2">Base completa de clientes com dados da Receita Federal</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Lista com <strong>CNPJ, razão social, cidade, UF, vendedor</strong></li>
+          <li>Indicadores: total de clientes e <strong>faturamento</strong></li>
+          <li>Filtros por nome, segmento e vendedor</li>
+          <li>Botão <strong>"+ Novo"</strong> para cadastrar cliente manual</li>
+          <li>Dados atualizáveis via consulta à Receita Federal</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Na tela de Clientes você encontra toda a base cadastral. A tabela mostra CNPJ, razão social, cidade, estado e o vendedor responsável. No topo, os indicadores mostram o total de clientes e o faturamento. Use os filtros para buscar rapidamente, e o botão "Novo" para cadastrar um cliente que ainda não está na base.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100343.png" alt="Clientes">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Preços (100403) -->
+  <div class="slide slide-9">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">8</div>
+        <h2 class="fade-in d1">Tabela de Preços</h2>
+        <p class="subtitle fade-in d2">Preços base de todos os equipamentos</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Abas: <strong>Preços Base</strong>, <strong>Opcionais</strong> e filtro por produto</li>
+          <li>Lista com produto, modelo, comprimento e descrição</li>
+          <li>Preço base em destaque na coluna verde</li>
+          <li>Tipos: <span class="badge badge-red">FIXO</span> e <span class="badge badge-green">MÓVEL</span></li>
+          <li>Produtos: <strong>COLETOR</strong> e <strong>TOMBADOR</strong> em vários tamanhos</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>A tabela de preços reúne todos os equipamentos disponíveis com seus valores base. Você pode alternar entre preços base e opcionais nas abas do topo, e filtrar por produto. Cada linha mostra o tipo — fixo ou móvel —, o modelo, o comprimento e o preço correspondente. Esses valores alimentam automaticamente o configurador de orçamento.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100403.png" alt="Preços Base">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Materiais de Apoio (100425) -->
+  <div class="slide slide-10">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">9</div>
+        <h2 class="fade-in d1">Materiais de Apoio</h2>
+        <p class="subtitle fade-in d2">Repositório de materiais comerciais para a equipe</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Cards com <strong>título, tipo e descrição</strong> do material</li>
+          <li>Categorias: <span class="badge badge-red">Flyer</span>, folders, catálogos</li>
+          <li>Botões de <strong>Download</strong> e <strong>Enviar</strong> por WhatsApp</li>
+          <li>Filtro por categoria no topo da página</li>
+          <li>Materiais técnicos como informativos de tombador</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Aqui ficam os materiais de apoio comercial — folders, flyers, catálogos técnicos. Cada material tem um card com o título, a categoria e a descrição. Você pode baixar direto pelo botão "Download" ou compartilhar por WhatsApp clicando em "Enviar". Use o filtro no topo para encontrar o que precisa.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100425.png" alt="Materiais de Apoio">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Configurador - Dados do Cliente Vazio (100442) -->
+  <div class="slide slide-11">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">10</div>
+        <h2 class="fade-in d1">Configurador de Orçamento</h2>
+        <p class="subtitle fade-in d2">Passo 1: Dados do Cliente</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Informe o <strong>CNPJ</strong> — os dados são buscados automaticamente</li>
+          <li>Campos: empresa, nome de contato, decisor de compra</li>
+          <li>Telefone e e-mail do decisor são obrigatórios</li>
+          <li>Resumo do orçamento aparece à direita</li>
+          <li>Aceite os <strong>termos e condições</strong> para prosseguir</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>O Configurador de Orçamento é onde você monta a proposta comercial passo a passo. Comece digitando o CNPJ do cliente: o sistema busca os dados automaticamente pela Receita Federal. Preencha o nome do contato, o decisor de compra com telefone e e-mail, aceite os termos e clique em "Continuar".</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100442.png" alt="Configurador - Dados do Cliente">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Configurador - Dados Preenchidos (100547) -->
+  <div class="slide slide-12">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">11</div>
+        <h2 class="fade-in d1">Dados Preenchidos</h2>
+        <p class="subtitle fade-in d2">O CNPJ preencheu automaticamente os dados da empresa</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>CNPJ validado:</strong> razão social preenchida automaticamente</li>
+          <li>Nome do contato e decisor de compra informados</li>
+          <li>Telefone e e-mail do decisor obrigatórios</li>
+          <li>Checkbox de <strong>termos e condições</strong> marcado</li>
+          <li>Botão <strong>"Continuar"</strong> habilitado para avançar</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Veja como fica com os dados preenchidos: o CNPJ foi validado e a razão social apareceu automaticamente. O contato, o decisor, o telefone e o e-mail já estão informados. Com os termos aceitos, o botão "Continuar" fica vermelho e você pode avançar para escolher o produto.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100547.png" alt="Configurador - Dados Preenchidos">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Configurador - Produto e Modelo (100610) -->
+  <div class="slide slide-13">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">12</div>
+        <h2 class="fade-in d1">Produto e Modelo</h2>
+        <p class="subtitle fade-in d2">Passo 2: Escolha o equipamento e o tamanho</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Selecione o tipo: <strong>TOMBADOR</strong> ou <strong>COLETOR</strong></li>
+          <li>Modelos com comprimento e preço listados</li>
+          <li>Clique no modelo desejado para selecionar</li>
+          <li>O <strong>resumo à direita</strong> atualiza com o preço base</li>
+          <li>Total calculado automaticamente</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>No segundo passo, você escolhe o produto — Tombador ou Coletor — e depois o modelo específico com o comprimento e o preço. Basta clicar no modelo desejado e ele fica destacado. O resumo na lateral direita já atualiza mostrando o preço base e o total parcial da proposta.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100610.png" alt="Produto e Modelo">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Configurador - Opcionais (100635) -->
+  <div class="slide slide-14">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">13</div>
+        <h2 class="fade-in d1">Opcionais</h2>
+        <p class="subtitle fade-in d2">Passo 3: Adicione itens opcionais ao equipamento</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>Aplicação do Cilindro:</strong> inversão, submersão</li>
+          <li><strong>Controle Pili Tech:</strong> sistema de automação</li>
+          <li><strong>Central Hidráulica:</strong> diferentes motores e capacidades</li>
+          <li><strong>Enclausuramento:</strong> com ou sem proteção</li>
+          <li>Cada opcional atualiza o <strong>total na lateral</strong></li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Agora vem a parte dos opcionais. Você pode adicionar itens como aplicação do cilindro, controle Pili Tech, central hidráulica com diferentes motores e enclausuramento. Cada item que você marca atualiza o total do orçamento na lateral direita em tempo real. Escolha os opcionais conforme a necessidade do cliente.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100635.png" alt="Opcionais">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Configurador - Condições Comerciais (100659) -->
+  <div class="slide slide-15">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">14</div>
+        <h2 class="fade-in d1">Condições Comerciais</h2>
+        <p class="subtitle fade-in d2">Passo 4: Defina desconto, prazo e forma de pagamento</p>
+        <ul class="highlight-list fade-in d3">
+          <li><strong>Travas:</strong> escolha entre chapa fixa ou rotativa</li>
+          <li><strong>Travas Pino:</strong> sem trava ou com trava plina</li>
+          <li>Campo de <strong>desconto</strong> em percentual</li>
+          <li><strong>Prazo de entrega:</strong> em dias corridos</li>
+          <li><strong>Forma de pagamento</strong> e observações adicionais</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>No último passo de configuração, você define as condições comerciais. Escolha o tipo de trava, informe o desconto em percentual, o prazo de entrega em dias e a forma de pagamento. Pode adicionar observações especiais no campo de texto. O total final aparece à direita, já com o desconto aplicado.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100659.png" alt="Condições Comerciais">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: Enviar para Análise (100713) -->
+  <div class="slide slide-16">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">15</div>
+        <h2 class="fade-in d1">Enviar para Análise</h2>
+        <p class="subtitle fade-in d2">Confirmação e envio da proposta ao setor comercial</p>
+        <ul class="highlight-list fade-in d3">
+          <li>Clique em <strong>"Enviar para Análise Comercial"</strong></li>
+          <li>Diálogo de confirmação mostra resumo: cliente, produto e valor</li>
+          <li>O analista comercial recebe via <strong>WhatsApp</strong> o link</li>
+          <li>Opções: <strong>"Sim, Enviar"</strong> ou <strong>"Cancelar"</strong></li>
+          <li>A proposta entra no pipeline como <span class="badge badge-blue">Em Análise</span></li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>Quando tudo estiver pronto, clique no botão "Enviar para Análise Comercial". Um diálogo aparece com o resumo da proposta: cliente, produto e valor total. Confirme clicando em "Sim, Enviar" e a proposta é enviada automaticamente por WhatsApp ao analista comercial. Ela entra no pipeline com o estágio "Em Análise".</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100713.png" alt="Enviar para Análise">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: PDF Gerado (100736) -->
+  <div class="slide slide-17">
+    <div class="slide-content">
+      <div class="slide-text">
+        <div class="step-number fade-in">16</div>
+        <h2 class="fade-in d1">Proposta Comercial em PDF</h2>
+        <p class="subtitle fade-in d2">Documento profissional gerado automaticamente</p>
+        <ul class="highlight-list fade-in d3">
+          <li>PDF com <strong>cabeçalho Pili Equipamentos Industriais</strong></li>
+          <li>Dados completos do cliente e do vendedor</li>
+          <li>Tabela de equipamentos com descrição e preço</li>
+          <li>Lista de opcionais inclusos com valores</li>
+          <li><strong>Condições comerciais:</strong> prazo, pagamento e total</li>
+        </ul>
+        <div class="narration-box fade-in d4">
+          <p>E aqui está o resultado final: a proposta comercial em PDF, gerada automaticamente pelo sistema. O documento sai profissional, com o cabeçalho da Pili, todos os dados do cliente, a tabela de equipamentos com preços, os opcionais e as condições comerciais. Tudo pronto para enviar ao cliente ou imprimir.</p>
+        </div>
+      </div>
+      <div class="slide-image fade-in d2">
+        <img src="Captura de tela 2026-04-02 100736.png" alt="Proposta Comercial PDF">
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Encerramento -->
+  <div class="slide slide-18">
+    <div class="slide-content centered">
+      <div class="fade-in">
+        <div style="font-size: 56px; font-weight: 900; letter-spacing: -2px;">Módulo Comercial</div>
+        <p style="font-size: 24px; color: rgba(255,255,255,0.8); margin-top: 8px;">Resumo das funcionalidades</p>
+      </div>
+      <div class="fade-in d2" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 16px;">
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📊</div>
+          <div style="font-size: 13px; font-weight: 700;">Pipeline</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Lista e filtros de vendas</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📋</div>
+          <div style="font-size: 13px; font-weight: 700;">Kanban</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Visão por estágio</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">👥</div>
+          <div style="font-size: 13px; font-weight: 700;">Clientes</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Base com CNPJ e Receita</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">💰</div>
+          <div style="font-size: 13px; font-weight: 700;">Preços</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Base e opcionais</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">⚙️</div>
+          <div style="font-size: 13px; font-weight: 700;">Orçamento</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Configurador completo</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 18px 24px; text-align: center; width: 160px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📄</div>
+          <div style="font-size: 13px; font-weight: 700;">Propostas PDF</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px;">Geração automática</div>
+        </div>
+      </div>
+      <div class="narration-box fade-in d3" style="max-width: 700px;">
+        <p>E esse é o Módulo Comercial! Com ele, você gerencia todo o ciclo de vendas — desde a prospecção até o envio da proposta. Use o pipeline e o kanban para acompanhar as oportunidades, o cadastro de clientes e preços como base de dados, e o configurador de orçamento para montar propostas profissionais com geração automática de PDF. Qualquer dúvida, fale com o setor de TI. Boas vendas!</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav-bar">
+  <button class="nav-btn prev" id="prevBtn" onclick="changeSlide(-1)">&#8592; Anterior</button>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+    <div class="progress-dots" id="dots"></div>
+    <span class="slide-counter" id="counter">1 / 18</span>
+  </div>
+  <button class="nav-btn next" id="nextBtn" onclick="changeSlide(1)">Próximo &#8594;</button>
+</div>
+
+<script>
+  const totalSlides = 18;
+  let currentSlide = 0;
+  let voiceEnabled = false;
+  let ptVoice = null;
+  const container = document.getElementById('slideContainer');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const dotsContainer = document.getElementById('dots');
+  const voiceBtn = document.getElementById('voiceBtn');
+  const voiceLabel = document.getElementById('voiceLabel');
+
+  // Find best Portuguese voice
+  function findPtVoice() {
+    const voices = speechSynthesis.getVoices();
+    const preferred = ['Google', 'Microsoft', 'Luciana', 'Francisca', 'Daniel', 'Fernanda', 'Natural'];
+    let best = null;
+    for (const v of voices) {
+      if (v.lang.startsWith('pt')) {
+        if (!best) best = v;
+        for (const p of preferred) {
+          if (v.name.includes(p)) { best = v; break; }
+        }
+      }
+    }
+    ptVoice = best;
+  }
+  speechSynthesis.onvoiceschanged = findPtVoice;
+  findPtVoice();
+
+  function speak(text) {
+    speechSynthesis.cancel();
+    if (!voiceEnabled || !text) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'pt-BR';
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    if (ptVoice) utter.voice = ptVoice;
+    utter.onstart = () => { voiceBtn.classList.add('speaking'); voiceLabel.textContent = '⏸ Pausar'; };
+    utter.onend = () => { voiceBtn.classList.remove('speaking'); voiceLabel.textContent = '🔊 Narrar'; };
+    speechSynthesis.speak(utter);
+  }
+
+  function getNarration(slideIndex) {
+    const slide = document.querySelectorAll('.slide')[slideIndex];
+    if (!slide) return '';
+    const box = slide.querySelector('.narration-box p');
+    return box ? box.textContent : '';
+  }
+
+  function toggleVoice() {
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+      voiceBtn.classList.remove('speaking');
+      voiceLabel.textContent = '🔊 Narrar';
+      voiceEnabled = false;
+      return;
+    }
+    voiceEnabled = true;
+    speak(getNarration(currentSlide));
+  }
+
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+  function goToSlide(n) {
+    currentSlide = n;
+    container.style.transform = `translateX(-${currentSlide * 100}vw)`;
+    counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+    prevBtn.disabled = currentSlide === 0;
+    nextBtn.disabled = currentSlide === totalSlides - 1;
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+    const slide = document.querySelectorAll('.slide')[currentSlide];
+    slide.querySelectorAll('.fade-in').forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; });
+    // Auto-narrate if voice is on
+    if (voiceEnabled) {
+      setTimeout(() => speak(getNarration(currentSlide)), 600);
+    }
+  }
+  function changeSlide(dir) { const next = currentSlide + dir; if (next >= 0 && next < totalSlides) goToSlide(next); }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+  });
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
+  document.addEventListener('touchend', e => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+</script>
+</body>
+</html>
