@@ -161,6 +161,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetch(`/api/auth/permissoes?usuario_id=${user.id}`);
+      if (response.status === 401) {
+        // Token JWT expirado — fazer logout automático
+        console.warn('[AuthContext] Token expirado (401), redirecionando para login');
+        localStorage.removeItem('authenticated');
+        localStorage.removeItem('user_data');
+        clearPermissoesCache();
+        setUser(null);
+        setIsAdmin(false);
+        setPermissoes([]);
+        setAuthenticated(false);
+        setLoading(false);
+        router.push('/login');
+        return;
+      }
       if (response.ok) {
         const data = await response.json();
         if (data.success) {

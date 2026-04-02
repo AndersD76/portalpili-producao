@@ -93,6 +93,12 @@ export default function ProducaoHome() {
       const response = await fetch('/api/opds', {
         cache: 'no-store',
       });
+
+      if (response.status === 401) {
+        router.push('/login');
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {

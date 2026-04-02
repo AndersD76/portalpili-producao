@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         perfil_id: usuario.perfil_id
       },
       JWT_SECRET,
-      { expiresIn: '8h' }
+      { expiresIn: '7d' }
     );
 
     // Remover senha_hash do retorno
@@ -97,14 +97,14 @@ export async function POST(request: Request) {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 8 // 8 horas
+      maxAge: 60 * 60 * 24 * 7 // 7 dias
     });
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 8 // 8 horas
+      maxAge: 60 * 60 * 24 * 7 // 7 dias
     });
 
     return response;
