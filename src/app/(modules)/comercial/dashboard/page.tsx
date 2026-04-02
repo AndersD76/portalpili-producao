@@ -102,6 +102,7 @@ export default function DashboardComercialPage() {
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('');
   const [filtroDataFim, setFiltroDataFim] = useState<string>('');
   const [rankingSort, setRankingSort] = useState<'valor' | 'numero'>('valor');
+  const [rankingFilter, setRankingFilter] = useState<'todas' | 'fechadas' | 'negociacao'>('todas');
   const rankingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -296,11 +297,22 @@ export default function DashboardComercialPage() {
         };
       })
       .filter(v => v.totalOps > 0)
-      .sort((a, b) => rankingSort === 'valor'
-        ? (b.valorFechado + b.valorNegociacao) - (a.valorFechado + a.valorNegociacao)
-        : (b.fechadas + b.emNegociacao) - (a.fechadas + a.emNegociacao))
+      .sort((a, b) => {
+        const getVal = (x: typeof a) => {
+          if (rankingSort === 'valor') {
+            if (rankingFilter === 'fechadas') return x.valorFechado;
+            if (rankingFilter === 'negociacao') return x.valorNegociacao;
+            return x.valorFechado + x.valorNegociacao;
+          } else {
+            if (rankingFilter === 'fechadas') return x.fechadas;
+            if (rankingFilter === 'negociacao') return x.emNegociacao;
+            return x.fechadas + x.emNegociacao;
+          }
+        };
+        return getVal(b) - getVal(a);
+      })
       .slice(0, 10);
-  }, [vendedores, opsFiltradas, isAdmin, rankingSort]);
+  }, [vendedores, opsFiltradas, isAdmin, rankingSort, rankingFilter]);
 
   const oportunidadesRecentes = useMemo(() => {
     return [...opsFiltradas]
@@ -308,12 +320,6 @@ export default function DashboardComercialPage() {
       .slice(0, 8);
   }, [opsFiltradas]);
 
-  const proximasAtividades = useMemo(() => {
-    return atividades
-      .filter(a => !a.concluida)
-      .sort((a, b) => new Date(a.data_agendada || '9999').getTime() - new Date(b.data_agendada || '9999').getTime())
-      .slice(0, 6);
-  }, [atividades]);
 
   const handleShareRanking = useCallback(async () => {
     if (!rankingRef.current) return;
@@ -484,8 +490,8 @@ export default function DashboardComercialPage() {
           </div>
         </div>
 
-        {/* ROW 3: VENDEDOR RANKING (admin) + ATIVIDADES */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* ROW 3: VENDEDOR RANKING (admin) ou Oportunidades Recentes */}
+        <div className="grid grid-cols-1 gap-3">
           {/* Vendedor Ranking (admin) ou Oportunidades Recentes (vendedor) */}
           {isAdmin && vendedorRanking.length > 0 ? (
             <div className="bg-white rounded-lg border p-4">
@@ -502,6 +508,20 @@ export default function DashboardComercialPage() {
                       onClick={() => setRankingSort('numero')}
                       className={`px-2 py-0.5 transition ${rankingSort === 'numero' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
                     >N&ordm;</button>
+                  </div>
+                  <div className="flex rounded-md border border-gray-200 overflow-hidden text-[11px]">
+                    <button
+                      onClick={() => setRankingFilter('todas')}
+                      className={`px-2 py-0.5 transition ${rankingFilter === 'todas' ? 'bg-gray-700 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >Todas</button>
+                    <button
+                      onClick={() => setRankingFilter('fechadas')}
+                      className={`px-2 py-0.5 transition ${rankingFilter === 'fechadas' ? 'bg-green-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >Fechadas</button>
+                    <button
+                      onClick={() => setRankingFilter('negociacao')}
+                      className={`px-2 py-0.5 transition ${rankingFilter === 'negociacao' ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                    >Negociação</button>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -523,15 +543,20 @@ export default function DashboardComercialPage() {
               </div>
               <div className="space-y-2 bg-white p-1">
                 {vendedorRanking.map((v, i) => {
-                  const maxValorBarra = rankingSort === 'valor'
-                    ? Math.max(...vendedorRanking.map(x => x.valorFechado + x.valorNegociacao), 1)
-                    : Math.max(...vendedorRanking.map(x => x.fechadas + x.emNegociacao), 1);
-                  const pctFechado = rankingSort === 'valor'
-                    ? (v.valorFechado / maxValorBarra) * 100
-                    : (v.fechadas / maxValorBarra) * 100;
-                  const pctNegociacao = rankingSort === 'valor'
-                    ? (v.valorNegociacao / maxValorBarra) * 100
-                    : (v.emNegociacao / maxValorBarra) * 100;
+                  const getBarVal = (x: typeof v) => {
+                    if (rankingSort === 'valor') {
+                      if (rankingFilter === 'fechadas') return { fechado: x.valorFechado, negociacao: 0 };
+                      if (rankingFilter === 'negociacao') return { fechado: 0, negociacao: x.valorNegociacao };
+                      return { fechado: x.valorFechado, negociacao: x.valorNegociacao };
+                    }
+                    if (rankingFilter === 'fechadas') return { fechado: x.fechadas, negociacao: 0 };
+                    if (rankingFilter === 'negociacao') return { fechado: 0, negociacao: x.emNegociacao };
+                    return { fechado: x.fechadas, negociacao: x.emNegociacao };
+                  };
+                  const maxValorBarra = Math.max(...vendedorRanking.map(x => { const b = getBarVal(x); return b.fechado + b.negociacao; }), 1);
+                  const vals = getBarVal(v);
+                  const pctFechado = (vals.fechado / maxValorBarra) * 100;
+                  const pctNegociacao = (vals.negociacao / maxValorBarra) * 100;
                   return (
                     <div key={v.id} className="flex items-center gap-2">
                       <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${
@@ -599,56 +624,6 @@ export default function DashboardComercialPage() {
             </div>
           )}
 
-          {/* Atividades */}
-          <div className="bg-white rounded-lg border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-gray-900 text-sm">Atividades</h2>
-              <Link href="/comercial/atividades" className="text-xs text-red-600 hover:text-red-700">Ver todas &rarr;</Link>
-            </div>
-
-            {/* Mini KPIs */}
-            <div className="grid grid-cols-4 gap-2 mb-3">
-              <MiniKpi label="Pendentes" value={atividadeTotais.pendentes} color="text-gray-700" />
-              <MiniKpi label="Atrasadas" value={atividadeTotais.atrasadas} color="text-red-600" />
-              <MiniKpi label="Próx. sem." value={atividadeTotais.proxima_semana} color="text-orange-600" />
-              <MiniKpi label="Concluídas" value={atividadeTotais.concluidas} color="text-green-600" />
-            </div>
-
-            {/* Lista */}
-            <div className="space-y-1.5">
-              {proximasAtividades.length === 0 ? (
-                <p className="text-gray-400 text-xs text-center py-4">Nenhuma atividade pendente</p>
-              ) : (
-                proximasAtividades.map(a => {
-                  const isAtrasada = a.data_agendada && new Date(a.data_agendada) < new Date();
-                  return (
-                    <div key={a.id} className={`flex items-center justify-between p-2 rounded-lg ${isAtrasada ? 'bg-red-50' : 'hover:bg-gray-50'} transition`}>
-                      <div className="min-w-0">
-                        <div className="text-xs font-medium text-gray-900 truncate">{a.titulo}</div>
-                        <div className="text-[10px] text-gray-400 truncate">{a.cliente_nome || a.oportunidade_titulo || '-'}</div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
-                          a.tipo === 'LIGACAO' ? 'bg-blue-100 text-blue-700' :
-                          a.tipo === 'EMAIL' ? 'bg-purple-100 text-purple-700' :
-                          a.tipo === 'REUNIAO' ? 'bg-green-100 text-green-700' :
-                          a.tipo === 'VISITA' ? 'bg-orange-100 text-orange-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {a.tipo}
-                        </span>
-                        {a.data_agendada && (
-                          <span className={`text-[10px] ${isAtrasada ? 'text-red-600 font-bold' : 'text-gray-400'}`}>
-                            {new Date(a.data_agendada).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
         </div>
 
         {/* ROW 4: DISTRIBUIÇÃO POR ESTÁGIO - barras verticais */}
@@ -720,14 +695,6 @@ function KpiCard({ label, value, sub, color, bg }: { label: string; value: strin
   );
 }
 
-function MiniKpi({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="text-center">
-      <div className={`text-lg font-bold ${color}`}>{value}</div>
-      <div className="text-[10px] text-gray-400">{label}</div>
-    </div>
-  );
-}
 
 function StageBarChart({ data }: { data: Array<{ key: string; label: string; corHex: string; qtd: number; valor: number }> }) {
   if (data.length === 0) return <p className="text-gray-400 text-xs text-center py-4">Sem dados</p>;
